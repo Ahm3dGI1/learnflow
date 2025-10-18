@@ -8,10 +8,10 @@ import Dashboard from "./pages/Dashboard";
 
 function Home() {
   return (
-    <div style={{ maxWidth: 720, margin: "64px auto", padding: 24 }}>
+    <div>
       <h1>It is LearnFlow! To be edited!</h1>
       <p>Simple and empty landing page.</p>
-      <div style={{ display: "flex", gap: 12 }}>
+      <div>
         <Link to="/login"><button>Log in</button></Link>
         <Link to="/signup"><button>Sign up</button></Link>
         <Link to="/dashboard"><button>Go to Dashboard</button></Link>

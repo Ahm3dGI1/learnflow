@@ -26,7 +26,7 @@ export default function Login() {
   }
 
   return (
-    <div style={{ maxWidth: 420, margin: "64px auto", padding: 24 }}>
+    <div>
       <h1>Log in</h1>
       {err && <p style={{ color: "crimson" }}>{err}</p>}
       <form onSubmit={onSubmit}>
@@ -34,8 +34,8 @@ export default function Login() {
         <input placeholder="Password" type="password" value={password} onChange={e=>setPassword(e.target.value)} required />
         <button type="submit">Log in</button>
       </form>
-      <button onClick={googleLogin} style={{ marginTop: 8 }}>Continue with Google</button>
-      <p style={{ marginTop: 16 }}>No account? <Link to="/signup">Sign up</Link></p>
+      <button onClick={googleLogin}>Continue with Google</button>
+      <p>No account? <Link to="/signup">Sign up</Link></p>
     </div>
   );
 }

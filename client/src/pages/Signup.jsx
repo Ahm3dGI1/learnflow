@@ -19,15 +19,15 @@ export default function Signup() {
   }
 
   return (
-    <div style={{ maxWidth: 420, margin: "64px auto", padding: 24 }}>
+    <div>
       <h1>Create account</h1>
-      {err && <p style={{ color: "crimson" }}>{err}</p>}
+      {err && <p>{err}</p>}
       <form onSubmit={onSubmit}>
         <input placeholder="Email" type="email" value={email} onChange={e=>setEmail(e.target.value)} required />
         <input placeholder="Password (≥6)" type="password" value={password} onChange={e=>setPassword(e.target.value)} required />
         <button type="submit">Sign up</button>
       </form>
-      <p style={{ marginTop: 16 }}>Already have an account? <Link to="/login">Log in</Link></p>
+      <p>Already have an account? <Link to="/login">Log in</Link></p>
     </div>
   );
 }
