@@ -1,16 +1,16 @@
 # LearnFlow Server
 
-Simple backend for quiz generation.
+Simple Flask backend for quiz generation.
 
 ## Setup
 
 ```bash
 cd server
-npm install
-npm run dev
+pip install -r requirements.txt
+python app.py
 ```
 
-Server runs on `http://localhost:5000`
+Server runs on `http://localhost:5000` (configurable via .env file)
 
 ## Endpoints
 
