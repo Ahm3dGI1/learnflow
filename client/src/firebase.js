@@ -1,4 +1,3 @@
-// firebase.js 
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 
@@ -15,6 +14,6 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-// const analytics = getAnalytics(app); --- IGNORE --- No need anles we want to use Google Analytics. 
+// const analytics = getAnalytics(app); --- IGNORE --- No need unless we want to use Google Analytics. 
 
 export const auth = getAuth(app);

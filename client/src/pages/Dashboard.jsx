@@ -1,4 +1,3 @@
-// src/pages/Dashboard.jsx
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import { useAuth } from "../auth/AuthContext";
