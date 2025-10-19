@@ -1,0 +1,7 @@
+# Assignment files - local only, not pushed to GitHub
+assignment-files/
+
+# Environment variables - never commit these!
+.env
+server/.env
+*/.env
