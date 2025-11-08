@@ -1,3 +1,5 @@
+import "./VideoPlayer.css";
+
 export default function VideoPlayer({ embedUrl }) {
   if (!embedUrl) return null;
 
