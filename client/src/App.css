@@ -84,7 +84,6 @@ body {
 /* Input Section */
 .input-section {
     width: 100%;
-    max-width: 700px;
     margin-bottom: 40px;
     animation: fadeInUp 0.8s ease 0.2s both;
 }
