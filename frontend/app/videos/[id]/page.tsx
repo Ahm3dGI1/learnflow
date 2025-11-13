@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ArrowLeft } from 'lucide-react'
-import { videoApi } from '@/frontend/lib/api'
-import { useVideoStore, useAuthStore } from '@/frontend/lib/store'
+import { videoApi } from '@/lib/api'
+import { useVideoStore, useAuthStore } from '@/lib/store'
 import { Video } from '@/types'
 import Link from 'next/link'
 
@@ -44,7 +44,7 @@ export default function VideoPage() {
     }
 
     fetchVideo()
-  }, [videoId, router, isAuthenticated, setCurrentVideo, setCurrentTime, setVideoContext])
+  }, [videoId, router, isAuthenticated, setCurrentVideo])
 
   if (!isAuthenticated) {
     return null

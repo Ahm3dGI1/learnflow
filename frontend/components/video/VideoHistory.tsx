@@ -1,13 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { Clock, Play } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { videoApi } from '@/frontend/lib/api'
+import { videoApi } from '@/lib/api'
 import { Video, VideoProgress } from '@/types'
-import { formatTime } from '@/frontend/lib/utils'
+import { formatTime } from '@/lib/utils'
 
 export function VideoHistory() {
   const [videos, setVideos] = useState<Video[]>([])
@@ -104,14 +105,12 @@ export function VideoHistory() {
                 <div className="relative aspect-video bg-muted">
                   {thumbnail ? (
                     <>
-                      <img
+                      <Image
                         src={thumbnail}
-                        alt={video.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                        onError={(e) => {
-                          // Fallback if image fails to load
-                          e.currentTarget.style.display = 'none'
-                        }}
+                        alt={video.title || 'Video thumbnail'}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-200"
+                        sizes="(max-width: 1024px) 100vw, 25vw"
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200 flex items-center justify-center">
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity">

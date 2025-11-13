@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { VideoTransformForm } from '@/components/video/VideoTransformForm'
 import { VideoHistory } from '@/components/video/VideoHistory'
-import { useAuthStore } from '@/frontend/lib/store'
+import { useAuthStore } from '@/lib/store'
 
 export default function LearnPage() {
   const router = useRouter()

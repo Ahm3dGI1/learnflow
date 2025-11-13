@@ -25,8 +25,11 @@ export function OpenEndedQuestion({
     setSubmitted(true)
     // In a real implementation, this would call the API to validate the answer
     // For now, we'll assume it's correct if it contains key terms
+    const normalizedAnswer = answer.toLowerCase()
     const correct = checkpoint.correctAnswer
-      ? answer.toLowerCase().includes(checkpoint.correctAnswer.toLowerCase())
+      ? Array.isArray(checkpoint.correctAnswer)
+        ? checkpoint.correctAnswer.some((ans) => normalizedAnswer.includes(ans.toLowerCase()))
+        : normalizedAnswer.includes(checkpoint.correctAnswer.toLowerCase())
       : true // If no correct answer specified, accept any answer
 
     onAnswer(answer, correct)

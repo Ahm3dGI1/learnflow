@@ -19,6 +19,20 @@ export function TrueFalseQuestion({
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
 
+  const resolveCorrectAnswer = () => {
+    const { correctAnswer } = checkpoint
+    if (Array.isArray(correctAnswer)) {
+      return correctAnswer.some((ans) => ans.toLowerCase() === 'true')
+    }
+    if (typeof correctAnswer === 'string') {
+      return correctAnswer.toLowerCase() === 'true'
+    }
+    if (typeof correctAnswer === 'boolean') {
+      return correctAnswer
+    }
+    return true
+  }
+
   const handleSelect = (option: 'True' | 'False') => {
     if (!submitted) {
       setSelectedAnswer(option)
@@ -29,7 +43,7 @@ export function TrueFalseQuestion({
     if (!selectedAnswer) return
 
     setSubmitted(true)
-    const correctAnswer = checkpoint.correctAnswer === 'True' || checkpoint.correctAnswer === true
+    const correctAnswer = resolveCorrectAnswer()
     const isCorrect = (selectedAnswer === 'True') === correctAnswer
 
     onAnswer(selectedAnswer, isCorrect)
@@ -42,7 +56,7 @@ export function TrueFalseQuestion({
         : 'hover:bg-muted'
     }
 
-    const correctAnswer = checkpoint.correctAnswer === 'True' || checkpoint.correctAnswer === true
+    const correctAnswer = resolveCorrectAnswer()
     const isCorrect = (option === 'True') === correctAnswer
 
     if (selectedAnswer === option) {

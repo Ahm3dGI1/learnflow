@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { videoApi } from '@/frontend/lib/api'
+import { videoApi } from '@/lib/api'
 import { useRouter } from 'next/navigation'
 
 const videoSchema = z.object({

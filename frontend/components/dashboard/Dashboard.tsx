@@ -6,9 +6,9 @@ import { VideoCard } from './VideoCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { videoApi } from '@/frontend/lib/api'
+import { videoApi } from '@/lib/api'
 import { Video, VideoProgress } from '@/types'
-import { useAuthStore } from '@/frontend/lib/store'
+import { useAuthStore } from '@/lib/store'
 import { PlayCircle, BookOpen, TrendingUp } from 'lucide-react'
 
 export function Dashboard() {
@@ -96,7 +96,7 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{inProgressVideos}</div>
-            <p className="text-xs text-muted-foreground">Videos you're watching</p>
+            <p className="text-xs text-muted-foreground">Videos you&apos;re watching</p>
           </CardContent>
         </Card>
 

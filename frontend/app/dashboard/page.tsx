@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Dashboard } from '@/components/dashboard/Dashboard'
-import { useAuthStore } from '@/frontend/lib/store'
+import { useAuthStore } from '@/lib/store'
 
 export default function DashboardPage() {
   const router = useRouter()

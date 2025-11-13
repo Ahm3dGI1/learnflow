@@ -1,11 +1,12 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { Play, Clock } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { formatTime } from '@/frontend/lib/utils'
+import { formatTime } from '@/lib/utils'
 import { Video } from '@/types'
 
 interface VideoCardProps {
@@ -20,10 +21,12 @@ export function VideoCard({ video, progress }: VideoCardProps) {
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       <div className="relative aspect-video bg-muted">
         {video.thumbnail ? (
-          <img
+          <Image
             src={video.thumbnail}
-            alt={video.title}
-            className="w-full h-full object-cover"
+            alt={video.title || 'Video thumbnail'}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">

@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useAuthStore } from '@/frontend/lib/store'
-import { authApi } from '@/frontend/lib/api'
+import { useAuthStore } from '@/lib/store'
+import { authApi } from '@/lib/api'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setUser } = useAuthStore()

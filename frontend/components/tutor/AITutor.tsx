@@ -1,13 +1,19 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  KeyboardEvent as ReactKeyboardEvent,
+} from 'react'
 import { Mic, MicOff, Send, X, Volume2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { useAITutorStore } from '@/frontend/lib/store'
+import { useAITutorStore } from '@/lib/store'
 import { AITutorMessage } from '@/types'
-import { tutorApi } from '@/frontend/lib/api'
+import { tutorApi } from '@/lib/api'
 
 interface AITutorProps {
   videoId: string
@@ -22,6 +28,41 @@ export function AITutor({ videoId, videoContext }: AITutorProps) {
   const recognitionRef = useRef<SpeechRecognition | null>(null)
 
   const { isOpen, messages: tutorMessages, setOpen, addMessage, clearMessages } = useAITutorStore()
+
+  const handleSendMessage = useCallback(
+    async (messageText?: string) => {
+      const text = messageText || input
+      if (!text.trim()) return
+
+      setIsProcessing(true)
+      const userMessage: AITutorMessage = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: text,
+        timestamp: new Date().toISOString(),
+      }
+
+      addMessage(userMessage)
+      setInput('')
+
+      try {
+        const response = await tutorApi.sendMessage(videoId, text, videoContext)
+        addMessage(response.data)
+      } catch (error) {
+        console.error('Error sending message:', error)
+        const errorMessage: AITutorMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: 'Sorry, I encountered an error. Please try again.',
+          timestamp: new Date().toISOString(),
+        }
+        addMessage(errorMessage)
+      } finally {
+        setIsProcessing(false)
+      }
+    },
+    [addMessage, input, videoContext, videoId]
+  )
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -66,7 +107,7 @@ export function AITutor({ videoId, videoContext }: AITutorProps) {
         recognitionRef.current.stop()
       }
     }
-  }, [])
+  }, [handleSendMessage])
 
   const startListening = () => {
     if (recognitionRef.current && !isListening) {
@@ -82,39 +123,7 @@ export function AITutor({ videoId, videoContext }: AITutorProps) {
     }
   }
 
-  const handleSendMessage = async (messageText?: string) => {
-    const text = messageText || input
-    if (!text.trim()) return
-
-    setIsProcessing(true)
-    const userMessage: AITutorMessage = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: text,
-      timestamp: new Date().toISOString(),
-    }
-
-    addMessage(userMessage)
-    setInput('')
-
-    try {
-      const response = await tutorApi.sendMessage(videoId, text, videoContext)
-      addMessage(response.data)
-    } catch (error) {
-      console.error('Error sending message:', error)
-      const errorMessage: AITutorMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date().toISOString(),
-      }
-      addMessage(errorMessage)
-    } finally {
-      setIsProcessing(false)
-    }
-  }
-
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyPress = (e: ReactKeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSendMessage()
@@ -122,13 +131,15 @@ export function AITutor({ videoId, videoContext }: AITutorProps) {
   }
 
   const speakText = (text: string) => {
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.rate = 1.0
-      utterance.pitch = 1.0
-      utterance.volume = 1.0
-      window.speechSynthesis.speak(utterance)
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      return
     }
+
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.rate = 1.0
+    utterance.pitch = 1.0
+    utterance.volume = 1.0
+    window.speechSynthesis.speak(utterance)
   }
 
   if (!isOpen) return null

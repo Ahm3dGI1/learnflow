@@ -5,7 +5,7 @@ import { FileText, BookOpen, StickyNote, CreditCard, Download, Loader2 } from 'l
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { studyMaterialApi } from '@/frontend/lib/api'
+import { studyMaterialApi } from '@/lib/api'
 import { StudyMaterial, Quiz, Summary, Notes, Flashcard } from '@/types'
 
 interface StudyMaterialGeneratorProps {

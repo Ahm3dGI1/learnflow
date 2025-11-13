@@ -1,5 +1,12 @@
 import axios from 'axios'
-import { Video, Checkpoint, CheckpointAnswer, StudyMaterial, AITutorMessage, User } from '@/types'
+import {
+  Video,
+  Checkpoint,
+  CheckpointAnswer,
+  StudyMaterial,
+  AITutorMessage,
+  User,
+} from '@/types'
 import {
   userStorage,
   videoStorage,
@@ -8,8 +15,37 @@ import {
   initStorage,
 } from './storage'
 
-// Initialize storage
-if (typeof window !== 'undefined') {
+const IS_BROWSER = typeof window !== 'undefined'
+
+const storage = {
+  getItem(key: string): string | null {
+    if (!IS_BROWSER) return null
+    try {
+      return window.localStorage.getItem(key)
+    } catch (error) {
+      console.warn(`localStorage.getItem failed for key "${key}"`, error)
+      return null
+    }
+  },
+  setItem(key: string, value: string) {
+    if (!IS_BROWSER) return
+    try {
+      window.localStorage.setItem(key, value)
+    } catch (error) {
+      console.warn(`localStorage.setItem failed for key "${key}"`, error)
+    }
+  },
+  removeItem(key: string) {
+    if (!IS_BROWSER) return
+    try {
+      window.localStorage.removeItem(key)
+    } catch (error) {
+      console.warn(`localStorage.removeItem failed for key "${key}"`, error)
+    }
+  },
+}
+
+if (IS_BROWSER) {
   initStorage()
 }
 
@@ -25,7 +61,7 @@ const USE_LOCAL_STORAGE = true // Set to false when backend is ready
 
 // Helper to get current user ID
 function getCurrentUserId(): string | null {
-  const userStr = localStorage.getItem('current_user')
+  const userStr = storage.getItem('current_user')
   if (!userStr) return null
   try {
     const user = JSON.parse(userStr)
@@ -41,6 +77,15 @@ async function simulateApi<T>(
   method: string,
   data?: any
 ): Promise<{ data: T }> {
+  if (!IS_BROWSER) {
+    throw {
+      response: {
+        status: 503,
+        data: { message: 'Local storage simulation is unavailable server-side.' },
+      },
+    }
+  }
+
   // Simulate network delay
   await new Promise((resolve) => setTimeout(resolve, 300))
 
@@ -52,9 +97,10 @@ async function simulateApi<T>(
     if (!user) {
       throw { response: { data: { message: 'Invalid credentials' } } }
     }
-    localStorage.setItem('current_user', JSON.stringify(user))
-    localStorage.setItem('token', `token-${Date.now()}`)
-    return { data: { user, token: localStorage.getItem('token') } as any }
+    const token = `token-${Date.now()}`
+    storage.setItem('current_user', JSON.stringify(user))
+    storage.setItem('token', token)
+    return { data: { user, token } as any }
   }
 
   if (endpoint === '/auth/register' && method === 'POST') {
@@ -66,15 +112,16 @@ async function simulateApi<T>(
       email: data.email,
       name: data.name,
     })
-    localStorage.setItem('current_user', JSON.stringify(user))
-    localStorage.setItem('token', `token-${Date.now()}`)
-    return { data: { user, token: localStorage.getItem('token') } as any }
+    const token = `token-${Date.now()}`
+    storage.setItem('current_user', JSON.stringify(user))
+    storage.setItem('token', token)
+    return { data: { user, token } as any }
   }
 
   if (endpoint === '/auth/me' && method === 'GET') {
-    const userStr = localStorage.getItem('current_user')
+    const userStr = storage.getItem('current_user')
     if (!userStr) throw { response: { status: 401 } }
-    return { data: JSON.parse(userStr) as User }
+    return { data: JSON.parse(userStr) as any }
   }
 
   // Video endpoints
@@ -149,13 +196,13 @@ async function simulateApi<T>(
 
 // Intercept requests
 api.interceptors.request.use(async (config) => {
-  const token = localStorage.getItem('token')
+  const token = storage.getItem('token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
 
   // Use localStorage if enabled
-  if (USE_LOCAL_STORAGE) {
+  if (USE_LOCAL_STORAGE && IS_BROWSER) {
     try {
       const response = await simulateApi(
         config.url || '',
@@ -193,7 +240,7 @@ api.interceptors.response.use(
     }
 
     // If API fails and we're using localStorage, try simulation
-    if (USE_LOCAL_STORAGE && !error.response) {
+    if (USE_LOCAL_STORAGE && IS_BROWSER && !error.response) {
       try {
         const response = await simulateApi(
           error.config?.url || '',
