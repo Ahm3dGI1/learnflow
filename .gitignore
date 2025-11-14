@@ -6,3 +6,5 @@ assignment-files/
 server/.env
 */.env
 
+/venv
+*.pyc

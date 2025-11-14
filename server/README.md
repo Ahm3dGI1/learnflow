@@ -1,12 +1,30 @@
 # LearnFlow Server
 
-Simple Flask backend for quiz generation.
+Simple Flask backend for quiz generation and AI-powered learning.
 
 ## Setup
 
 ```bash
 cd server
 pip install -r requirements.txt
+```
+
+### Environment Variables
+
+Copy `.env_template` to `.env` and fill in the required values:
+
+```bash
+cp ../.env_template ../.env
+```
+
+Required environment variables:
+- `PORT` - Server port (default: 5000)
+- `GEMINI_API_KEY` - Google AI API key for LearnLM integration ([Get your API key](https://aistudio.google.com/apikey))
+- `GEMINI_MODEL_NAME` - LearnLM model name (default: `learnlm-2.0-flash-experimental`)
+
+### Running the Server
+
+```bash
 python app.py
 ```
 
