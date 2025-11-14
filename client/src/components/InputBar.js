@@ -1,3 +1,5 @@
+import "./InputBar.css";
+
 export default function InputBar({ videoUrl, setVideoUrl, onSend }) {
     const handleKeyPress = (e) => {
         if (e.key === 'Enter') {
@@ -17,8 +19,8 @@ export default function InputBar({ videoUrl, setVideoUrl, onSend }) {
                     onKeyPress={handleKeyPress}
                     autoComplete="off"
                 />
-                <button 
-                    onClick={onSend} 
+                <button
+                    onClick={onSend}
                     className="submit-button"
                 >
                     Load Video
