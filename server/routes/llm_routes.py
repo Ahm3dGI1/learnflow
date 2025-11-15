@@ -4,57 +4,12 @@ Handles endpoints for checkpoint generation, chat, and other AI features.
 """
 
 from flask import Blueprint, request, jsonify
-import time
 from services import generate_checkpoints
+from utils import checkpoint_cache
 
 
 # Blueprint for LLM routes
 llm_bp = Blueprint('llm', __name__, url_prefix='/api/llm')
-
-# Simple in-memory cache for checkpoints
-checkpoint_cache = {}
-CACHE_TTL = 3600  # 1 hour in seconds
-
-
-def get_cached_checkpoints(video_id, language):
-    """
-    Retrieve cached checkpoints if available and not expired.
-
-    Args:
-        video_id (str): YouTube video ID
-        language (str): Language code
-
-    Returns:
-        dict or None: Cached checkpoint data or None if not found/expired
-    """
-    cache_key = f"{video_id}:{language}"
-    cached = checkpoint_cache.get(cache_key)
-
-    if cached:
-        # Check if cache is still valid
-        if time.time() - cached['timestamp'] < CACHE_TTL:
-            return cached['data']
-        else:
-            # Remove expired cache
-            del checkpoint_cache[cache_key]
-
-    return None
-
-
-def cache_checkpoints(video_id, language, checkpoints):
-    """
-    Cache checkpoint data.
-
-    Args:
-        video_id (str): YouTube video ID
-        language (str): Language code
-        checkpoints (dict): Checkpoint data to cache
-    """
-    cache_key = f"{video_id}:{language}"
-    checkpoint_cache[cache_key] = {
-        'data': checkpoints,
-        'timestamp': time.time()
-    }
 
 
 @llm_bp.route('/checkpoints/generate', methods=['POST'])
@@ -117,7 +72,8 @@ def generate_checkpoints_route():
         language_code = transcript_data.get('languageCode', 'en')
 
         # Check cache first
-        cached_data = get_cached_checkpoints(video_id, language_code)
+        cache_key = f"{video_id}:{language_code}"
+        cached_data = checkpoint_cache.get(cache_key)
         if cached_data:
             response = cached_data.copy()
             response['cached'] = True
@@ -127,7 +83,7 @@ def generate_checkpoints_route():
         checkpoints = generate_checkpoints(transcript_data, video_id)
 
         # Cache the result
-        cache_checkpoints(video_id, language_code, checkpoints)
+        checkpoint_cache.set(cache_key, checkpoints)
 
         # Add cached flag
         response = checkpoints.copy()
@@ -152,8 +108,7 @@ def clear_checkpoint_cache():
     Returns:
         {"message": "Cache cleared", "clearedItems": 5}
     """
-    cleared_count = len(checkpoint_cache)
-    checkpoint_cache.clear()
+    cleared_count = checkpoint_cache.clear()
     return jsonify({
         'message': 'Cache cleared',
         'clearedItems': cleared_count
@@ -170,5 +125,5 @@ def health_check():
     """
     return jsonify({
         'status': 'ok',
-        'cacheSize': len(checkpoint_cache)
+        'cacheSize': checkpoint_cache.size()
     }), 200
