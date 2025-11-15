@@ -3,12 +3,16 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 import os
 import random
+from routes import llm_bp
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
+
+# Register blueprints
+app.register_blueprint(llm_bp)
 
 # Get port from environment or default to 5000
 PORT = int(os.getenv('PORT', 5000))
