@@ -62,7 +62,10 @@ def mmss_to_seconds(timestamp):
     if len(parts) != 2:
         raise ValueError(f"Invalid timestamp format: {timestamp}")
 
-    minutes, seconds = map(int, parts)
+    try:
+        minutes, seconds = map(int, parts)
+    except ValueError:
+        raise ValueError(f"Invalid numeric values in timestamp: {timestamp}")
     return minutes * 60 + seconds
 
 
