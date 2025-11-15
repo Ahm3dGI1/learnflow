@@ -29,23 +29,39 @@ curl -X POST http://localhost:5000/api/llm/checkpoints/generate \
   -d '{"videoId": "abc123", "transcript": {...}}'
 ```
 
----
+#### [Chat API](./chat.md)
+Conversational AI tutoring with Socratic questioning.
 
-### Coming Soon
+- **Endpoints:** 
+  - `POST /api/llm/chat/send` - Standard response
+  - `POST /api/llm/chat/stream` - Streaming response
+- **Purpose:** Interactive Q&A with context-aware AI tutor using video content
+- **Caching:** No caching (each conversation is unique)
+- **Documentation:** [Full Details](./chat.md)
 
-#### Chat API (Planned)
-Conversational AI tutoring for video content.
+**Quick Example:**
+```bash
+curl -X POST http://localhost:5000/api/llm/chat/send \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Why does this happen?", "videoContext": {...}}'
+```
 
-- **Endpoint:** `POST /api/llm/chat/message`
-- **Purpose:** Interactive Q&A with context-aware AI tutor
-- **Status:** Planned for next PR
+#### [Quiz API](./quiz.md)
+AI-powered multiple choice quiz generation from video transcripts.
 
-#### Quiz API v2 (Planned)
-LLM-powered quiz generation from video content.
+- **Endpoints:**
+  - `POST /api/llm/quiz/generate` - Generate quiz questions
+  - `POST /api/llm/quiz/cache/clear` - Clear quiz cache
+- **Purpose:** Generate multiple choice questions testing video content understanding
+- **Caching:** 1-hour TTL
+- **Documentation:** [Full Details](./quiz.md)
 
-- **Endpoint:** `POST /api/llm/quiz/generate`
-- **Purpose:** Generate adaptive quizzes from transcript subtopics
-- **Status:** Planned (current quiz endpoints use mock data)
+**Quick Example:**
+```bash
+curl -X POST http://localhost:5000/api/llm/quiz/generate \
+  -H "Content-Type: application/json" \
+  -d '{"videoId": "abc123", "transcript": {...}, "numQuestions": 5}'
+```
 
 ---
 
