@@ -33,6 +33,11 @@ def format_transcript_for_quiz(snippets):
                 f"Snippet at index {idx} is missing 'text' field"
             )
 
+        if 'start' not in snippet:
+            raise ValueError(
+                f"Snippet at index {idx} is missing 'start' field"
+            )
+
         text = snippet['text'].strip()
         formatted_lines.append(text)
 
@@ -69,9 +74,17 @@ def validate_quiz_response(response_data, expected_questions):
         if not all(field in question for field in required_fields):
             return False
 
+        # Check for empty question text
+        if not question['question'].strip():
+            return False
+
         # Validate options
         options = question['options']
         if not isinstance(options, list) or len(options) != 4:
+            return False
+
+        # Check for duplicate options (common LLM mistake)
+        if len(set(options)) != len(options):
             return False
 
         # Validate correctAnswer is valid index
