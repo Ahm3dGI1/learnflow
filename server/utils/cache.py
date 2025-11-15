@@ -94,3 +94,4 @@ class SimpleCache:
 
 # Global cache instances
 checkpoint_cache = SimpleCache(ttl=3600)  # 1 hour TTL
+quiz_cache = SimpleCache(ttl=3600)  # 1 hour TTL
