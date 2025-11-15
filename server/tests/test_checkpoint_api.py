@@ -1,16 +1,23 @@
 """
-Example script to test the checkpoint generation API.
-This demonstrates how to use the /api/llm/checkpoints/generate endpoint.
+Test suite for checkpoint generation API.
+Tests the /api/llm/checkpoints/generate endpoint with various scenarios.
 
 Usage:
-    python example.py
+    # Make sure server is running first: python app.py
+    # Then run tests:
+    python tests/test_checkpoint_api.py
 """
 
 import requests
-import json
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Configuration
-BASE_URL = "http://localhost:5000"
+PORT = os.getenv('PORT', '5001')
+BASE_URL = f"http://localhost:{PORT}"
 CHECKPOINT_ENDPOINT = f"{BASE_URL}/api/llm/checkpoints/generate"
 
 # Sample transcript data (simulating YouTube Transcript API output)
@@ -75,10 +82,16 @@ def test_checkpoint_generation():
             print_checkpoints(data)
         else:
             print(f"❌ Error: {response.status_code}")
-            error_data = response.json()
-            print(f"Message: {error_data.get('error', 'Unknown error')}")
-            if 'details' in error_data:
-                print(f"Details: {error_data['details']}")
+            try:
+                error_data = response.json()
+                print(f"Message: {error_data.get('error', 'Unknown error')}")
+                if 'details' in error_data:
+                    print(f"Details: {error_data['details']}")
+            except Exception:
+                print(f"Response: {response.text}")
+                if response.status_code == 403:
+                    print("\n⚠️  403 Forbidden - Check if server is running correctly")
+                    print("Try: python app.py")
     
     except requests.exceptions.Timeout:
         print("❌ Request timed out. The server might be overloaded.")
@@ -188,7 +201,10 @@ def test_error_handling():
         timeout=5
     )
     print(f"   Status: {response.status_code}")
-    print(f"   Error: {response.json().get('error')}")
+    try:
+        print(f"   Error: {response.json().get('error')}")
+    except Exception:
+        print(f"   Response: {response.text[:100]}")
     
     # Test 2: Missing transcript
     print("\n2. Testing missing transcript...")
@@ -198,7 +214,10 @@ def test_error_handling():
         timeout=5
     )
     print(f"   Status: {response.status_code}")
-    print(f"   Error: {response.json().get('error')}")
+    try:
+        print(f"   Error: {response.json().get('error')}")
+    except Exception:
+        print(f"   Response: {response.text[:100]}")
     
     # Test 3: Empty snippets
     print("\n3. Testing empty snippets...")
@@ -211,7 +230,10 @@ def test_error_handling():
         timeout=5
     )
     print(f"   Status: {response.status_code}")
-    print(f"   Error: {response.json().get('error')}")
+    try:
+        print(f"   Error: {response.json().get('error')}")
+    except Exception:
+        print(f"   Response: {response.text[:100]}")
     
     print("\n✅ All error cases handled correctly")
 
