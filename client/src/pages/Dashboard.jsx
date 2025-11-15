@@ -33,7 +33,7 @@ export default function Dashboard() {
         });
       }
     }
-  }, [embedUrl]);
+  }, [embedUrl, addToHistory]);
 
   const handleSelectFromHistory = (video) => {
     setVideoUrl(`https://www.youtube.com/watch?v=${video.videoId}`);
@@ -48,7 +48,7 @@ export default function Dashboard() {
 
   const handleClearAllHistory = () => {
     if (window.confirm('Clear all video history? This cannot be undone.')) {
-      clearHistory();
+        clearHistory();
     }
   };
 
