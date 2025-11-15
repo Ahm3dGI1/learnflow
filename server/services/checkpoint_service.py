@@ -135,7 +135,7 @@ def validate_checkpoint_response(response_data):
 
         # Validate timestamp format (MM:SS)
         timestamp = checkpoint['timestamp']
-        if not re.match(r'^\d{1,2}:\d{2}$', timestamp):
+        if not re.match(r'^\d{1,2}:[0-5]\d$', timestamp):
             return False
 
     return True
