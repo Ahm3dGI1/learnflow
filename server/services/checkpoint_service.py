@@ -22,10 +22,27 @@ def format_transcript_for_llm(snippets):
             [00:00] Hey there
             [00:01] how are you
             [00:05] today we'll learn about
+    
+    Raises:
+        ValueError: If snippet is missing required fields
     """
     formatted_lines = []
 
-    for snippet in snippets:
+    for idx, snippet in enumerate(snippets):
+        # Validate required fields
+        if not isinstance(snippet, dict):
+            raise ValueError(f"Snippet at index {idx} is not a dictionary")
+        
+        if 'start' not in snippet:
+            raise ValueError(
+                f"Snippet at index {idx} is missing 'start' field"
+            )
+        
+        if 'text' not in snippet:
+            raise ValueError(
+                f"Snippet at index {idx} is missing 'text' field"
+            )
+        
         timestamp = seconds_to_mmss(snippet['start'])
         text = snippet['text'].strip()
         formatted_lines.append(f"[{timestamp}] {text}")
