@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configuration
-PORT = os.getenv('PORT', '5001')
+PORT = os.getenv('PORT', '5000')
 BASE_URL = f"http://localhost:{PORT}"
 CHECKPOINT_ENDPOINT = f"{BASE_URL}/api/llm/checkpoints/generate"
 
