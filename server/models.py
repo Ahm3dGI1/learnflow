@@ -16,7 +16,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     Column, Integer, String, Text, Boolean,
-    ForeignKey, DateTime, UniqueConstraint
+    ForeignKey, DateTime, UniqueConstraint, Index, CheckConstraint, Float,  
 )
 from sqlalchemy.orm import declarative_base, relationship
 
@@ -39,6 +39,10 @@ class User(Base):
     quiz_attempts = relationship("UserQuizAttempt", back_populates="user")
     chat_messages = relationship("ChatMessage", back_populates="user")
 
+    __table_args__ = (
+        UniqueConstraint("email", name="uq_user_email"),
+    )
+
     def __repr__(self):
         return f"<User id={self.id} email={self.email!r}>"
 
@@ -48,10 +52,10 @@ class Video(Base):
 
     id = Column(Integer, primary_key=True)
 
-    youtube_video_id = Column(String(32), unique=True, nullable=False)
+    youtube_video_id = Column(String(32), unique=True, nullable=False, index=True)
     title = Column(String(255), nullable=False)
     description = Column(Text)
-    duration_seconds = Column(Integer)
+    duration_seconds = Column(Integer, CheckConstraint("duration_seconds >= 0"), default=0)
     language = Column(String(8))
     thumbnail_url = Column(Text)
 
@@ -82,8 +86,8 @@ class UserVideoProgress(Base):
 
     id = Column(Integer, primary_key=True)
 
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    video_id = Column(Integer, ForeignKey("videos.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    video_id = Column(Integer, ForeignKey("videos.id"), nullable=False, index=True)
 
     # Progress tracking
     last_position_seconds = Column(Integer, nullable=False, default=0)
@@ -111,8 +115,8 @@ class Checkpoint(Base):
     __tablename__ = "checkpoints"
 
     id = Column(Integer, primary_key=True)
-    video_id = Column(Integer, ForeignKey("videos.id"), nullable=False)
-    time_seconds = Column(Integer, nullable=False)
+    video_id = Column(Integer, ForeignKey("videos.id"), nullable=False, index=True)
+    time_seconds = Column(Integer, CheckConstraint("time_seconds >= 0"), nullable=False)
     
     title = Column(String(255))                     # e.g., "Introduction to Variables"
     subtopic = Column(Text)                         # e.g., explanation text
@@ -137,8 +141,8 @@ class UserCheckpointCompletion(Base):
     __tablename__ = "user_checkpoint_completion"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    checkpoint_id = Column(Integer, ForeignKey("checkpoints.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    checkpoint_id = Column(Integer, ForeignKey("checkpoints.id"), nullable=False, index=True)
 
     is_completed = Column(Boolean, nullable=False, default=False)
     completed_at = Column(DateTime)
@@ -161,7 +165,7 @@ class Quiz(Base):
     __tablename__ = "quizzes"
 
     id = Column(Integer, primary_key=True)
-    video_id = Column(Integer, ForeignKey("videos.id"), nullable=False)
+    video_id = Column(Integer, ForeignKey("videos.id"), nullable=False, index=True)
 
     title = Column(String(255), nullable=False, default="Test Your Knowledge")
     num_questions = Column(Integer)
@@ -188,8 +192,8 @@ class UserQuizAttempt(Base):
 
     id = Column(Integer, primary_key=True)
 
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    quiz_id = Column(Integer, ForeignKey("quizzes.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    quiz_id = Column(Integer, ForeignKey("quizzes.id"), nullable=False, index=True)
 
     score = Column(Float)  # e.g., 0.8 for 80%
     answers = Column(Text)  # JSON blob of selected answers and correctness
@@ -212,8 +216,8 @@ class ChatMessage(Base):
 
     id = Column(Integer, primary_key=True)
 
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    video_id = Column(Integer, ForeignKey("videos.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    video_id = Column(Integer, ForeignKey("videos.id"), nullable=False, index=True)
 
     role = Column(String(32), nullable=False)  # "user" | "assistant"
     message = Column(Text, nullable=False)
