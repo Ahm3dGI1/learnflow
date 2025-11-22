@@ -1,11 +1,18 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+import os
+from dotenv import load_dotenv
 
-DATABASE_URL = "sqlite:///./learnflow.db"  # DB file in server/
+# Load environment variables
+load_dotenv()
+
+# Get database configuration from environment
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./learnflow.db")
+SQL_ECHO = os.getenv("SQL_ECHO", "True").lower() in ("true", "1", "yes")
 
 engine = create_engine(
     DATABASE_URL,
-    echo=True,      # shows SQL in console; set False later
+    echo=SQL_ECHO,
     future=True,
 )
 
