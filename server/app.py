@@ -2,7 +2,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
-from routes import llm_bp
+from routes import llm_bp, video_bp
 
 # Load environment variables
 load_dotenv()
@@ -12,8 +12,9 @@ CORS(app)
 
 # Register blueprints
 app.register_blueprint(llm_bp)
+app.register_blueprint(video_bp)
 
-# Get port from environment or default to 5000
+# Get configuration from environment
 PORT = int(os.getenv('PORT', 5000))
 
 # Health check
