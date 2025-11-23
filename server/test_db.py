@@ -1,3 +1,25 @@
+"""
+Database Model and Relationship Testing for LearnFlow.
+
+Test suite for validating SQLAlchemy ORM models, relationships, constraints,
+and cascade behaviors. Tests cover all core tables including users, videos,
+progress tracking, checkpoints, quizzes, and chat messages.
+
+Tests verify:
+- Model creation and persistence
+- Unique constraints (email, firebase_uid, user+video pairs)
+- Foreign key relationships and back_populates
+- Cascade delete behavior
+- JSON field serialization/deserialization
+- Timestamp auto-population
+
+Usage:
+    python test_db.py
+
+Note: Creates test data in the database. Consider using a separate test
+database or cleaning up after running tests.
+"""
+
 from sqlalchemy.exc import IntegrityError
 
 from database import SessionLocal

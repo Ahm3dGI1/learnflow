@@ -1,3 +1,17 @@
+"""
+YouTube Transcript Fetching Service for LearnFlow.
+
+Handles business logic for retrieving YouTube video transcripts with language
+preference support. Provides utilities for video ID extraction, transcript
+fetching with fallback to auto-generated subtitles, available transcript
+listing, and video duration calculation from transcript data.
+
+Uses youtube-transcript-api library for accessing YouTube's subtitle data.
+Supports both manually created and auto-generated transcripts with proper
+error handling for various failure modes (disabled transcripts, unavailable
+videos, API failures).
+"""
+
 import re
 from datetime import datetime
 

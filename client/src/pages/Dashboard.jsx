@@ -1,3 +1,22 @@
+/**
+ * Dashboard Page Component
+ * 
+ * Main authenticated user interface for LearnFlow. Manages video playback,
+ * learning history, and user session. Automatically tracks watched videos
+ * in localStorage-backed history and provides interface for loading new
+ * videos or resuming from history.
+ * 
+ * Features:
+ * - Video player with URL input
+ * - Automatic history tracking with timestamps
+ * - History grid with thumbnails and quick access
+ * - Clear all history functionality
+ * - User info display and logout
+ * - Empty state guidance for new users
+ * 
+ * @module Dashboard
+ */
+
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import { useAuth } from "../auth/AuthContext";
@@ -9,19 +28,58 @@ import VideoHistoryCard from "../components/VideoHistoryCard";
 import { useEffect } from "react";
 import "./Dashboard.css";
 
+/**
+ * Dashboard Component
+ * 
+ * Protected main page for authenticated users. Combines video player,
+ * input controls, and history management in a cohesive interface.
+ * Automatically adds videos to history when loaded and provides
+ * quick access to previously watched content.
+ * 
+ * @returns {React.ReactElement} Dashboard with video player and history
+ * 
+ * @example
+ * // Used in main App routing with protection
+ * <Route 
+ *   path="/dashboard" 
+ *   element={
+ *     <ProtectedRoute>
+ *       <Dashboard />
+ *     </ProtectedRoute>
+ *   } 
+ * />
+ */
 export default function Dashboard() {
   const { user } = useAuth();
   const { videoUrl, setVideoUrl, embedUrl, handleLoadVideo, resetVideo } = useYouTubeEmbed();
   const { history, addToHistory, removeFromHistory, clearHistory } = useVideoHistory();
 
-  // Extract video ID from embed URL
+  /**
+   * Extract Video ID from Embed URL
+   * 
+   * Parses YouTube embed URL to extract the video ID using regex pattern
+   * matching. Used for history tracking and thumbnail generation.
+   * 
+   * @param {string} url - YouTube embed URL
+   * @returns {string|null} Video ID if found, null if invalid URL
+   * 
+   * @example
+   * getVideoIdFromEmbed("https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1")
+   * // Returns: "dQw4w9WgXcQ"
+   */
   const getVideoIdFromEmbed = (url) => {
     if (!url) return null;
     const match = url.match(/embed\/([^?]+)/);
     return match ? match[1] : null;
   };
 
-  // Add to history when a video is loaded
+  /**
+   * Auto-Track Video History
+   * 
+   * Effect hook that automatically adds videos to history when they are
+   * loaded. Extracts video ID from embed URL and creates history entry
+   * with metadata. Runs whenever embedUrl changes.
+   */
   useEffect(() => {
     if (embedUrl) {
       const videoId = getVideoIdFromEmbed(embedUrl);
@@ -35,17 +93,41 @@ export default function Dashboard() {
     }
   }, [embedUrl, addToHistory]);
 
+  /**
+   * Handle Select Video from History
+   * 
+   * Loads a previously watched video from history. Sets the video URL
+   * and triggers the load process, which will update the player and
+   * move the video to the top of history.
+   * 
+   * @param {Object} video - Video history entry
+   * @param {string} video.videoId - YouTube video ID
+   */
   const handleSelectFromHistory = (video) => {
     setVideoUrl(`https://www.youtube.com/watch?v=${video.videoId}`);
     handleLoadVideo();
   };
 
+  /**
+   * Handle Delete Single Video from History
+   * 
+   * Removes a single video from history after user confirmation.
+   * Shows native confirmation dialog to prevent accidental deletion.
+   * 
+   * @param {number} id - Unique history entry ID
+   */
   const handleDeleteFromHistory = (id) => {
     if (window.confirm('Remove this video from your history?')) {
       removeFromHistory(id);
     }
   };
 
+  /**
+   * Handle Clear All History
+   * 
+   * Removes all videos from user's history after confirmation.
+   * Warns user that action cannot be undone.
+   */
   const handleClearAllHistory = () => {
     if (window.confirm('Clear all video history? This cannot be undone.')) {
         clearHistory();
