@@ -1,9 +1,34 @@
+/**
+ * Home Page Component
+ * 
+ * Landing page for LearnFlow application featuring hero section, demo video
+ * player, and features showcase. Provides unauthenticated users with an
+ * introduction to the platform and call-to-action buttons for signup/login.
+ * Includes a working video demo that visitors can try without authentication.
+ * 
+ * @module Home
+ */
+
 import { Link } from "react-router-dom";
 import InputBar from "../components/InputBar";
 import VideoPlayer from "../components/VideoPlayer";
 import { useYouTubeEmbed } from "../hooks/useYouTubeEmbed";
 import "./Home.css";
 
+/**
+ * Home Component
+ * 
+ * Landing page with hero section, interactive video demo, and feature cards.
+ * Allows visitors to test the platform by loading a YouTube video without
+ * requiring authentication. Displays three key features and prominent CTA
+ * buttons for signup and login.
+ * 
+ * @returns {React.ReactElement} Home page with hero, demo section, and features
+ * 
+ * @example
+ * // Used in main App routing
+ * <Route path="/" element={<Home />} />
+ */
 export default function Home() {
   const { videoUrl, setVideoUrl, embedUrl, handleLoadVideo } = useYouTubeEmbed();
 

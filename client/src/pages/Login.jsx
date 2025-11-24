@@ -1,15 +1,49 @@
+/**
+ * Login Page Component
+ * 
+ * User authentication page supporting both email/password and Google OAuth
+ * login methods. Validates credentials, handles Firebase authentication,
+ * displays error messages, and redirects to dashboard upon successful login.
+ * 
+ * @module Login
+ */
+
 import { useState } from "react";
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "../firebase";
 import { Link, useNavigate } from "react-router-dom";
 import "./Auth.css";
 
+/**
+ * Login Component
+ * 
+ * Provides login form with email/password authentication and Google sign-in
+ * option. Trims email input, displays Firebase error messages, and navigates
+ * to dashboard after successful authentication. Includes link to signup page
+ * for new users.
+ * 
+ * @returns {React.ReactElement} Login page with form and OAuth options
+ * 
+ * @example
+ * // Used in main App routing
+ * <Route path="/login" element={<Login />} />
+ */
 export default function Login() {
   const nav = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
 
+  /**
+   * Handle Form Submission
+   * 
+   * Authenticates user with Firebase using email and password. Trims email
+   * input, clears previous errors, and redirects to dashboard on success.
+   * Displays Firebase error message if authentication fails.
+   * 
+   * @param {Event} e - Form submit event
+   * @returns {Promise<void>}
+   */
   async function onSubmit(e) {
     e.preventDefault();
     setErr("");
@@ -21,6 +55,14 @@ export default function Login() {
     }
   }
 
+  /**
+   * Handle Google OAuth Login
+   * 
+   * Authenticates user with Firebase using Google OAuth popup. Redirects
+   * to dashboard on success or displays error message on failure.
+   * 
+   * @returns {Promise<void>}
+   */
   async function googleLogin() {
     try {
       await signInWithPopup(auth, new GoogleAuthProvider());

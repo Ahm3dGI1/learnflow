@@ -1,6 +1,61 @@
+/**
+ * Video History Card Component
+ * 
+ * Individual card for displaying video history entries with thumbnail,
+ * title, timestamp, and delete functionality. Provides relative time
+ * formatting (e.g., "5 minutes ago") and clickable areas for video selection.
+ * 
+ * @module VideoHistoryCard
+ */
+
 import "./VideoHistoryCard.css";
 
+/**
+ * VideoHistoryCard Component
+ * 
+ * Displays a single video history entry with thumbnail preview, play overlay,
+ * title, relative timestamp, and delete button. Both the thumbnail and title
+ * are clickable to select the video for playback.
+ * 
+ * @param {Object} props - Component props
+ * @param {Object} props.video - Video history entry data
+ * @param {string} props.video.id - Unique entry ID
+ * @param {string} props.video.videoId - YouTube video ID
+ * @param {string} props.video.title - Video title
+ * @param {string} props.video.thumbnail - Thumbnail image URL
+ * @param {string} props.video.lastViewedAt - ISO timestamp of last view
+ * @param {Function} props.onSelect - Callback when video is selected for playback
+ * @param {Function} props.onDelete - Callback when video is deleted from history
+ * @returns {React.ReactElement} Video history card with thumbnail and controls
+ * 
+ * @example
+ * <VideoHistoryCard 
+ *   video={{
+ *     id: 123,
+ *     videoId: 'dQw4w9WgXcQ',
+ *     title: 'Example Video',
+ *     thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
+ *     lastViewedAt: '2024-01-15T10:30:00Z'
+ *   }}
+ *   onSelect={handleVideoSelect}
+ *   onDelete={handleVideoDelete}
+ * />
+ */
 export default function VideoHistoryCard({ video, onSelect, onDelete }) {
+  /**
+   * Format Date to Relative Time
+   * 
+   * Converts an ISO date string to human-readable relative time format:
+   * - Under 1 hour: "X minutes ago"
+   * - Under 24 hours: "X hours ago"
+   * - Under 1 week: "X days ago"
+   * - Over 1 week: Full date using locale format
+   * 
+   * Properly handles singular/plural forms for time units.
+   * 
+   * @param {string} dateString - ISO 8601 date string
+   * @returns {string} Formatted relative or absolute date string
+   */
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();

@@ -1,3 +1,25 @@
+"""
+Test suite for YouTube transcript API endpoints.
+
+Tests the video transcript fetching endpoints including:
+- /api/videos/transcript (fetch transcript with video ID or URL)
+- /api/videos/transcript/available (list all available transcripts)
+- /api/videos/extract-id (extract video ID from various URL formats)
+
+Covers various scenarios including:
+- Fetching transcripts with video ID
+- Fetching transcripts with full YouTube URLs
+- Language preference handling
+- Listing available transcripts for a video
+- Video ID extraction from different URL formats
+- Error handling for invalid inputs
+
+Usage:
+    # Make sure server is running first: python app.py
+    # Then run tests:
+    python tests/test_transcript_api.py
+"""
+
 import os
 
 import requests

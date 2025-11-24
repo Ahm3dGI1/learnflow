@@ -1,3 +1,13 @@
+"""
+Video API Routes for LearnFlow.
+
+Handles HTTP endpoints for YouTube video transcript fetching, available
+transcript listings, and video metadata retrieval. Provides error handling
+for various YouTube API failure modes and returns standardized JSON responses.
+
+All routes are prefixed with /api/videos.
+"""
+
 from flask import Blueprint, request, jsonify
 
 from services import (

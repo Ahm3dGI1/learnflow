@@ -1,3 +1,19 @@
+/**
+ * Main Application Component for LearnFlow.
+ * 
+ * This is the root component that sets up routing, authentication context,
+ * and defines all application routes. It wraps the entire application with
+ * the AuthProvider to make authentication state available throughout the app.
+ * 
+ * Routes:
+ * - / : Home page (public)
+ * - /login : Login page (public)
+ * - /signup : Signup page (public)
+ * - /dashboard : Main dashboard (protected, requires authentication)
+ * 
+ * @returns {JSX.Element} The application component with routing configured
+ */
+
 import './App.css';
 import { BrowserRouter, Routes, Route} from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";
