@@ -224,6 +224,13 @@ const api = {
   healthCheck: () => {
     return api.get('/', {}, false);
   },
+
+  /**
+   * Get authentication token from Firebase
+   * Exposed for use in custom fetch calls (e.g., streaming endpoints)
+   * @returns {Promise<string|null>} Auth token or null if not authenticated
+   */
+  getAuthToken,
 };
 
 export default api;

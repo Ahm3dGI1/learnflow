@@ -108,7 +108,7 @@ const llmService = {
    */
   sendChatMessageStream: async (message, context = {}, onChunk = null) => {
     try {
-      const token = await api.getAuthToken?.() || null;
+      const token = await api.getAuthToken() || null;
       const url = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/llm/chat/stream`;
 
       const body = JSON.stringify({
