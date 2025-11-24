@@ -4,7 +4,13 @@ from services import (
     fetch_transcript,
     extract_video_id,
     get_available_transcripts,
-    calculate_video_duration_from_transcript
+    calculate_video_duration_from_transcript,
+    get_or_create_video,
+    get_video_by_youtube_id,
+    cache_transcript,
+    update_video_metadata,
+    get_video_with_cache,
+    fetch_youtube_metadata
 )
 from youtube_transcript_api._errors import (
     TranscriptsDisabled,
@@ -12,6 +18,7 @@ from youtube_transcript_api._errors import (
     VideoUnavailable,
     YouTubeRequestFailed
 )
+from database import SessionLocal
 
 
 video_bp = Blueprint('video', __name__, url_prefix='/api/videos')
@@ -242,3 +249,228 @@ def extract_video_id_route():
             'error': 'Failed to extract video ID',
             'details': str(e)
         }), 500
+
+
+# ========== VIDEO MANAGEMENT ROUTES (Task 1.4) ==========
+
+@video_bp.route('/<youtube_video_id>', methods=['GET'])
+def get_video(youtube_video_id):
+    """
+    Get video with all cached data.
+
+    URL Parameters:
+        youtube_video_id: YouTube video ID (11 characters)
+
+    Returns:
+        {
+            "id": 1,
+            "youtubeVideoId": "abc123",
+            "title": "Video Title",
+            "description": "...",
+            "durationSeconds": 360,
+            "language": "en",
+            "thumbnailUrl": "https://...",
+            "totalViews": 5,
+            "createdAt": "2025-01-20T10:30:00Z",
+            "updatedAt": "2025-01-20T10:30:00Z",
+            "transcript": {...} or null,
+            "transcriptCachedAt": "..." or null,
+            "checkpoints": {...} or null,
+            "quiz": {...} or null,
+            "summary": "..." or null
+        }
+
+    Status Codes:
+        200: Success
+        404: Video not found
+        500: Internal server error
+    """
+    db = SessionLocal()
+    try:
+        # Validate video ID
+        if len(youtube_video_id) != 11:
+            return jsonify({'error': 'Invalid YouTube video ID format'}), 400
+
+        # Get video with cache
+        try:
+            video_data = get_video_with_cache(youtube_video_id, db)
+            return jsonify(video_data), 200
+        except ValueError as e:
+            return jsonify({'error': str(e)}), 404
+
+    except Exception as e:
+        return jsonify({
+            'error': 'Failed to get video',
+            'details': str(e)
+        }), 500
+    finally:
+        db.close()
+
+
+@video_bp.route('', methods=['POST'])
+def create_video():
+    """
+    Add new video to system (with optional metadata and transcript).
+
+    Request Body:
+        {
+            "videoId": "abc123" or "https://youtube.com/watch?v=abc123",
+            "fetchMetadata": true,  // Optional, default false
+            "fetchTranscript": true,  // Optional, default false
+            "languageCodes": ["en"]  // Optional, for transcript
+        }
+
+    Returns:
+        {
+            "id": 1,
+            "youtubeVideoId": "abc123",
+            "title": "Video Title",
+            "description": "...",
+            "durationSeconds": 360,
+            "thumbnailUrl": "https://...",
+            "transcript": {...} or null,
+            "message": "Video created successfully"
+        }
+
+    Status Codes:
+        201: Created successfully
+        400: Invalid request
+        500: Internal server error
+    """
+    db = SessionLocal()
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        video_input = data.get('videoId')
+        fetch_metadata = data.get('fetchMetadata', False)
+        fetch_transcript_flag = data.get('fetchTranscript', False)
+        language_codes = data.get('languageCodes')
+
+        if not video_input:
+            return jsonify({'error': 'videoId is required'}), 400
+
+        # Extract video ID
+        try:
+            youtube_video_id = extract_video_id(video_input)
+        except ValueError as e:
+            return jsonify({'error': str(e)}), 400
+
+        # Get or create video
+        video = get_or_create_video(youtube_video_id, db)
+
+        # Fetch metadata if requested
+        if fetch_metadata:
+            try:
+                metadata = fetch_youtube_metadata(youtube_video_id)
+                update_video_metadata(
+                    video.id,
+                    title=metadata.get('title'),
+                    description=metadata.get('description'),
+                    thumbnail_url=metadata.get('thumbnailUrl'),
+                    duration_seconds=metadata.get('durationSeconds'),
+                    db=db
+                )
+            except Exception as e:
+                # Optional: Continue even if metadata fetch fails
+                # Video is still created successfully without metadata
+                pass
+
+        # Fetch and cache transcript if requested
+        transcript_data = None
+        if fetch_transcript_flag:
+            try:
+                transcript_data = fetch_transcript(youtube_video_id, language_codes)
+                cache_transcript(video.id, transcript_data, db)
+            except Exception as e:
+                # Optional: Continue even if transcript fetch fails
+                # Video is still created successfully without transcript
+                pass
+
+        # Get updated video data
+        video_data = get_video_with_cache(youtube_video_id, db)
+        video_data['message'] = 'Video created successfully'
+
+        return jsonify(video_data), 201
+
+    except Exception as e:
+        db.rollback()
+        return jsonify({
+            'error': 'Failed to create video',
+            'details': str(e)
+        }), 500
+    finally:
+        db.close()
+
+
+@video_bp.route('/<youtube_video_id>/metadata', methods=['GET'])
+def get_video_metadata(youtube_video_id):
+    """
+    Fetch YouTube metadata for a video.
+
+    URL Parameters:
+        youtube_video_id: YouTube video ID (11 characters)
+
+    Query Parameters:
+        cache: "true" to save metadata to database (optional)
+
+    Returns:
+        {
+            "youtubeVideoId": "abc123",
+            "title": "Video Title",
+            "description": "Description...",
+            "thumbnailUrl": "https://...",
+            "durationSeconds": 360,
+            "author": "Channel Name",
+            "publishDate": "2025-01-20",
+            "cached": true  // if cache=true was used
+        }
+
+    Status Codes:
+        200: Success
+        400: Invalid video ID
+        500: Metadata fetch failed
+    """
+    db = SessionLocal()
+    try:
+        # Validate video ID
+        if len(youtube_video_id) != 11:
+            return jsonify({'error': 'Invalid YouTube video ID format'}), 400
+
+        # Check if caching is requested
+        cache_result = request.args.get('cache', 'false').lower() == 'true'
+
+        # Fetch metadata
+        metadata = fetch_youtube_metadata(youtube_video_id)
+        metadata['youtubeVideoId'] = youtube_video_id
+
+        # Cache to database if requested
+        if cache_result:
+            try:
+                video = get_or_create_video(youtube_video_id, db)
+                update_video_metadata(
+                    video.id,
+                    title=metadata.get('title'),
+                    description=metadata.get('description'),
+                    thumbnail_url=metadata.get('thumbnailUrl'),
+                    duration_seconds=metadata.get('durationSeconds'),
+                    db=db
+                )
+                metadata['cached'] = True
+            except Exception:
+                # Optional: If caching fails, still return metadata (not cached)
+                metadata['cached'] = False
+        else:
+            metadata['cached'] = False
+
+        return jsonify(metadata), 200
+
+    except Exception as e:
+        return jsonify({
+            'error': 'Failed to fetch video metadata',
+            'details': str(e)
+        }), 500
+    finally:
+        db.close()

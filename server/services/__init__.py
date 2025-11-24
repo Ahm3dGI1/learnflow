@@ -7,6 +7,18 @@ from .transcript_service import (
     get_available_transcripts,
     calculate_video_duration_from_transcript
 )
+from .video_service import (
+    get_or_create_video,
+    get_video_by_id,
+    get_video_by_youtube_id,
+    cache_transcript,
+    cache_checkpoints,
+    cache_quiz,
+    cache_summary,
+    update_video_metadata,
+    get_video_with_cache,
+    fetch_youtube_metadata
+)
 
 __all__ = [
     'generate_checkpoints',
@@ -16,5 +28,15 @@ __all__ = [
     'fetch_transcript',
     'extract_video_id',
     'get_available_transcripts',
-    'calculate_video_duration_from_transcript'
+    'calculate_video_duration_from_transcript',
+    'get_or_create_video',
+    'get_video_by_id',
+    'get_video_by_youtube_id',
+    'cache_transcript',
+    'cache_checkpoints',
+    'cache_quiz',
+    'cache_summary',
+    'update_video_metadata',
+    'get_video_with_cache',
+    'fetch_youtube_metadata'
 ]
