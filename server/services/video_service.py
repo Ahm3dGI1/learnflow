@@ -5,11 +5,9 @@ Handles video creation, caching, and metadata fetching.
 
 import json
 from datetime import datetime
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from models import Video
-from .transcript_service import extract_video_id, fetch_transcript
 
 
 def get_or_create_video(youtube_video_id, db):
@@ -59,6 +57,10 @@ def get_or_create_video(youtube_video_id, db):
         video = db.query(Video).filter(
             Video.youtube_video_id == youtube_video_id
         ).first()
+        if not video:
+            raise Exception("Failed to create or retrieve video")
+        return video
+            raise Exception("Failed to create or retrieve video")
         return video
 
 

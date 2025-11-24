@@ -4,4 +4,4 @@ python-dotenv==1.0.0
 SQLAlchemy>=2.0
 google-genai
 youtube-transcript-api>=1.2.3
-pytube
+pytube>=15.0.0>=15.0.0

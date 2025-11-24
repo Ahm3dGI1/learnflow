@@ -374,7 +374,8 @@ def create_video():
                     db=db
                 )
             except Exception as e:
-                # Continue even if metadata fetch fails
+                # Optional: Continue even if metadata fetch fails
+                # Video is still created successfully without metadata
                 pass
 
         # Fetch and cache transcript if requested
@@ -384,7 +385,8 @@ def create_video():
                 transcript_data = fetch_transcript(youtube_video_id, language_codes)
                 cache_transcript(video.id, transcript_data, db)
             except Exception as e:
-                # Continue even if transcript fetch fails
+                # Optional: Continue even if transcript fetch fails
+                # Video is still created successfully without transcript
                 pass
 
         # Get updated video data
@@ -458,6 +460,7 @@ def get_video_metadata(youtube_video_id):
                 )
                 metadata['cached'] = True
             except Exception:
+                # Optional: If caching fails, still return metadata (not cached)
                 metadata['cached'] = False
         else:
             metadata['cached'] = False
