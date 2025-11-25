@@ -29,7 +29,7 @@ from database import SessionLocal
 from models import User
 
 # Patch target: the import location used by the auth middleware.
-VERIFY_PATCH_PATH = "server.middleware.auth.verify_id_token"
+VERIFY_PATCH_PATH = "middleware.auth.verify_id_token"
 
 
 @pytest.fixture
@@ -166,7 +166,9 @@ def test_get_user_returns_user_data(client):
         db.add(user)
         db.commit()
 
-    resp = client.get(f"/api/users/{firebase_uid}")
+    claims = {"uid": firebase_uid, "email": email, "name": name}
+    with patch(VERIFY_PATCH_PATH, return_value=claims):
+        resp = client.get(f"/api/users/{firebase_uid}", headers={"Authorization": "Bearer faketoken"})
     assert resp.status_code == 200, f"Expected 200 OK but got {resp.status_code}"
     data = resp.get_json()
     assert data is not None and "data" in data
@@ -176,3 +178,78 @@ def test_get_user_returns_user_data(client):
 
     # Cleanup
     _cleanup_user(firebase_uid)
+
+
+def test_get_user_forbidden_returns_403(client):
+    """
+    Test that GET /api/users/<firebase_uid> is forbidden when the caller does not match the requested user.
+    """
+    target_uid = "target-uid"
+    other_uid = "other-uid"
+    email = "target@example.com"
+
+    _cleanup_user(target_uid)
+    with SessionLocal() as db:
+        user = User(firebase_uid=target_uid, email=email, display_name="Target")
+        db.add(user)
+        db.commit()
+
+    claims = {"uid": other_uid, "email": "other@example.com", "name": "Other"}
+    with patch(VERIFY_PATCH_PATH, return_value=claims):
+        resp = client.get(f"/api/users/{target_uid}", headers={"Authorization": "Bearer faketoken"})
+    assert resp.status_code == 403, f"Expected 403 Forbidden but got {resp.status_code}"
+
+    _cleanup_user(target_uid)
+
+
+def test_get_user_me_returns_user_data(client):
+    """
+    Test GET /api/users/me (auth_required) returns the current authenticated user.
+    """
+    firebase_uid = "test-uid-get-me"
+    email = "getme@example.com"
+    name = "Get Me"
+
+    _cleanup_user(firebase_uid)
+    with SessionLocal() as db:
+        user = User(firebase_uid=firebase_uid, email=email, display_name=name)
+        db.add(user)
+        db.commit()
+
+    claims = {"uid": firebase_uid, "email": email, "name": name}
+    with patch(VERIFY_PATCH_PATH, return_value=claims):
+        resp = client.get("/api/users/me", headers={"Authorization": "Bearer faketoken"})
+    assert resp.status_code == 200, f"Expected 200 OK but got {resp.status_code}"
+    data = resp.get_json()
+    assert data is not None and "data" in data
+    assert data["data"]["firebaseUid"] == firebase_uid
+
+    _cleanup_user(firebase_uid)
+
+
+def test_post_user_email_collision_returns_400(client):
+    """
+    When a new firebase UID attempts to create a user with an email already used by another account,
+    the API should return 400 with a clear error message.
+    """
+    existing_uid = "existing-uid"
+    existing_email = "shared@example.com"
+
+    _cleanup_user(existing_uid)
+    with SessionLocal() as db:
+        user = User(firebase_uid=existing_uid, email=existing_email, display_name="Existing")
+        db.add(user)
+        db.commit()
+
+    new_uid = "new-uid-same-email"
+    claims = {"uid": new_uid, "email": existing_email, "name": "New User"}
+
+    with patch(VERIFY_PATCH_PATH, return_value=claims):
+        resp = client.post("/api/users", headers={"Authorization": "Bearer faketoken"})
+    assert resp.status_code == 400
+    data = resp.get_json()
+    assert data and "error" in data
+
+    # Cleanup
+    _cleanup_user(existing_uid)
+    _cleanup_user(new_uid)

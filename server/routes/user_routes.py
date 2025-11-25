@@ -13,6 +13,25 @@ from middleware.auth import auth_required
 
 user_bp = Blueprint("user", __name__, url_prefix="/api/users")
 
+@user_bp.route("/me", methods=["GET"])
+@auth_required
+def get_current_user():
+    claims = getattr(g, "firebase_user", {})
+    firebase_uid = claims.get("uid")
+    with SessionLocal() as db:
+        user = get_user_by_firebase_uid(firebase_uid, db)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        return jsonify({
+            "data": {
+                "id": user.id,
+                "firebaseUid": user.firebase_uid,
+                "email": user.email,
+                "displayName": user.display_name,
+                "createdAt": user.created_at.isoformat(),
+                "updatedAt": user.updated_at.isoformat() if user.updated_at else None,
+            }
+        }), 200
 
 @user_bp.route("", methods=["POST"])
 @auth_required
@@ -60,11 +79,14 @@ def create_or_update_user():
                     "updatedAt": user.updated_at.isoformat() if user.updated_at else None,
                 }
             }), 200
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
         except Exception as e:
             return jsonify({"error": "Failed to create/update user", "details": str(e)}), 500
 
 
 @user_bp.route("/<firebase_uid>", methods=["GET"])
+@auth_required
 def get_user(firebase_uid):
     """
     GET /api/users/<firebase_uid>
@@ -83,6 +105,12 @@ def get_user(firebase_uid):
     """
     if not firebase_uid:
         return jsonify({"error": "firebase_uid is required"}), 400
+
+    claims = getattr(g, "firebase_user", {})
+    caller_uid = claims.get("uid")
+    # Only allow access to the requested user if caller matches, otherwise 403
+    if not caller_uid or caller_uid != firebase_uid:
+        return jsonify({"error": "Forbidden"}), 403
 
     with SessionLocal() as db:
         try:

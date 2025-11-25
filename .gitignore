@@ -8,3 +8,5 @@ server/.env
 
 /venv
 *.pyc
+
+*.db

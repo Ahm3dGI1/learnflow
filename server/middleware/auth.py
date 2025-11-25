@@ -8,7 +8,7 @@ and returns 401 if invalid or missing.
 
 from functools import wraps
 from flask import request, jsonify, g
-from ..firebase_admin import verify_id_token
+from firebase_admin_client import verify_id_token
 
 
 def auth_required(f):

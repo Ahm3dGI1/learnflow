@@ -72,6 +72,12 @@ def get_or_create_user(firebase_uid: str, email: str, display_name: str, db):
             db.refresh(user)
 
         return user
+    
+    # before creating new user
+    if email:
+        existing_user = db.query(User).filter(User.email == email).first()
+        if existing_user and existing_user.firebase_uid != firebase_uid:
+            raise ValueError("Email already in use by another account")
 
     # Create new user record
     user = User(firebase_uid=firebase_uid, email=email, display_name=display_name)
