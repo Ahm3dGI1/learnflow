@@ -60,8 +60,7 @@ def get_or_create_video(youtube_video_id, db):
         if not video:
             raise Exception("Failed to create or retrieve video")
         return video
-            raise Exception("Failed to create or retrieve video")
-        return video
+
 
 
 def get_video_by_id(video_id, db):
@@ -333,7 +332,7 @@ def fetch_youtube_metadata(youtube_video_id):
     """
     Fetch video metadata from YouTube (title, description, thumbnail, duration).
 
-    Uses pytube library to fetch metadata without downloading video.
+    Uses pytubefix library to fetch metadata without downloading video.
 
     Args:
         youtube_video_id: YouTube video ID (11 characters)
@@ -353,11 +352,11 @@ def fetch_youtube_metadata(youtube_video_id):
         Exception: If metadata fetch fails
     """
     try:
-        from pytube import YouTube
-        
+        from pytubefix import YouTube
+
         url = f"https://www.youtube.com/watch?v={youtube_video_id}"
         yt = YouTube(url)
-        
+
         return {
             "title": yt.title,
             "description": yt.description or "",
@@ -367,6 +366,6 @@ def fetch_youtube_metadata(youtube_video_id):
             "publishDate": yt.publish_date.isoformat() if yt.publish_date else None
         }
     except ImportError:
-        raise Exception("pytube library not installed. Run: pip install pytube")
+        raise Exception("pytubefix library not installed. Run: pip install pytubefix")
     except Exception as e:
         raise Exception(f"Failed to fetch YouTube metadata: {str(e)}")
