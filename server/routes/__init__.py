@@ -7,4 +7,4 @@ from .llm_routes import llm_bp
 from .video_routes import video_bp
 from .user_routes import user_bp 
 
-__all__ = ['llm_bp', 'video_bp']
+__all__ = ['llm_bp', 'video_bp', 'user_bp']
