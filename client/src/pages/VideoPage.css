@@ -288,6 +288,13 @@
   }
 }
 
+/* Tablet Breakpoint - Adjust sidebar width */
+@media (max-width: 1200px) and (min-width: 769px) {
+  .video-page-content {
+    grid-template-columns: 1fr 320px;
+  }
+}
+
 /* Smooth Transitions */
 .video-player-section,
 .video-info-section,

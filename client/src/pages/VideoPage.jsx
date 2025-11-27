@@ -21,6 +21,27 @@ import { videoService } from "../services";
 import "./VideoPage.css";
 
 /**
+ * Format duration in seconds to HH:MM:SS or MM:SS format
+ * @param {number} seconds - Duration in seconds
+ * @returns {string} Formatted duration string
+ */
+function formatDuration(seconds) {
+  if (!seconds || seconds < 0) return "Duration unknown";
+
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  if (hours > 0) {
+    // Format: HH:MM:SS
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  } else {
+    // Format: MM:SS
+    return `${minutes}:${String(secs).padStart(2, '0')}`;
+  }
+}
+
+/**
  * VideoPage Component
  *
  * Main video learning page that displays video player and all learning tools.
@@ -81,7 +102,7 @@ export default function VideoPage() {
             setEmbedUrl(`https://www.youtube.com/embed/${videoId}?autoplay=0`);
           } catch (createErr) {
             console.error("Error creating video:", createErr);
-            setError("Failed to load video. Please check the video ID and try again.");
+            setError("Unable to load this video. The video may be private, unavailable, or the URL may be invalid. Please try a different video.");
           }
         } else {
           setError(err.message || "Failed to load video");
@@ -107,8 +128,8 @@ export default function VideoPage() {
   if (loading) {
     return (
       <div className="video-page-container">
-        <div className="video-page-loading">
-          <div className="loading-spinner"></div>
+        <div className="video-page-loading" role="status" aria-live="polite">
+          <div className="loading-spinner" aria-label="Loading"></div>
           <p>Loading video...</p>
         </div>
       </div>
@@ -156,9 +177,7 @@ export default function VideoPage() {
             <h1 className="video-title">{video?.title || "Untitled Video"}</h1>
             <div className="video-metadata">
               <span className="metadata-item">
-                {video?.durationSeconds
-                  ? `${Math.floor(video.durationSeconds / 60)}:${String(video.durationSeconds % 60).padStart(2, '0')}`
-                  : "Duration unknown"}
+                {formatDuration(video?.durationSeconds)}
               </span>
               {video?.language && (
                 <span className="metadata-item">Language: {video.language}</span>
