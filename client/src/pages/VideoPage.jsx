@@ -66,7 +66,6 @@ export default function VideoPage() {
   const [checkpoints, setCheckpoints] = useState([]);
   const [currentCheckpoint, setCurrentCheckpoint] = useState(null);
   const [checkpointsCompleted, setCheckpointsCompleted] = useState(new Set());
-  const [currentTime, setCurrentTime] = useState(0);
   const videoRef = useRef(null);
   const lastTriggeredCheckpoint = useRef(null);
 
@@ -96,6 +95,7 @@ export default function VideoPage() {
         setEmbedUrl(`https://www.youtube.com/embed/${videoId}?autoplay=0&enablejsapi=1`);
 
         // Fetch checkpoints if transcript exists
+        // Note: Backend caches checkpoints by videoId:languageCode to avoid regeneration
         if (videoData.transcript) {
           try {
             const checkpointData = await llmService.generateCheckpoints(
@@ -123,6 +123,7 @@ export default function VideoPage() {
             setEmbedUrl(`https://www.youtube.com/embed/${videoId}?autoplay=0&enablejsapi=1`);
 
             // Generate checkpoints if transcript was fetched
+            // Note: Backend caches checkpoints to avoid regeneration on subsequent loads
             if (newVideo.transcript) {
               try {
                 const checkpointData = await llmService.generateCheckpoints(
@@ -198,15 +199,13 @@ export default function VideoPage() {
    * @param {number} time - Current video time in seconds
    */
   const handleTimeUpdate = (time) => {
-    setCurrentTime(time);
-
     // Check if we should trigger a checkpoint
     if (!currentCheckpoint) {
       for (const checkpoint of checkpoints) {
-        // Check if we're within 1 second of checkpoint time and haven't completed it
-        const timeDiff = Math.abs(time - checkpoint.timestampSeconds);
+        // Check if we're within 1.5 seconds after checkpoint time and haven't completed it
         if (
-          timeDiff < 1 &&
+          time >= checkpoint.timestampSeconds &&
+          time < checkpoint.timestampSeconds + 1.5 &&
           !checkpointsCompleted.has(checkpoint.id) &&
           lastTriggeredCheckpoint.current !== checkpoint.id
         ) {
@@ -218,6 +217,16 @@ export default function VideoPage() {
           lastTriggeredCheckpoint.current = checkpoint.id;
           break;
         }
+      }
+    }
+
+    // Reset lastTriggeredCheckpoint if user seeks backward
+    if (checkpoints.length > 0) {
+      const lastCheckpoint = checkpoints.find(
+        cp => cp.id === lastTriggeredCheckpoint.current
+      );
+      if (lastCheckpoint && time < lastCheckpoint.timestampSeconds - 5) {
+        lastTriggeredCheckpoint.current = null;
       }
     }
   };

@@ -9,7 +9,7 @@
  * @module CheckpointPopup
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './CheckpointPopup.css';
 
 /**
@@ -45,6 +45,34 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
   const [userAnswer, setUserAnswer] = useState('');
   const [isCorrect, setIsCorrect] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
+  const timeoutRef = useRef(null);
+
+  /**
+   * Cleanup timeout on unmount
+   */
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  /**
+   * Handle Escape Key
+   * Note: Checkpoints are mandatory, so Escape won't close the modal
+   */
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        // Checkpoints are mandatory - Escape key does nothing
+        // Could optionally show a message or highlight the requirement
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, []);
 
   /**
    * Validate User Answer
@@ -79,7 +107,7 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
 
     if (correct) {
       // Wait a moment to show success feedback, then resume
-      setTimeout(() => {
+      timeoutRef.current = setTimeout(() => {
         onCorrectAnswer();
       }, 1500);
     }
@@ -119,12 +147,12 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
   };
 
   return (
-    <div className="checkpoint-popup-overlay">
+    <div className="checkpoint-popup-overlay" role="dialog" aria-modal="true">
       <div className="checkpoint-popup-container">
         {/* Header */}
         <div className="checkpoint-popup-header">
           <div className="checkpoint-icon">🎯</div>
-          <h2 className="checkpoint-title">{checkpoint.title}</h2>
+          <h2 className="checkpoint-title" id="checkpoint-title">{checkpoint.title}</h2>
         </div>
 
         {/* Content */}
@@ -132,7 +160,7 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
           <p className="checkpoint-subtopic">{checkpoint.subtopic}</p>
           
           <div className="checkpoint-question-section">
-            <label className="checkpoint-question-label">Question:</label>
+            <label className="checkpoint-question-label" htmlFor="checkpoint-answer-input">Question:</label>
             <p className="checkpoint-question">{checkpoint.question}</p>
           </div>
 
@@ -141,6 +169,7 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
             <div className="checkpoint-answer-section">
               <input
                 type="text"
+                id="checkpoint-answer-input"
                 className="checkpoint-answer-input"
                 placeholder="Type your answer here..."
                 value={userAnswer}
@@ -153,7 +182,11 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
 
           {/* Feedback */}
           {showFeedback && (
-            <div className={`checkpoint-feedback ${isCorrect ? 'correct' : 'incorrect'}`}>
+            <div 
+              className={`checkpoint-feedback ${isCorrect ? 'correct' : 'incorrect'}`}
+              role="status"
+              aria-live="polite"
+            >
               {isCorrect ? (
                 <>
                   <div className="feedback-icon">✅</div>

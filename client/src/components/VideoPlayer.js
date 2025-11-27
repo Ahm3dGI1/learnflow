@@ -37,11 +37,38 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
   const iframeRef = useRef(null);
   const playerRef = useRef(null);
   const timeIntervalRef = useRef(null);
+  const playerIdRef = useRef(`youtube-player-${Math.random().toString(36).substr(2, 9)}`);
 
   /**
    * Initialize YouTube iframe API
    */
   useEffect(() => {
+    /**
+     * Initialize YouTube Player
+     */
+    const initializePlayer = () => {
+      if (!iframeRef.current || !embedUrl) return;
+
+      // Extract video ID from embed URL
+      const videoIdMatch = embedUrl.match(/embed\/([^?]+)/);
+      if (!videoIdMatch) return;
+
+      const videoId = videoIdMatch[1];
+
+      // Avoid creating duplicate players
+      if (playerRef.current) {
+        playerRef.current.destroy();
+      }
+
+      playerRef.current = new window.YT.Player(playerIdRef.current, {
+        videoId: videoId,
+        events: {
+          onReady: handlePlayerReady,
+          onStateChange: handleStateChange,
+        },
+      });
+    };
+
     // Load YouTube iframe API script if not already loaded
     if (!window.YT) {
       const tag = document.createElement('script');
@@ -50,12 +77,16 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
     }
 
-    // Wait for API to be ready
-    window.onYouTubeIframeAPIReady = () => {
-      if (iframeRef.current && embedUrl) {
-        initializePlayer();
-      }
-    };
+    // Wait for API to be ready - use callback queue to avoid overwriting
+    if (!window.YT) {
+      const originalCallback = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => {
+        if (originalCallback) originalCallback();
+        if (iframeRef.current && embedUrl) {
+          initializePlayer();
+        }
+      };
+    }
 
     // If API already loaded, initialize immediately
     if (window.YT && window.YT.Player) {
@@ -71,27 +102,6 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
       }
     };
   }, [embedUrl]);
-
-  /**
-   * Initialize YouTube Player
-   */
-  const initializePlayer = () => {
-    if (!iframeRef.current || !embedUrl) return;
-
-    // Extract video ID from embed URL
-    const videoIdMatch = embedUrl.match(/embed\/([^?]+)/);
-    if (!videoIdMatch) return;
-
-    const videoId = videoIdMatch[1];
-
-    playerRef.current = new window.YT.Player(iframeRef.current, {
-      videoId: videoId,
-      events: {
-        onReady: handlePlayerReady,
-        onStateChange: handleStateChange,
-      },
-    });
-  };
 
   /**
    * Handle Player Ready
@@ -153,7 +163,7 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
     <div className="video-section">
       <div className="video-wrapper">
         <div className="video-container">
-          <div ref={iframeRef} id="youtube-player"></div>
+          <div ref={iframeRef} id={playerIdRef.current}></div>
         </div>
       </div>
     </div>
