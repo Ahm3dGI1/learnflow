@@ -1,111 +1,115 @@
 /**
  * Dashboard Page Component
- * 
- * Main authenticated user interface for LearnFlow. Manages video playback,
- * learning history, and user session. Automatically tracks watched videos
- * in localStorage-backed history and provides interface for loading new
- * videos or resuming from history.
- * 
+ *
+ * Main authenticated user interface for LearnFlow. Provides a central hub
+ * for loading videos and accessing learning history. Videos are opened in
+ * the dedicated VideoPage for the full learning experience.
+ *
  * Features:
- * - Video player with URL input
+ * - YouTube URL input to load videos
  * - Automatic history tracking with timestamps
  * - History grid with thumbnails and quick access
  * - Clear all history functionality
  * - User info display and logout
  * - Empty state guidance for new users
- * 
+ * - Direct navigation to VideoPage
+ *
  * @module Dashboard
  */
 
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import { useAuth } from "../auth/AuthContext";
-import { useYouTubeEmbed } from "../hooks/useYouTubeEmbed";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { useVideoHistory } from "../hooks/useVideoHistory";
 import InputBar from "../components/InputBar";
-import VideoPlayer from "../components/VideoPlayer";
 import VideoHistoryCard from "../components/VideoHistoryCard";
-import { useEffect } from "react";
 import "./Dashboard.css";
 
 /**
  * Dashboard Component
- * 
- * Protected main page for authenticated users. Combines video player,
- * input controls, and history management in a cohesive interface.
- * Automatically adds videos to history when loaded and provides
- * quick access to previously watched content.
- * 
- * @returns {React.ReactElement} Dashboard with video player and history
- * 
+ *
+ * Protected main page for authenticated users. Provides video URL input
+ * and history management. Videos are opened in dedicated VideoPage for
+ * full learning experience with AI tutor, checkpoints, and quizzes.
+ *
+ * @returns {React.ReactElement} Dashboard with video input and history
+ *
  * @example
  * // Used in main App routing with protection
- * <Route 
- *   path="/dashboard" 
+ * <Route
+ *   path="/dashboard"
  *   element={
  *     <ProtectedRoute>
  *       <Dashboard />
  *     </ProtectedRoute>
- *   } 
+ *   }
  * />
  */
 export default function Dashboard() {
   const { user } = useAuth();
-  const { videoUrl, setVideoUrl, embedUrl, handleLoadVideo, resetVideo } = useYouTubeEmbed();
+  const navigate = useNavigate();
+  const [videoUrl, setVideoUrl] = useState("");
   const { history, addToHistory, removeFromHistory, clearHistory } = useVideoHistory();
 
   /**
-   * Extract Video ID from Embed URL
-   * 
-   * Parses YouTube embed URL to extract the video ID using regex pattern
-   * matching. Used for history tracking and thumbnail generation.
-   * 
-   * @param {string} url - YouTube embed URL
+   * Extract Video ID from YouTube URL
+   *
+   * Parses various YouTube URL formats to extract the video ID.
+   *
+   * @param {string} url - YouTube URL
    * @returns {string|null} Video ID if found, null if invalid URL
-   * 
-   * @example
-   * getVideoIdFromEmbed("https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1")
-   * // Returns: "dQw4w9WgXcQ"
    */
-  const getVideoIdFromEmbed = (url) => {
-    if (!url) return null;
-    const match = url.match(/embed\/([^?]+)/);
-    return match ? match[1] : null;
+  const extractVideoId = (url) => {
+    const patterns = [
+      /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([^&]+)/,
+      /(?:https?:\/\/)?(?:www\.)?youtu\.be\/([^?]+)/,
+      /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([^?]+)/,
+    ];
+
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) {
+        return match[1];
+      }
+    }
+    return null;
   };
 
   /**
-   * Auto-Track Video History
-   * 
-   * Effect hook that automatically adds videos to history when they are
-   * loaded. Extracts video ID from embed URL and creates history entry
-   * with metadata. Runs whenever embedUrl changes.
+   * Handle Load Video
+   *
+   * Extracts video ID from input URL and navigates to VideoPage.
+   * Also adds video to history for quick access.
    */
-  useEffect(() => {
-    if (embedUrl) {
-      const videoId = getVideoIdFromEmbed(embedUrl);
-      if (videoId) {
-        addToHistory({
-          videoId,
-          embedUrl,
-          title: `YouTube Video - ${videoId}`,
-        });
-      }
+  const handleLoadVideo = () => {
+    const videoId = extractVideoId(videoUrl);
+    if (videoId) {
+      // Add to history
+      addToHistory({
+        videoId,
+        embedUrl: `https://www.youtube.com/embed/${videoId}`,
+        title: `YouTube Video - ${videoId}`,
+      });
+
+      // Navigate to video page
+      navigate(`/video/${videoId}`);
+    } else if (videoUrl.trim()) {
+      alert("Please enter a valid YouTube URL");
     }
-  }, [embedUrl, addToHistory]);
+  };
 
   /**
    * Handle Select Video from History
-   * 
-   * Loads a previously watched video from history. Sets the video URL
-   * and triggers the load process, which will update the player and
-   * move the video to the top of history.
-   * 
+   *
+   * Opens the selected video in the dedicated VideoPage.
+   *
    * @param {Object} video - Video history entry
    * @param {string} video.videoId - YouTube video ID
    */
   const handleSelectFromHistory = (video) => {
-    setVideoUrl(`https://www.youtube.com/watch?v=${video.videoId}`);
-    handleLoadVideo();
+    navigate(`/video/${video.videoId}`);
   };
 
   /**
@@ -153,22 +157,12 @@ export default function Dashboard() {
         </div>
 
         <div className="video-section-dashboard">
-          <h3>Current Video</h3>
-          {!embedUrl && (
-            <InputBar
-              videoUrl={videoUrl}
-              setVideoUrl={setVideoUrl}
-              onSend={handleLoadVideo}
-            />
-          )}
-          {embedUrl && (
-            <div className="current-video-controls">
-              <VideoPlayer embedUrl={embedUrl} />
-              <button onClick={resetVideo} className="new-video-button">
-                Load New Video
-              </button>
-            </div>
-          )}
+          <h3>Load a Video</h3>
+          <InputBar
+            videoUrl={videoUrl}
+            setVideoUrl={setVideoUrl}
+            onSend={handleLoadVideo}
+          />
         </div>
 
         {history.length > 0 && (
@@ -192,7 +186,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {history.length === 0 && !embedUrl && (
+        {history.length === 0 && (
           <div className="empty-state">
             <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1">
               <path d="M23 7l-7 5 7 5V7z"/>

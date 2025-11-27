@@ -113,6 +113,29 @@
   gap: 16px;
 }
 
+.video-action-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.open-video-button {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.open-video-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+}
+
 .new-video-button {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -123,7 +146,6 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  align-self: flex-start;
 }
 
 .new-video-button:hover {
