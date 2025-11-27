@@ -2,35 +2,150 @@
  * Video Player Component
  * 
  * Displays a YouTube video using an iframe embed with responsive layout.
- * Renders null when no embed URL is provided. Supports all YouTube iframe
- * features including autoplay, fullscreen, and picture-in-picture.
+ * Renders null when no embed URL is provided. Supports YouTube iframe API
+ * for playback control and time tracking.
  * 
  * @module VideoPlayer
  */
 
+import { useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import "./VideoPlayer.css";
 
 /**
  * VideoPlayer Component
  * 
- * Responsive YouTube video player using iframe embed. Includes support for
- * autoplay, clipboard access, gyroscope, picture-in-picture, and fullscreen.
- * The component uses nested div wrappers for responsive 16:9 aspect ratio
- * maintenance via CSS.
+ * Responsive YouTube video player with iframe API integration. Provides
+ * playback control methods and time tracking through ref. Uses YouTube
+ * iframe API for programmatic control.
  * 
  * @param {Object} props - Component props
- * @param {string} props.embedUrl - YouTube embed URL with optional query parameters
+ * @param {string} props.embedUrl - YouTube embed URL with enablejsapi=1
+ * @param {Function} props.onTimeUpdate - Callback for current time updates (seconds)
+ * @param {Function} props.onReady - Callback when player is ready
  * @returns {React.ReactElement|null} Video player iframe or null if no URL provided
  * 
  * @example
- * // Display a video with autoplay
- * <VideoPlayer embedUrl="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1" />
- * 
- * @example
- * // No video - renders nothing
- * <VideoPlayer embedUrl="" />
+ * const playerRef = useRef();
+ * <VideoPlayer 
+ *   ref={playerRef}
+ *   embedUrl="https://www.youtube.com/embed/abc?enablejsapi=1"
+ *   onTimeUpdate={(time) => console.log(time)}
+ * />
+ * // Later: playerRef.current.pauseVideo()
  */
-export default function VideoPlayer({ embedUrl }) {
+const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
+  const iframeRef = useRef(null);
+  const playerRef = useRef(null);
+  const timeIntervalRef = useRef(null);
+
+  /**
+   * Initialize YouTube iframe API
+   */
+  useEffect(() => {
+    // Load YouTube iframe API script if not already loaded
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    }
+
+    // Wait for API to be ready
+    window.onYouTubeIframeAPIReady = () => {
+      if (iframeRef.current && embedUrl) {
+        initializePlayer();
+      }
+    };
+
+    // If API already loaded, initialize immediately
+    if (window.YT && window.YT.Player) {
+      initializePlayer();
+    }
+
+    return () => {
+      if (timeIntervalRef.current) {
+        clearInterval(timeIntervalRef.current);
+      }
+      if (playerRef.current) {
+        playerRef.current.destroy();
+      }
+    };
+  }, [embedUrl]);
+
+  /**
+   * Initialize YouTube Player
+   */
+  const initializePlayer = () => {
+    if (!iframeRef.current || !embedUrl) return;
+
+    // Extract video ID from embed URL
+    const videoIdMatch = embedUrl.match(/embed\/([^?]+)/);
+    if (!videoIdMatch) return;
+
+    const videoId = videoIdMatch[1];
+
+    playerRef.current = new window.YT.Player(iframeRef.current, {
+      videoId: videoId,
+      events: {
+        onReady: handlePlayerReady,
+        onStateChange: handleStateChange,
+      },
+    });
+  };
+
+  /**
+   * Handle Player Ready
+   */
+  const handlePlayerReady = () => {
+    if (onReady) {
+      onReady(playerRef.current);
+    }
+
+    // Start time tracking
+    timeIntervalRef.current = setInterval(() => {
+      if (playerRef.current && playerRef.current.getCurrentTime) {
+        const currentTime = playerRef.current.getCurrentTime();
+        if (onTimeUpdate) {
+          onTimeUpdate(currentTime);
+        }
+      }
+    }, 1000); // Check every second
+  };
+
+  /**
+   * Handle Player State Change
+   */
+  const handleStateChange = (event) => {
+    // Handle state changes if needed
+  };
+
+  /**
+   * Expose player control methods to parent via ref
+   */
+  useImperativeHandle(ref, () => ({
+    pauseVideo: () => {
+      if (playerRef.current && playerRef.current.pauseVideo) {
+        playerRef.current.pauseVideo();
+      }
+    },
+    playVideo: () => {
+      if (playerRef.current && playerRef.current.playVideo) {
+        playerRef.current.playVideo();
+      }
+    },
+    getCurrentTime: () => {
+      if (playerRef.current && playerRef.current.getCurrentTime) {
+        return playerRef.current.getCurrentTime();
+      }
+      return 0;
+    },
+    seekTo: (seconds) => {
+      if (playerRef.current && playerRef.current.seekTo) {
+        playerRef.current.seekTo(seconds, true);
+      }
+    },
+  }));
+
   // Don't render if no embed URL provided
   if (!embedUrl) return null;
 
@@ -38,16 +153,13 @@ export default function VideoPlayer({ embedUrl }) {
     <div className="video-section">
       <div className="video-wrapper">
         <div className="video-container">
-          <iframe
-            src={embedUrl}
-            title="YouTube video player"
-            className="video-iframe"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-          />
+          <div ref={iframeRef} id="youtube-player"></div>
         </div>
       </div>
     </div>
   );
-}
+});
+
+VideoPlayer.displayName = 'VideoPlayer';
+
+export default VideoPlayer;

@@ -13,11 +13,12 @@
  * @module VideoPage
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import VideoPlayer from "../components/VideoPlayer";
-import { videoService } from "../services";
+import CheckpointPopup from "../components/CheckpointPopup";
+import { videoService, llmService } from "../services";
 import "./VideoPage.css";
 
 /**
@@ -62,6 +63,12 @@ export default function VideoPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [embedUrl, setEmbedUrl] = useState("");
+  const [checkpoints, setCheckpoints] = useState([]);
+  const [currentCheckpoint, setCurrentCheckpoint] = useState(null);
+  const [checkpointsCompleted, setCheckpointsCompleted] = useState(new Set());
+  const [currentTime, setCurrentTime] = useState(0);
+  const videoRef = useRef(null);
+  const lastTriggeredCheckpoint = useRef(null);
 
   /**
    * Fetch Video Data
@@ -85,8 +92,22 @@ export default function VideoPage() {
         const videoData = await videoService.getVideo(videoId);
         setVideo(videoData);
 
-        // Generate embed URL
-        setEmbedUrl(`https://www.youtube.com/embed/${videoId}?autoplay=0`);
+        // Generate embed URL with enablejsapi for player control
+        setEmbedUrl(`https://www.youtube.com/embed/${videoId}?autoplay=0&enablejsapi=1`);
+
+        // Fetch checkpoints if transcript exists
+        if (videoData.transcript) {
+          try {
+            const checkpointData = await llmService.generateCheckpoints(
+              videoData.transcript,
+              { numCheckpoints: 5 }
+            );
+            setCheckpoints(checkpointData.checkpoints || []);
+          } catch (err) {
+            console.error("Error generating checkpoints:", err);
+            // Continue without checkpoints
+          }
+        }
       } catch (err) {
         console.error("Error fetching video:", err);
 
@@ -96,10 +117,23 @@ export default function VideoPage() {
             console.log("Video not in database, creating entry...");
             const newVideo = await videoService.createVideo(videoId, {
               fetchMetadata: true,
-              fetchTranscript: false
+              fetchTranscript: true
             });
             setVideo(newVideo);
-            setEmbedUrl(`https://www.youtube.com/embed/${videoId}?autoplay=0`);
+            setEmbedUrl(`https://www.youtube.com/embed/${videoId}?autoplay=0&enablejsapi=1`);
+
+            // Generate checkpoints if transcript was fetched
+            if (newVideo.transcript) {
+              try {
+                const checkpointData = await llmService.generateCheckpoints(
+                  newVideo.transcript,
+                  { numCheckpoints: 5 }
+                );
+                setCheckpoints(checkpointData.checkpoints || []);
+              } catch (err) {
+                console.error("Error generating checkpoints:", err);
+              }
+            }
           } catch (createErr) {
             console.error("Error creating video:", createErr);
             setError("Unable to load this video. The video may be private, unavailable, or the URL may be invalid. Please try a different video.");
@@ -122,6 +156,81 @@ export default function VideoPage() {
    */
   const handleBack = () => {
     navigate("/dashboard");
+  };
+
+  /**
+   * Handle Checkpoint Correct Answer
+   * 
+   * Called when user answers checkpoint question correctly.
+   * Marks checkpoint as completed and closes popup.
+   */
+  const handleCheckpointCorrect = () => {
+    if (currentCheckpoint) {
+      setCheckpointsCompleted(prev => new Set([...prev, currentCheckpoint.id]));
+      setCurrentCheckpoint(null);
+      
+      // Resume video playback
+      if (videoRef.current) {
+        videoRef.current.playVideo();
+      }
+    }
+  };
+
+  /**
+   * Handle Ask AI Tutor
+   * 
+   * Opens chat interface with checkpoint context.
+   * For now, shows alert - will be connected to chat later.
+   * 
+   * @param {Object} checkpoint - Checkpoint that needs help
+   */
+  const handleAskTutor = (checkpoint) => {
+    // TODO: Integrate with chat interface
+    alert(`Chat feature coming soon! You can ask about: "${checkpoint.question}"`);
+  };
+
+  /**
+   * Handle Video Time Update
+   * 
+   * Called every second to track video playback. Checks if current time
+   * matches any checkpoint timestamp and triggers popup if needed.
+   * 
+   * @param {number} time - Current video time in seconds
+   */
+  const handleTimeUpdate = (time) => {
+    setCurrentTime(time);
+
+    // Check if we should trigger a checkpoint
+    if (!currentCheckpoint) {
+      for (const checkpoint of checkpoints) {
+        // Check if we're within 1 second of checkpoint time and haven't completed it
+        const timeDiff = Math.abs(time - checkpoint.timestampSeconds);
+        if (
+          timeDiff < 1 &&
+          !checkpointsCompleted.has(checkpoint.id) &&
+          lastTriggeredCheckpoint.current !== checkpoint.id
+        ) {
+          // Pause video and show checkpoint
+          if (videoRef.current) {
+            videoRef.current.pauseVideo();
+          }
+          setCurrentCheckpoint(checkpoint);
+          lastTriggeredCheckpoint.current = checkpoint.id;
+          break;
+        }
+      }
+    }
+  };
+
+  /**
+   * Handle Video Player Ready
+   * 
+   * Called when YouTube player is initialized and ready.
+   * 
+   * @param {Object} player - YouTube player instance
+   */
+  const handlePlayerReady = (player) => {
+    console.log('Video player ready');
   };
 
   // Loading state
@@ -169,7 +278,14 @@ export default function VideoPage() {
         <div className="video-main-column">
           {/* Video Player */}
           <div className="video-player-section">
-            {embedUrl && <VideoPlayer embedUrl={embedUrl} />}
+            {embedUrl && (
+              <VideoPlayer
+                embedUrl={embedUrl}
+                ref={videoRef}
+                onTimeUpdate={handleTimeUpdate}
+                onReady={handlePlayerReady}
+              />
+            )}
           </div>
 
           {/* Video Info */}
@@ -192,6 +308,34 @@ export default function VideoPage() {
                 <p>{video.description}</p>
               </div>
             )}
+
+            {/* Checkpoints List */}
+            {checkpoints.length > 0 && (
+              <div className="video-checkpoints">
+                <h3>📍 Learning Checkpoints</h3>
+                <p className="checkpoints-subtitle">
+                  You'll be asked to answer questions at these points during the video
+                </p>
+                <div className="checkpoints-list">
+                  {checkpoints.map((checkpoint) => (
+                    <div
+                      key={checkpoint.id}
+                      className={`checkpoint-item ${
+                        checkpointsCompleted.has(checkpoint.id) ? 'completed' : ''
+                      }`}
+                    >
+                      <div className="checkpoint-marker">
+                        {checkpointsCompleted.has(checkpoint.id) ? '✅' : '⏱️'}
+                      </div>
+                      <div className="checkpoint-info">
+                        <div className="checkpoint-time">{checkpoint.timestamp}</div>
+                        <div className="checkpoint-item-title">{checkpoint.title}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -209,6 +353,15 @@ export default function VideoPage() {
           </div>
         </div>
       </div>
+
+      {/* Checkpoint Popup */}
+      {currentCheckpoint && (
+        <CheckpointPopup
+          checkpoint={currentCheckpoint}
+          onCorrectAnswer={handleCheckpointCorrect}
+          onAskTutor={handleAskTutor}
+        />
+      )}
     </div>
   );
 }

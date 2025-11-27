@@ -181,6 +181,82 @@
   font-size: 0.95rem;
 }
 
+/* Checkpoints Section */
+.video-checkpoints {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.video-checkpoints h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 0.5rem;
+}
+
+.checkpoints-subtitle {
+  color: #666;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.checkpoints-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.checkpoint-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  transition: all 0.2s ease;
+}
+
+.checkpoint-item:hover {
+  background-color: #e9ecef;
+  border-color: #ced4da;
+}
+
+.checkpoint-item.completed {
+  background-color: #d4edda;
+  border-color: #c3e6cb;
+}
+
+.checkpoint-marker {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.checkpoint-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.checkpoint-time {
+  font-weight: 600;
+  color: #007bff;
+  font-size: 0.9rem;
+  min-width: 45px;
+}
+
+.checkpoint-item-title {
+  color: #212529;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.checkpoint-item.completed .checkpoint-time {
+  color: #28a745;
+}
+
 /* Right Column - Sidebar */
 .video-sidebar-column {
   display: flex;

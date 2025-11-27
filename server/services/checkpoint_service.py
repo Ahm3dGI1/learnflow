@@ -129,7 +129,7 @@ def validate_checkpoint_response(response_data):
         if not isinstance(checkpoint, dict):
             return False
 
-        required_fields = ['timestamp', 'title', 'subtopic']
+        required_fields = ['timestamp', 'title', 'subtopic', 'question', 'answer']
         if not all(field in checkpoint for field in required_fields):
             return False
 
@@ -230,7 +230,9 @@ def generate_checkpoints(transcript_data, video_id):
                 'timestamp': checkpoint['timestamp'],
                 'timestampSeconds': timestamp_seconds,
                 'title': checkpoint['title'],
-                'subtopic': checkpoint['subtopic']
+                'subtopic': checkpoint['subtopic'],
+                'question': checkpoint['question'],
+                'answer': checkpoint['answer']
             })
 
         return {
