@@ -1,0 +1,309 @@
+/**
+ * Video Page Styles
+ *
+ * Styles for the dedicated video learning page with two-column layout
+ * for video player and learning tools (checkpoints, quiz, chat, summary).
+ */
+
+/* Container */
+.video-page-container {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.video-page-header {
+  background-color: white;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.back-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-weight: 500;
+}
+
+.back-button:hover {
+  background-color: #0056b3;
+}
+
+.back-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* User info in header */
+.video-page-header .user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.video-page-header .user-email {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Loading & Error States */
+.video-page-loading,
+.video-page-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 2rem;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.video-page-loading p,
+.video-page-error p {
+  color: #666;
+  font-size: 1rem;
+}
+
+.video-page-error h2 {
+  color: #dc3545;
+  margin-bottom: 1rem;
+}
+
+/* Main Content - Two Column Layout */
+.video-page-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 1.5rem;
+  padding: 2rem;
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Left Column - Video & Info */
+.video-main-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Video Player Section */
+.video-player-section {
+  background-color: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Video Info Section */
+.video-info-section {
+  background-color: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.video-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+
+.video-metadata {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.metadata-item {
+  color: #666;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+}
+
+.metadata-item::before {
+  content: "•";
+  margin-right: 0.5rem;
+  color: #007bff;
+}
+
+.metadata-item:first-child::before {
+  content: "";
+  margin-right: 0;
+}
+
+.video-description {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.video-description h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 0.75rem;
+}
+
+.video-description p {
+  color: #666;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+/* Right Column - Sidebar */
+.video-sidebar-column {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Chat Section */
+.chat-section {
+  background-color: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 600px;
+  max-height: calc(100vh - 200px);
+}
+
+.chat-section h2 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Placeholder Content */
+.placeholder-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  text-align: center;
+  color: #999;
+  min-height: 200px;
+}
+
+.placeholder-content p {
+  margin-bottom: 1rem;
+  color: #999;
+  font-size: 0.95rem;
+}
+
+.feature-placeholder-button {
+  background-color: #e9ecef;
+  color: #6c757d;
+  border: 1px dashed #ced4da;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: not-allowed;
+  transition: all 0.2s ease;
+}
+
+.feature-placeholder-button:hover {
+  background-color: #dee2e6;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .video-page-content {
+    grid-template-columns: 1fr;
+    padding: 1.5rem;
+  }
+
+  .chat-section {
+    min-height: 500px;
+  }
+}
+
+@media (max-width: 768px) {
+  .video-page-header {
+    padding: 1rem;
+  }
+
+  .video-page-content {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .video-title {
+    font-size: 1.2rem;
+  }
+
+  .video-metadata {
+    gap: 1rem;
+  }
+
+  .metadata-item {
+    font-size: 0.85rem;
+  }
+
+  .chat-section {
+    padding: 1rem;
+    min-height: 400px;
+  }
+
+  .chat-section h2 {
+    font-size: 1.1rem;
+  }
+}
+
+/* Tablet Breakpoint - Adjust sidebar width */
+@media (max-width: 1200px) and (min-width: 769px) {
+  .video-page-content {
+    grid-template-columns: 1fr 320px;
+  }
+}
+
+/* Smooth Transitions */
+.video-player-section,
+.video-info-section,
+.chat-section {
+  transition: box-shadow 0.3s ease;
+}
+
+.video-player-section:hover,
+.video-info-section:hover,
+.chat-section:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}

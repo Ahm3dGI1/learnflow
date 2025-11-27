@@ -1,16 +1,17 @@
 /**
  * Main Application Component for LearnFlow.
- * 
+ *
  * This is the root component that sets up routing, authentication context,
  * and defines all application routes. It wraps the entire application with
  * the AuthProvider to make authentication state available throughout the app.
- * 
+ *
  * Routes:
  * - / : Home page (public)
  * - /login : Login page (public)
  * - /signup : Signup page (public)
  * - /dashboard : Main dashboard (protected, requires authentication)
- * 
+ * - /video/:videoId : Video player page (protected, requires authentication)
+ *
  * @returns {JSX.Element} The application component with routing configured
  */
 
@@ -22,6 +23,7 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
+import VideoPage from "./pages/VideoPage";
 
 export default function App() {
   return (
@@ -33,12 +35,20 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
 
-          {/* protected route */}
+          {/* protected routes */}
           <Route
             path="/dashboard"
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/video/:videoId"
+            element={
+              <ProtectedRoute>
+                <VideoPage />
               </ProtectedRoute>
             }
           />
