@@ -12,6 +12,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import api from "../services/api";
 
 /**
  * Authentication context with default values.
@@ -44,9 +45,20 @@ export function AuthProvider({ children }) {
      * Subscribe to Firebase auth state changes.
      * Updates user state when authentication status changes.
      */
-    const unsub = onAuthStateChanged(auth, (u) => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u ?? null);
       setLoading(false);
+
+      // Call backend for create/update whenever the user is present
+      if (u) {
+        try {
+          // No body required - token gets attached via api wrapper
+          await api.post("/api/users", {});
+        } catch (err) {
+          // Don't block app if backend fails; log for debugging
+          console.error("Failed to sync user with backend:", err);
+        }
+      }
     });
     
     // Cleanup subscription on unmount
