@@ -3,7 +3,7 @@ Test suite for the User Management API.
 
 Secure and minimal tests for:
 - POST /api/users (create/update user from Firebase token claims)
-- GET /api/users/<firebase_uid> (fetch user data)
+- GET /api/users/me (fetch current user data)
 
 This file uses:
 - Flask test client (no external server required)
@@ -143,63 +143,6 @@ def test_post_user_with_invalid_token_returns_401(client):
     with patch(VERIFY_PATCH_PATH, side_effect=Exception("Invalid token")):
         resp = client.post("/api/users", headers={"Authorization": "Bearer badtoken"})
     assert resp.status_code == 401, f"Expected 401 Unauthorized but got {resp.status_code}"
-
-
-def test_get_user_returns_user_data(client):
-    """
-    Test GET /api/users/<firebase_uid> returns the expected user data.
-
-    Steps:
-    - Insert a user record using SessionLocal for a unique `firebase_uid`.
-    - Call GET /api/users/<firebase_uid>.
-    - Assert 200 and expected fields in the response.
-    - Cleanup DB.
-    """
-    firebase_uid = "test-uid-get"
-    email = "get@example.com"
-    name = "Get User"
-
-    # Ensure clean DB and create user
-    _cleanup_user(firebase_uid)
-    with SessionLocal() as db:
-        user = User(firebase_uid=firebase_uid, email=email, display_name=name)
-        db.add(user)
-        db.commit()
-
-    claims = {"uid": firebase_uid, "email": email, "name": name}
-    with patch(VERIFY_PATCH_PATH, return_value=claims):
-        resp = client.get(f"/api/users/{firebase_uid}", headers={"Authorization": "Bearer faketoken"})
-    assert resp.status_code == 200, f"Expected 200 OK but got {resp.status_code}"
-    data = resp.get_json()
-    assert data is not None and "data" in data
-    assert data["data"]["firebaseUid"] == firebase_uid
-    assert data["data"]["email"] == email
-    assert data["data"]["displayName"] == name
-
-    # Cleanup
-    _cleanup_user(firebase_uid)
-
-
-def test_get_user_forbidden_returns_403(client):
-    """
-    Test that GET /api/users/<firebase_uid> is forbidden when the caller does not match the requested user.
-    """
-    target_uid = "target-uid"
-    other_uid = "other-uid"
-    email = "target@example.com"
-
-    _cleanup_user(target_uid)
-    with SessionLocal() as db:
-        user = User(firebase_uid=target_uid, email=email, display_name="Target")
-        db.add(user)
-        db.commit()
-
-    claims = {"uid": other_uid, "email": "other@example.com", "name": "Other"}
-    with patch(VERIFY_PATCH_PATH, return_value=claims):
-        resp = client.get(f"/api/users/{target_uid}", headers={"Authorization": "Bearer faketoken"})
-    assert resp.status_code == 403, f"Expected 403 Forbidden but got {resp.status_code}"
-
-    _cleanup_user(target_uid)
 
 
 def test_get_user_me_returns_user_data(client):
