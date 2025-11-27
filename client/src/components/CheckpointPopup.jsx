@@ -147,7 +147,7 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
   };
 
   return (
-    <div className="checkpoint-popup-overlay" role="dialog" aria-modal="true">
+    <div className="checkpoint-popup-overlay" role="dialog" aria-modal="true" aria-labelledby="checkpoint-title">
       <div className="checkpoint-popup-container">
         {/* Header */}
         <div className="checkpoint-popup-header">

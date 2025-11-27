@@ -8,7 +8,7 @@
  * @module VideoPlayer
  */
 
-import { useEffect, useRef, forwardRef, useImperativeHandle } from "react";
+import { useEffect, useRef, forwardRef, useImperativeHandle, useCallback } from "react";
 import "./VideoPlayer.css";
 
 /**
@@ -37,7 +37,7 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
   const iframeRef = useRef(null);
   const playerRef = useRef(null);
   const timeIntervalRef = useRef(null);
-  const playerIdRef = useRef(`youtube-player-${Math.random().toString(36).substr(2, 9)}`);
+  const playerIdRef = useRef(`youtube-player-${Math.random().toString(36).slice(2, 11)}`);
 
   /**
    * Initialize YouTube iframe API
@@ -47,7 +47,7 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
      * Initialize YouTube Player
      */
     const initializePlayer = () => {
-      if (!iframeRef.current || !embedUrl) return;
+      if (!embedUrl || playerRef.current) return;
 
       // Extract video ID from embed URL
       const videoIdMatch = embedUrl.match(/embed\/([^?]+)/);
@@ -101,12 +101,13 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
         playerRef.current.destroy();
       }
     };
-  }, [embedUrl]);
+  }, [embedUrl, handlePlayerReady, handleStateChange]);
 
   /**
    * Handle Player Ready
+   * Wrapped in useCallback to maintain referential stability
    */
-  const handlePlayerReady = () => {
+  const handlePlayerReady = useCallback((event) => {
     if (onReady) {
       onReady(playerRef.current);
     }
@@ -120,14 +121,15 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
         }
       }
     }, 1000); // Check every second
-  };
+  }, [onReady, onTimeUpdate]);
 
   /**
    * Handle Player State Change
+   * Wrapped in useCallback to maintain referential stability
    */
-  const handleStateChange = (event) => {
+  const handleStateChange = useCallback((event) => {
     // Handle state changes if needed
-  };
+  }, []);
 
   /**
    * Expose player control methods to parent via ref

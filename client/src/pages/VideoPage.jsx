@@ -68,6 +68,9 @@ export default function VideoPage() {
   const [checkpointsCompleted, setCheckpointsCompleted] = useState(new Set());
   const videoRef = useRef(null);
   const lastTriggeredCheckpoint = useRef(null);
+  
+  // Checkpoint trigger window in seconds
+  const CHECKPOINT_TRIGGER_WINDOW = 1.5;
 
   /**
    * Fetch Video Data
@@ -202,10 +205,10 @@ export default function VideoPage() {
     // Check if we should trigger a checkpoint
     if (!currentCheckpoint) {
       for (const checkpoint of checkpoints) {
-        // Check if we're within 1.5 seconds after checkpoint time and haven't completed it
+        // Check if we're within trigger window after checkpoint time and haven't completed it
         if (
           time >= checkpoint.timestampSeconds &&
-          time < checkpoint.timestampSeconds + 1.5 &&
+          time < checkpoint.timestampSeconds + CHECKPOINT_TRIGGER_WINDOW &&
           !checkpointsCompleted.has(checkpoint.id) &&
           lastTriggeredCheckpoint.current !== checkpoint.id
         ) {
