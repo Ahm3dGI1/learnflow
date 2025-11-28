@@ -18,6 +18,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import VideoPlayer from "../components/VideoPlayer";
 import CheckpointPopup from "../components/CheckpointPopup";
+import VideoSummary from "../components/VideoSummary";
 import { videoService, llmService } from "../services";
 import "./VideoPage.css";
 
@@ -66,6 +67,9 @@ export default function VideoPage() {
   const [checkpoints, setCheckpoints] = useState([]);
   const [currentCheckpoint, setCurrentCheckpoint] = useState(null);
   const [checkpointsCompleted, setCheckpointsCompleted] = useState(new Set());
+  const [summary, setSummary] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState(null);
   const videoRef = useRef(null);
   const lastTriggeredCheckpoint = useRef(null);
   
@@ -110,6 +114,21 @@ export default function VideoPage() {
             console.error("Error generating checkpoints:", err);
             // Continue without checkpoints
           }
+
+          // Generate summary
+          try {
+            setSummaryLoading(true);
+            setSummaryError(null);
+            const summaryData = await llmService.generateSummary(
+              videoData.transcript
+            );
+            setSummary(summaryData.summary);
+          } catch (err) {
+            console.error("Error generating summary:", err);
+            setSummaryError("Failed to generate summary");
+          } finally {
+            setSummaryLoading(false);
+          }
         }
       } catch (err) {
         console.error("Error fetching video:", err);
@@ -136,6 +155,21 @@ export default function VideoPage() {
                 setCheckpoints(checkpointData.checkpoints || []);
               } catch (err) {
                 console.error("Error generating checkpoints:", err);
+              }
+
+              // Generate summary
+              try {
+                setSummaryLoading(true);
+                setSummaryError(null);
+                const summaryData = await llmService.generateSummary(
+                  newVideo.transcript
+                );
+                setSummary(summaryData.summary);
+              } catch (err) {
+                console.error("Error generating summary:", err);
+                setSummaryError("Failed to generate summary");
+              } finally {
+                setSummaryLoading(false);
               }
             }
           } catch (createErr) {
@@ -320,6 +354,14 @@ export default function VideoPage() {
                 <p>{video.description}</p>
               </div>
             )}
+
+            {/* Video Summary */}
+            <VideoSummary
+              summary={summary}
+              loading={summaryLoading}
+              error={summaryError}
+              wordCount={summary ? summary.split(' ').length : 0}
+            />
 
             {/* Checkpoints List */}
             {checkpoints.length > 0 && (
