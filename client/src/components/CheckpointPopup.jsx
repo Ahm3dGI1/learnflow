@@ -46,12 +46,15 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
   const [isCorrect, setIsCorrect] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const timeoutRef = useRef(null);
+  const isMountedRef = useRef(true);
 
   /**
-   * Cleanup timeout on unmount
+   * Track component mount state and cleanup timeout on unmount
    */
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
@@ -95,21 +98,43 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
    * Validates user's answer and shows appropriate feedback.
    * If correct, calls onCorrectAnswer callback to resume video.
    * If incorrect, shows feedback with Try Again and Ask Tutor options.
+   * Includes error handling for malformed checkpoint data.
    */
   const handleSubmit = () => {
     if (!userAnswer.trim()) {
       return;
     }
 
-    const correct = validateAnswer(userAnswer);
-    setIsCorrect(correct);
-    setShowFeedback(true);
+    try {
+      // Validate checkpoint has required fields
+      if (!checkpoint || !checkpoint.answer) {
+        console.error('Checkpoint missing required fields:', checkpoint);
+        setIsCorrect(false);
+        setShowFeedback(true);
+        return;
+      }
 
-    if (correct) {
-      // Wait a moment to show success feedback, then resume
-      timeoutRef.current = setTimeout(() => {
-        onCorrectAnswer();
-      }, 1500);
+      const correct = validateAnswer(userAnswer);
+      setIsCorrect(correct);
+      setShowFeedback(true);
+
+      if (correct) {
+        // Wait a moment to show success feedback, then resume
+        timeoutRef.current = setTimeout(() => {
+          // Only call onCorrectAnswer if component is still mounted
+          if (isMountedRef.current && onCorrectAnswer) {
+            try {
+              onCorrectAnswer();
+            } catch (error) {
+              console.error('Error calling onCorrectAnswer callback:', error);
+            }
+          }
+        }, 1500);
+      }
+    } catch (error) {
+      console.error('Error validating answer:', error);
+      setIsCorrect(false);
+      setShowFeedback(true);
     }
   };
 
