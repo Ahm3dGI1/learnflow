@@ -214,23 +214,23 @@
 }
 
 .checkpoint-button-secondary {
-  background-color: #6c757d;
+  background-color: var(--color-secondary);
   color: var(--color-background);
 }
 
 .checkpoint-button-secondary:hover {
-  background-color: #5a6268;
+  background-color: var(--color-secondary-hover);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
 }
 
 .checkpoint-button-tutor {
-  background-color: #28a745;
+  background-color: var(--color-tutor);
   color: var(--color-background);
 }
 
 .checkpoint-button-tutor:hover {
-  background-color: #218838;
+  background-color: var(--color-tutor-hover);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
 }

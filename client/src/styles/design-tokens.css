@@ -15,6 +15,8 @@
   --color-background: #ffffff;
   --color-surface: #ffffff;
   --color-surface-secondary: #f9fafb;
+  --color-surface-tertiary: #f8fafc;
+  --color-surface-hover: #f3f4f6;
   --color-border: #e5e7eb;
   --color-border-hover: #d1d5db;
   
@@ -30,6 +32,15 @@
   --color-success: #059669;
   --color-success-bg: #d1fae5;
   --color-success-border: #a7f3d0;
+  --color-success-hover: #218838;
+  
+  /* Colors - Secondary Actions */
+  --color-secondary: #6c757d;
+  --color-secondary-hover: #5a6268;
+  
+  /* Colors - Special */
+  --color-tutor: #28a745;
+  --color-tutor-hover: #218838;
   
   /* Spacing */
   --spacing-xs: 4px;

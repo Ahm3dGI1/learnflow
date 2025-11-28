@@ -226,7 +226,7 @@
 }
 
 .checkpoint-item:hover {
-  background: #f3f4f6;
+  background: var(--color-surface-hover);
   border-color: var(--color-border-hover);
 }
 
@@ -314,7 +314,7 @@
 }
 
 .feature-placeholder-button {
-  background: #f3f4f6;
+  background: var(--color-surface-hover);
   color: var(--color-text-secondary);
   border: 1px dashed var(--color-border-hover);
   padding: 10px var(--spacing-xl);
@@ -325,7 +325,7 @@
 }
 
 .feature-placeholder-button:hover {
-  background: #e5e7eb;
+  background: var(--color-border);
 }
 
 /* Responsive Design */
