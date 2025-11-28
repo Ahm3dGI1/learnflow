@@ -1,5 +1,5 @@
 /**
- * Video Page Styles - LearnVid Design
+ * Video Page Styles - LearnFlow Design
  *
  * Styles for the dedicated video learning page with two-column layout
  * for video player and learning tools (checkpoints, quiz, chat, summary).
@@ -8,16 +8,16 @@
 /* Container */
 .video-page-container {
   min-height: 100vh;
-  background: #ffffff;
+  background: var(--color-background);
   display: flex;
   flex-direction: column;
 }
 
 /* Header */
 .video-page-header {
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
-  padding: 20px 40px;
+  background: var(--color-background);
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--header-padding);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -26,23 +26,23 @@
 }
 
 .back-button {
-  background: #2563eb;
-  color: #ffffff;
+  background: var(--color-primary);
+  color: var(--color-background);
   border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
+  padding: 10px var(--spacing-xl);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: background var(--transition-fast);
 }
 
 .back-button:hover {
-  background: #1d4ed8;
+  background: var(--color-primary-hover);
 }
 
 .back-button:disabled {
-  background: #9ca3af;
+  background: var(--color-text-tertiary);
   cursor: not-allowed;
 }
 
@@ -50,13 +50,13 @@
 .video-page-header .user-info {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--spacing-md);
 }
 
 .video-page-header .user-email {
-  color: #6b7280;
-  font-size: 14px;
-  font-weight: 500;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 /* Loading & Error States */
@@ -73,8 +73,8 @@
 .loading-spinner {
   width: 50px;
   height: 50px;
-  border: 4px solid #e5e7eb;
-  border-top: 4px solid #2563eb;
+  border: 4px solid var(--color-border);
+  border-top: 4px solid var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;
@@ -87,15 +87,15 @@
 
 .video-page-loading p,
 .video-page-error p {
-  color: #6b7280;
-  font-size: 16px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
 }
 
 .video-page-error h2 {
-  color: #dc2626;
+  color: var(--color-error);
   margin-bottom: 1rem;
-  font-size: 24px;
-  font-weight: 700;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
 }
 
 /* Main Content - Two Column Layout */
@@ -103,9 +103,9 @@
   flex: 1;
   display: grid;
   grid-template-columns: 1fr 400px;
-  gap: 24px;
-  padding: 40px;
-  max-width: 1600px;
+  gap: var(--spacing-lg);
+  padding: var(--content-padding);
+  max-width: var(--max-width-content);
   width: 100%;
   margin: 0 auto;
   box-sizing: border-box;
@@ -115,53 +115,53 @@
 .video-main-column {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--spacing-lg);
 }
 
 /* Video Player Section */
 .video-player-section {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
 }
 
 /* Video Info Section */
 .video-info-section {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-md);
 }
 
 .video-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: #111827;
-  margin-bottom: 16px;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-md);
   line-height: 1.4;
 }
 
 .video-metadata {
   display: flex;
-  gap: 20px;
+  gap: var(--spacing-xl);
   flex-wrap: wrap;
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-xl);
 }
 
 .metadata-item {
-  color: #6b7280;
-  font-size: 14px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
   display: flex;
   align-items: center;
 }
 
 .metadata-item::before {
   content: "•";
-  margin-right: 8px;
-  color: #2563eb;
+  margin-right: var(--spacing-sm);
+  color: var(--color-primary);
 }
 
 .metadata-item:first-child::before {
@@ -170,73 +170,73 @@
 }
 
 .video-description {
-  margin-top: 24px;
-  padding-top: 24px;
-  border-top: 1px solid #e5e7eb;
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-border);
 }
 
 .video-description h3 {
-  font-size: 18px;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 12px;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-md);
 }
 
 .video-description p {
-  color: #6b7280;
-  line-height: 1.6;
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
   font-size: 15px;
 }
 
 /* Checkpoints Section */
 .video-checkpoints {
-  margin-top: 24px;
-  padding-top: 24px;
-  border-top: 1px solid #e5e7eb;
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-border);
 }
 
 .video-checkpoints h3 {
-  font-size: 18px;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 8px;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-sm);
 }
 
 .checkpoints-subtitle {
-  color: #6b7280;
-  font-size: 14px;
-  margin-bottom: 16px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-md);
 }
 
 .checkpoints-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--spacing-md);
 }
 
 .checkpoint-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background: #f9fafb;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  transition: all 0.2s ease;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--color-surface-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  transition: all var(--transition-fast);
 }
 
 .checkpoint-item:hover {
   background: #f3f4f6;
-  border-color: #d1d5db;
+  border-color: var(--color-border-hover);
 }
 
 .checkpoint-item.completed {
-  background: #d1fae5;
-  border-color: #a7f3d0;
+  background: var(--color-success-bg);
+  border-color: var(--color-success-border);
 }
 
 .checkpoint-marker {
-  font-size: 20px;
+  font-size: var(--font-size-xl);
   flex-shrink: 0;
 }
 
@@ -244,24 +244,24 @@
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--spacing-md);
 }
 
 .checkpoint-time {
-  font-weight: 600;
-  color: #2563eb;
-  font-size: 14px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
   min-width: 60px;
 }
 
 .checkpoint-item-title {
-  color: #111827;
-  font-size: 14px;
-  font-weight: 500;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 .checkpoint-item.completed .checkpoint-time {
-  color: #059669;
+  color: var(--color-success);
 }
 
 /* Right Column - Sidebar */
@@ -273,11 +273,11 @@
 
 /* Chat Section */
 .chat-section {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -286,13 +286,13 @@
 }
 
 .chat-section h2 {
-  font-size: 20px;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 16px;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-md);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 /* Placeholder Content */
@@ -301,27 +301,27 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;
+  padding: var(--content-padding) var(--spacing-xl);
   text-align: center;
-  color: #9ca3af;
+  color: var(--color-text-tertiary);
   min-height: 200px;
 }
 
 .placeholder-content p {
-  margin-bottom: 16px;
-  color: #6b7280;
+  margin-bottom: var(--spacing-md);
+  color: var(--color-text-secondary);
   font-size: 15px;
 }
 
 .feature-placeholder-button {
   background: #f3f4f6;
-  color: #6b7280;
-  border: 1px dashed #d1d5db;
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-size: 14px;
+  color: var(--color-text-secondary);
+  border: 1px dashed var(--color-border-hover);
+  padding: 10px var(--spacing-xl);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
   cursor: not-allowed;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
 }
 
 .feature-placeholder-button:hover {
@@ -332,7 +332,7 @@
 @media (max-width: 1200px) {
   .video-page-content {
     grid-template-columns: 1fr;
-    padding: 24px;
+    padding: var(--spacing-lg);
   }
 
   .chat-section {
@@ -342,36 +342,36 @@
 
 @media (max-width: 768px) {
   .video-page-header {
-    padding: 16px 20px;
+    padding: var(--spacing-md) var(--spacing-xl);
     flex-direction: column;
-    gap: 16px;
+    gap: var(--spacing-md);
     align-items: flex-start;
   }
 
   .video-page-content {
-    padding: 20px;
-    gap: 20px;
+    padding: var(--spacing-xl);
+    gap: var(--spacing-xl);
   }
 
   .video-title {
-    font-size: 20px;
+    font-size: var(--font-size-xl);
   }
 
   .video-metadata {
-    gap: 12px;
+    gap: var(--spacing-md);
   }
 
   .metadata-item {
-    font-size: 12px;
+    font-size: var(--font-size-xs);
   }
 
   .chat-section {
-    padding: 20px;
+    padding: var(--spacing-xl);
     min-height: 400px;
   }
 
   .chat-section h2 {
-    font-size: 18px;
+    font-size: var(--font-size-lg);
   }
 }
 
@@ -386,11 +386,11 @@
 .video-player-section,
 .video-info-section,
 .chat-section {
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow var(--transition-fast);
 }
 
 .video-player-section:hover,
 .video-info-section:hover,
 .chat-section:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-lg);
 }

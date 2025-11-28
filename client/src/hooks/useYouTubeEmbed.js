@@ -79,7 +79,6 @@ export function useYouTubeEmbed() {
     const videoId = extractVideoId(videoUrl);
     if (videoId) {
       setEmbedUrl(`https://www.youtube.com/embed/${videoId}?autoplay=1`);
-      console.log('Loading video:', videoId);
     } else if (videoUrl.trim()) {
       alert('Please enter a valid YouTube URL');
     }

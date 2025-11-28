@@ -37,7 +37,7 @@ export default function Home() {
       {/* Header */}
       <header className="home-header">
         <div className="header-content">
-          <div className="logo">LearnVid</div>
+          <div className="logo">LearnFlow</div>
           <div className="header-buttons">
             <Link to="/login" className="header-link">Login</Link>
             <Link to="/signup" className="header-button">Sign Up</Link>

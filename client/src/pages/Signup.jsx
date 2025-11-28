@@ -78,7 +78,7 @@ export default function Signup() {
     <div className="auth-container">
       <header className="auth-header-top">
         <div className="auth-header-content">
-          <Link to="/" className="auth-logo">LearnVid</Link>
+          <Link to="/" className="auth-logo">LearnFlow</Link>
           <div className="auth-header-buttons">
             <Link to="/login" className="auth-header-link">Login</Link>
             <Link to="/signup" className="auth-header-button">Sign Up</Link>
@@ -90,7 +90,7 @@ export default function Signup() {
         <div className="auth-card">
           <div className="auth-header">
             <h1>Create Account</h1>
-            <p>Join LearnVid to start learning</p>
+            <p>Join LearnFlow to start learning</p>
           </div>
 
           {err && <div className="error-message">{err}</div>}

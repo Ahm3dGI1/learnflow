@@ -141,7 +141,7 @@ export default function Dashboard() {
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
-        <h1>LearnVid</h1>
+        <h1>LearnFlow</h1>
         <div className="user-info">
           <span className="user-email">{user?.email}</span>
           <button onClick={() => signOut(auth)} className="logout-button">
