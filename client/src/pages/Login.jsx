@@ -74,6 +74,15 @@ export default function Login() {
 
   return (
     <div className="auth-container">
+      <header className="auth-header-top">
+        <div className="auth-header-content">
+          <Link to="/" className="auth-logo">LearnFlow</Link>
+          <div className="auth-header-buttons">
+            <Link to="/login" className="auth-header-link">Login</Link>
+            <Link to="/signup" className="auth-header-button">Sign Up</Link>
+          </div>
+        </div>
+      </header>
       <div>
         <Link to="/" className="back-home">← Back to Home</Link>
         <div className="auth-card">
