@@ -51,7 +51,9 @@ Respond with ONLY valid JSON in this exact structure:
     {{
       "timestamp": "MM:SS",
       "title": "Short Title Here",
-      "subtopic": "Brief one-sentence description of what this section covers."
+      "subtopic": "Brief one-sentence description of what this section covers.",
+      "question": "A question to verify understanding of this checkpoint's content.",
+      "answer": "The correct answer to the question."
     }}
   ]
 }}
@@ -62,17 +64,23 @@ Example for a photosynthesis video:
     {{
       "timestamp": "02:15",
       "title": "Photosynthesis Definition",
-      "subtopic": "Understanding what photosynthesis is and why plants need it."
+      "subtopic": "Understanding what photosynthesis is and why plants need it.",
+      "question": "What is the primary purpose of photosynthesis in plants?",
+      "answer": "To convert light energy into chemical energy stored in glucose"
     }},
     {{
       "timestamp": "05:40",
       "title": "Light-Dependent Reactions",
-      "subtopic": "How chlorophyll captures light energy in the thylakoid membrane."
+      "subtopic": "How chlorophyll captures light energy in the thylakoid membrane.",
+      "question": "Where do the light-dependent reactions occur?",
+      "answer": "In the thylakoid membrane"
     }},
     {{
       "timestamp": "08:20",
       "title": "Calvin Cycle Process",
-      "subtopic": "Converting carbon dioxide into glucose using ATP and NADPH."
+      "subtopic": "Converting carbon dioxide into glucose using ATP and NADPH.",
+      "question": "What molecule is produced as the end product of the Calvin Cycle?",
+      "answer": "Glucose"
     }}
   ]
 }}
