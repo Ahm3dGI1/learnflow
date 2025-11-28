@@ -13,7 +13,7 @@
  * @module VideoPage
  */
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import VideoPlayer from "../components/VideoPlayer";
@@ -66,11 +66,14 @@ export default function VideoPage() {
   const [checkpoints, setCheckpoints] = useState([]);
   const [currentCheckpoint, setCurrentCheckpoint] = useState(null);
   const [checkpointsCompleted, setCheckpointsCompleted] = useState(new Set());
+  const [videoEnded, setVideoEnded] = useState(false);
   const videoRef = useRef(null);
   const lastTriggeredCheckpoint = useRef(null);
   
   // Checkpoint trigger window in seconds
   const CHECKPOINT_TRIGGER_WINDOW = 1.5;
+  // Video end detection threshold in seconds
+  const VIDEO_END_THRESHOLD = 2;
 
   /**
    * Fetch Video Data
@@ -158,9 +161,9 @@ export default function VideoPage() {
    *
    * Returns user to dashboard when back button is clicked.
    */
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     navigate("/dashboard");
-  };
+  }, [navigate]);
 
   /**
    * Handle Checkpoint Correct Answer
@@ -168,7 +171,7 @@ export default function VideoPage() {
    * Called when user answers checkpoint question correctly.
    * Marks checkpoint as completed and closes popup.
    */
-  const handleCheckpointCorrect = () => {
+  const handleCheckpointCorrect = useCallback(() => {
     if (currentCheckpoint) {
       setCheckpointsCompleted(prev => new Set([...prev, currentCheckpoint.id]));
       setCurrentCheckpoint(null);
@@ -178,7 +181,7 @@ export default function VideoPage() {
         videoRef.current.playVideo();
       }
     }
-  };
+  }, [currentCheckpoint]);
 
   /**
    * Handle Ask AI Tutor
@@ -188,20 +191,29 @@ export default function VideoPage() {
    * 
    * @param {Object} checkpoint - Checkpoint that needs help
    */
-  const handleAskTutor = (checkpoint) => {
+  const handleAskTutor = useCallback((checkpoint) => {
     // TODO: Integrate with chat interface
     alert(`Chat feature coming soon! You can ask about: "${checkpoint.question}"`);
-  };
+  }, []);
 
   /**
    * Handle Video Time Update
    * 
    * Called every second to track video playback. Checks if current time
    * matches any checkpoint timestamp and triggers popup if needed.
+   * Also detects when video ends.
    * 
    * @param {number} time - Current video time in seconds
    */
   const handleTimeUpdate = (time) => {
+    // Check if video has ended (within VIDEO_END_THRESHOLD seconds of duration)
+    if (video?.durationSeconds && time >= video.durationSeconds - VIDEO_END_THRESHOLD) {
+      setVideoEnded(true);
+    } else if (videoEnded && time < video.durationSeconds - VIDEO_END_THRESHOLD) {
+      // Reset if user seeks backward
+      setVideoEnded(false);
+    }
+
     // Check if we should trigger a checkpoint
     if (!currentCheckpoint) {
       for (const checkpoint of checkpoints) {
@@ -346,6 +358,23 @@ export default function VideoPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Quiz Section - Shows only after video ends */}
+            {video?.transcript && videoEnded && (
+              <div className="video-quiz-section">
+                <h3>📝 Test Your Knowledge</h3>
+                <p className="quiz-section-subtitle">
+                  Great! You've finished the video. Ready to test what you've learned?
+                </p>
+                <button 
+                  className="take-quiz-button"
+                  onClick={() => navigate(`/video/${videoId}/quiz`)}
+                  aria-label="Take quiz for this video"
+                >
+                  Take Quiz →
+                </button>
               </div>
             )}
           </div>
