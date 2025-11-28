@@ -31,8 +31,9 @@
 /* Container */
 .checkpoint-popup-container {
   background-color: white;
-  border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   max-width: 600px;
   width: 90%;
   max-height: 80vh;
@@ -53,10 +54,10 @@
 
 /* Header */
 .checkpoint-popup-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #2563eb;
   color: white;
   padding: 1.5rem;
-  border-radius: 16px 16px 0 0;
+  border-radius: 12px 12px 0 0;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -79,12 +80,12 @@
 }
 
 .checkpoint-subtopic {
-  color: #666;
+  color: #6b7280;
   font-size: 0.95rem;
   line-height: 1.5;
   margin-bottom: 1.5rem;
   padding-bottom: 1.5rem;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .checkpoint-question-section {
@@ -118,16 +119,18 @@
   width: 100%;
   padding: 0.875rem 1rem;
   font-size: 1rem;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
   transition: all 0.2s ease;
   font-family: inherit;
+  background: #ffffff;
+  color: #111827;
 }
 
 .checkpoint-answer-input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .checkpoint-answer-input::placeholder {
@@ -188,7 +191,7 @@
   font-size: 1rem;
   font-weight: 500;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
   font-family: inherit;
@@ -200,14 +203,14 @@
 }
 
 .checkpoint-button-primary {
-  background-color: #667eea;
+  background-color: #2563eb;
   color: white;
 }
 
 .checkpoint-button-primary:hover:not(:disabled) {
-  background-color: #5568d3;
+  background-color: #1d4ed8;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
 }
 
 .checkpoint-button-secondary {

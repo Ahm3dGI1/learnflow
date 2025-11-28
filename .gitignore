@@ -3,8 +3,10 @@ assignment-files/
 
 # Environment variables - never commit these!
 .env
+_env
 server/.env
 */.env
+*/_env
 
 /venv
 *.pyc

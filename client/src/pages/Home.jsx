@@ -34,50 +34,92 @@ export default function Home() {
 
   return (
     <div className="home-container">
-      <div className="home-hero">
-        <h1>Welcome to LearnFlow</h1>
-        <p>Transform YouTube videos into interactive learning experiences</p>
-        <div className="cta-buttons">
-          <Link to="/signup" className="cta-button primary">
-            Get Started
-          </Link>
-          <Link to="/login" className="cta-button">
-            Log In
-          </Link>
+      {/* Header */}
+      <header className="home-header">
+        <div className="header-content">
+          <div className="logo">LearnVid</div>
+          <div className="header-buttons">
+            <Link to="/login" className="header-link">Login</Link>
+            <Link to="/signup" className="header-button">Sign Up</Link>
+          </div>
         </div>
-      </div>
+      </header>
 
-      <div className="home-content">
-        <div className="home-video-section">
-          <p className="demo-label">Try it out - Paste a YouTube link below</p>
+      {/* Main Content */}
+      <main className="home-main">
+        <div className="hero-section">
+          <h1 className="hero-title">Transform Any Video Into an Interactive Learning Experience</h1>
+          <p className="hero-subtitle">Paste a YouTube video URL and let AI add interactive checkpoints, tutoring, and study materials.</p>
+        </div>
+
+        {/* Transform Card */}
+        <div className="transform-card">
+          <h2 className="transform-title">Transform Any YouTube Video into an Interactive Learning Experience</h2>
+          <p className="transform-instruction">Paste a YouTube video URL below. Our AI will automatically:</p>
+          
+          <div className="feature-boxes">
+            <div className="feature-box">
+              <div className="feature-icon">🧠</div>
+              <h3>AI Analysis</h3>
+              <p>Transcribe and analyze video content.</p>
+            </div>
+            <div className="feature-box">
+              <div className="feature-icon">✓</div>
+              <h3>Auto Checkpoints</h3>
+              <p>Generate interactive questions at key moments.</p>
+            </div>
+            <div className="feature-box">
+              <div className="feature-icon">▶</div>
+              <h3>Start Learning</h3>
+              <p>Watch with AI tutor and study materials.</p>
+            </div>
+          </div>
+
           {!embedUrl && (
-            <InputBar
-              videoUrl={videoUrl}
-              setVideoUrl={setVideoUrl}
-              onSend={handleLoadVideo}
-            />
+            <div className="input-container">
+              <InputBar
+                videoUrl={videoUrl}
+                setVideoUrl={setVideoUrl}
+                onSend={handleLoadVideo}
+              />
+            </div>
           )}
-          <VideoPlayer embedUrl={embedUrl} />
-        </div>
-      </div>
 
-      <div className="features-section">
-        <h2>Why LearnFlow?</h2>
-        <div className="features-grid">
-          <div className="feature-card">
-            <h3>Interactive Learning</h3>
-            <p>Transform any YouTube video into an engaging learning experience</p>
-          </div>
-          <div className="feature-card">
-            <h3>Track Progress</h3>
-            <p>Keep track of your learning journey with built-in checkpoints</p>
-          </div>
-          <div className="feature-card">
-            <h3>Easy to Use</h3>
-            <p>Simply paste a YouTube link and start learning immediately</p>
+          {embedUrl && (
+            <div className="video-container">
+              <VideoPlayer embedUrl={embedUrl} />
+            </div>
+          )}
+        </div>
+
+        {/* How It Works Section */}
+        <div className="how-it-works-card">
+          <h2 className="how-it-works-title">How It Works</h2>
+          <div className="steps-container">
+            <div className="step">
+              <div className="step-number">1</div>
+              <div className="step-content">
+                <h3>Paste YouTube URL</h3>
+                <p>Simply paste any educational YouTube video URL. Our AI will automatically process and transform it into an interactive learning experience.</p>
+              </div>
+            </div>
+            <div className="step">
+              <div className="step-number">2</div>
+              <div className="step-content">
+                <h3>AI Processing</h3>
+                <p>The system transcribes the video, analyzes key concepts, and automatically generates interactive checkpoints at important moments.</p>
+              </div>
+            </div>
+            <div className="step">
+              <div className="step-number">3</div>
+              <div className="step-content">
+                <h3>Interactive Learning</h3>
+                <p>Watch the video with interactive checkpoints, ask the AI tutor questions, and generate personalized study materials after completion.</p>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

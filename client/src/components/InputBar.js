@@ -52,7 +52,7 @@ export default function InputBar({ videoUrl, setVideoUrl, onSend }) {
                 <input
                     type="text"
                     className="url-input"
-                    placeholder="Paste your YouTube link here..."
+                    placeholder="https://www.youtube.com/watch?v=..."
                     value={videoUrl}
                     onChange={(e) => setVideoUrl(e.target.value)}
                     onKeyPress={handleKeyPress}
@@ -62,7 +62,8 @@ export default function InputBar({ videoUrl, setVideoUrl, onSend }) {
                     onClick={onSend}
                     className="submit-button"
                 >
-                    Load Video
+                    <span className="sparkle-icon">✨</span>
+                    Transform Video
                 </button>
             </div>
         </div>
