@@ -8,16 +8,24 @@ user database IDs from the auth middleware.
 All routes are prefixed with /api/progress.
 """
 
+import logging
 from flask import Blueprint, request, jsonify, g
 from database import SessionLocal
-from services import update_progress, mark_complete, get_user_progress, get_video_progress, get_user_by_firebase_uid
+from services import (
+    update_progress, mark_complete, get_user_progress,
+    get_video_progress, get_user_by_firebase_uid
+)
 from middleware.auth import auth_required
 
+logger = logging.getLogger(__name__)
 
 progress_bp = Blueprint('progress', __name__, url_prefix='/api/progress')
 
 
-@progress_bp.route('/users/<firebase_uid>/videos/<int:video_id>', methods=['GET'])
+@progress_bp.route(
+    '/users/<firebase_uid>/videos/<int:video_id>',
+    methods=['GET']
+)
 @auth_required
 def get_progress(firebase_uid, video_id):
     """
@@ -45,7 +53,9 @@ def get_progress(firebase_uid, video_id):
     """
     # Authorization check: ensure authenticated user matches requested user
     if g.firebase_user.get('uid') != firebase_uid:
-        return jsonify({'error': 'Unauthorized: Cannot access another user\'s progress'}), 403
+        return jsonify({
+            'error': 'Unauthorized: Cannot access another user\'s progress'
+        }), 403
 
     db = SessionLocal()
     try:
@@ -58,15 +68,20 @@ def get_progress(firebase_uid, video_id):
         return jsonify(progress), 200
 
     except Exception as e:
-        return jsonify({
-            'error': 'Failed to get progress',
-            'details': str(e)
-        }), 500
+        logger.error(
+            f"Error getting progress for user {firebase_uid}, "
+            f"video {video_id}: {str(e)}",
+            exc_info=True
+        )
+        return jsonify({'error': 'Failed to get progress'}), 500
     finally:
         db.close()
 
 
-@progress_bp.route('/users/<firebase_uid>/videos/<int:video_id>', methods=['POST'])
+@progress_bp.route(
+    '/users/<firebase_uid>/videos/<int:video_id>',
+    methods=['POST']
+)
 @auth_required
 def update_progress_route(firebase_uid, video_id):
     """
@@ -100,7 +115,9 @@ def update_progress_route(firebase_uid, video_id):
     """
     # Authorization check: ensure authenticated user matches requested user
     if g.firebase_user.get('uid') != firebase_uid:
-        return jsonify({'error': 'Unauthorized: Cannot update another user\'s progress'}), 403
+        return jsonify({
+            'error': 'Unauthorized: Cannot update another user\'s progress'
+        }), 403
 
     db = SessionLocal()
     try:
@@ -120,8 +137,11 @@ def update_progress_route(firebase_uid, video_id):
         if position_seconds is None:
             return jsonify({'error': 'positionSeconds is required'}), 400
 
-        if not isinstance(position_seconds, (int, float)) or position_seconds < 0:
-            return jsonify({'error': 'positionSeconds must be a non-negative number'}), 400
+        if not isinstance(position_seconds, (int, float)) or \
+           position_seconds < 0:
+            return jsonify({
+                'error': 'positionSeconds must be a non-negative number'
+            }), 400
 
         # Convert to int
         position_seconds = int(position_seconds)
@@ -132,17 +152,27 @@ def update_progress_route(firebase_uid, video_id):
         return jsonify(progress), 200
 
     except ValueError as e:
+        # ValueError can contain user input validation errors, safe to expose
+        logger.warning(
+            f"Validation error updating progress for user {firebase_uid}, "
+            f"video {video_id}: {str(e)}"
+        )
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({
-            'error': 'Failed to update progress',
-            'details': str(e)
-        }), 500
+        logger.error(
+            f"Error updating progress for user {firebase_uid}, "
+            f"video {video_id}: {str(e)}",
+            exc_info=True
+        )
+        return jsonify({'error': 'Failed to update progress'}), 500
     finally:
         db.close()
 
 
-@progress_bp.route('/users/<firebase_uid>/videos/<int:video_id>/complete', methods=['PUT'])
+@progress_bp.route(
+    '/users/<firebase_uid>/videos/<int:video_id>/complete',
+    methods=['PUT']
+)
 @auth_required
 def mark_complete_route(firebase_uid, video_id):
     """
@@ -164,13 +194,16 @@ def mark_complete_route(firebase_uid, video_id):
 
     Status Codes:
         200: Success
-        403: Unauthorized (user trying to mark another user's video as complete)
+        403: Unauthorized (trying to mark another user's video complete)
         404: User not found
         500: Internal server error
     """
     # Authorization check: ensure authenticated user matches requested user
     if g.firebase_user.get('uid') != firebase_uid:
-        return jsonify({'error': 'Unauthorized: Cannot mark another user\'s video as complete'}), 403
+        return jsonify({
+            'error': 'Unauthorized: Cannot mark another user\'s video '
+                     'as complete'
+        }), 403
 
     db = SessionLocal()
     try:
@@ -183,12 +216,19 @@ def mark_complete_route(firebase_uid, video_id):
         return jsonify(progress), 200
 
     except ValueError as e:
+        # ValueError can contain user input validation errors, safe to expose
+        logger.warning(
+            f"Validation error marking complete for user {firebase_uid}, "
+            f"video {video_id}: {str(e)}"
+        )
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({
-            'error': 'Failed to mark as complete',
-            'details': str(e)
-        }), 500
+        logger.error(
+            f"Error marking complete for user {firebase_uid}, "
+            f"video {video_id}: {str(e)}",
+            exc_info=True
+        )
+        return jsonify({'error': 'Failed to mark as complete'}), 500
     finally:
         db.close()
 
@@ -228,7 +268,9 @@ def get_all_progress(firebase_uid):
     """
     # Authorization check: ensure authenticated user matches requested user
     if g.firebase_user.get('uid') != firebase_uid:
-        return jsonify({'error': 'Unauthorized: Cannot access another user\'s progress'}), 403
+        return jsonify({
+            'error': 'Unauthorized: Cannot access another user\'s progress'
+        }), 403
 
     db = SessionLocal()
     try:
@@ -246,11 +288,17 @@ def get_all_progress(firebase_uid):
         }), 200
 
     except ValueError as e:
+        # ValueError can contain user input validation errors, safe to expose
+        logger.warning(
+            f"Validation error getting all progress for user "
+            f"{firebase_uid}: {str(e)}"
+        )
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({
-            'error': 'Failed to get user progress',
-            'details': str(e)
-        }), 500
+        logger.error(
+            f"Error getting all progress for user {firebase_uid}: {str(e)}",
+            exc_info=True
+        )
+        return jsonify({'error': 'Failed to get user progress'}), 500
     finally:
         db.close()
