@@ -38,6 +38,7 @@ class User(Base):
     checkpoint_completions = relationship("UserCheckpointCompletion", back_populates="user")
     quiz_attempts = relationship("UserQuizAttempt", back_populates="user")
     chat_messages = relationship("ChatMessage", back_populates="user")
+    video_history = relationship("VideoHistory", back_populates="user", cascade="all, delete-orphan")
 
     __table_args__ = (
         UniqueConstraint("email", name="uq_user_email"),
@@ -232,4 +233,38 @@ class ChatMessage(Base):
     def __repr__(self):
         return (
             f"<ChatMessage id={self.id} user_id={self.user_id} role={self.role}>"
+        )
+
+
+class VideoHistory(Base):
+    """
+    User video watch history - tracks videos the user has viewed.
+    Replaces localStorage-based history for cross-device synchronization.
+    """
+    __tablename__ = "video_history"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    # Video information (stored directly, not as foreign key to allow history
+    # even if video is not in videos table)
+    video_id = Column(String(32), nullable=False)  # YouTube video ID
+    embed_url = Column(Text, nullable=False)  # YouTube embed URL
+    title = Column(String(255), nullable=False)
+    thumbnail = Column(Text)  # Thumbnail URL
+
+    # Timestamps
+    added_at = Column(DateTime, default=datetime.utcnow)
+    last_viewed_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="video_history")
+
+    __table_args__ = (
+        Index("idx_user_video", "user_id", "video_id"),
+    )
+
+    def __repr__(self):
+        return (
+            f"<VideoHistory id={self.id} user_id={self.user_id} "
+            f"video_id={self.video_id}>"
         )

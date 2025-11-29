@@ -138,7 +138,6 @@ export default function VideoPage() {
         // If video doesn't exist in DB, try to create it
         if (err.status === 404) {
           try {
-            console.log("Video not in database, creating entry...");
             const newVideo = await videoService.createVideo(videoId, {
               fetchMetadata: true,
               fetchTranscript: true

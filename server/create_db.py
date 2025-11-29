@@ -34,6 +34,7 @@ def init_db():
         - quizzes
         - user_quiz_attempts
         - chat_messages
+        - video_history
 
     Returns:
         None
