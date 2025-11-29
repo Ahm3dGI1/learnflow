@@ -8,7 +8,7 @@ user database IDs from the auth middleware.
 All routes are prefixed with /api/progress.
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from database import SessionLocal
 from services import update_progress, mark_complete, get_user_progress, get_video_progress, get_user_by_firebase_uid
 from middleware.auth import auth_required
@@ -39,9 +39,14 @@ def get_progress(firebase_uid, video_id):
 
     Status Codes:
         200: Success (returns progress or null if no progress exists)
+        403: Unauthorized (user trying to access another user's progress)
         404: User not found
         500: Internal server error
     """
+    # Authorization check: ensure authenticated user matches requested user
+    if g.firebase_user.get('uid') != firebase_uid:
+        return jsonify({'error': 'Unauthorized: Cannot access another user\'s progress'}), 403
+
     db = SessionLocal()
     try:
         # Look up database user ID from Firebase UID
@@ -89,9 +94,14 @@ def update_progress_route(firebase_uid, video_id):
     Status Codes:
         200: Success
         400: Invalid request data
+        403: Unauthorized (user trying to update another user's progress)
         404: User not found
         500: Internal server error
     """
+    # Authorization check: ensure authenticated user matches requested user
+    if g.firebase_user.get('uid') != firebase_uid:
+        return jsonify({'error': 'Unauthorized: Cannot update another user\'s progress'}), 403
+
     db = SessionLocal()
     try:
         # Look up database user ID from Firebase UID
@@ -154,9 +164,14 @@ def mark_complete_route(firebase_uid, video_id):
 
     Status Codes:
         200: Success
+        403: Unauthorized (user trying to mark another user's video as complete)
         404: User not found
         500: Internal server error
     """
+    # Authorization check: ensure authenticated user matches requested user
+    if g.firebase_user.get('uid') != firebase_uid:
+        return jsonify({'error': 'Unauthorized: Cannot mark another user\'s video as complete'}), 403
+
     db = SessionLocal()
     try:
         # Look up database user ID from Firebase UID
@@ -207,9 +222,14 @@ def get_all_progress(firebase_uid):
 
     Status Codes:
         200: Success
+        403: Unauthorized (user trying to access another user's progress)
         404: User not found
         500: Internal server error
     """
+    # Authorization check: ensure authenticated user matches requested user
+    if g.firebase_user.get('uid') != firebase_uid:
+        return jsonify({'error': 'Unauthorized: Cannot access another user\'s progress'}), 403
+
     db = SessionLocal()
     try:
         # Look up database user ID from Firebase UID
