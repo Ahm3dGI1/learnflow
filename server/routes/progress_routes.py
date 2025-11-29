@@ -10,21 +10,21 @@ All routes are prefixed with /api/progress.
 
 from flask import Blueprint, request, jsonify
 from database import SessionLocal
-from services import update_progress, mark_complete, get_user_progress, get_video_progress
+from services import update_progress, mark_complete, get_user_progress, get_video_progress, get_user_by_firebase_uid
 from middleware.auth import auth_required
 
 
 progress_bp = Blueprint('progress', __name__, url_prefix='/api/progress')
 
 
-@progress_bp.route('/users/<int:user_id>/videos/<int:video_id>', methods=['GET'])
+@progress_bp.route('/users/<firebase_uid>/videos/<int:video_id>', methods=['GET'])
 @auth_required
-def get_progress(user_id, video_id):
+def get_progress(firebase_uid, video_id):
     """
     Get progress for a specific video and user.
 
     URL Parameters:
-        user_id (int): User database ID
+        firebase_uid (str): Firebase user ID
         video_id (int): Video database ID
 
     Returns:
@@ -39,11 +39,17 @@ def get_progress(user_id, video_id):
 
     Status Codes:
         200: Success (returns progress or null if no progress exists)
+        404: User not found
         500: Internal server error
     """
     db = SessionLocal()
     try:
-        progress = get_video_progress(user_id, video_id, db)
+        # Look up database user ID from Firebase UID
+        user = get_user_by_firebase_uid(firebase_uid, db)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        progress = get_video_progress(user.id, video_id, db)
         return jsonify(progress), 200
 
     except Exception as e:
@@ -55,14 +61,14 @@ def get_progress(user_id, video_id):
         db.close()
 
 
-@progress_bp.route('/users/<int:user_id>/videos/<int:video_id>', methods=['POST'])
+@progress_bp.route('/users/<firebase_uid>/videos/<int:video_id>', methods=['POST'])
 @auth_required
-def update_progress_route(user_id, video_id):
+def update_progress_route(firebase_uid, video_id):
     """
     Update user's progress for a video.
 
     URL Parameters:
-        user_id (int): User database ID
+        firebase_uid (str): Firebase user ID
         video_id (int): Video database ID
 
     Request Body:
@@ -83,10 +89,16 @@ def update_progress_route(user_id, video_id):
     Status Codes:
         200: Success
         400: Invalid request data
+        404: User not found
         500: Internal server error
     """
     db = SessionLocal()
     try:
+        # Look up database user ID from Firebase UID
+        user = get_user_by_firebase_uid(firebase_uid, db)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
         data = request.get_json()
 
         if not data:
@@ -105,7 +117,7 @@ def update_progress_route(user_id, video_id):
         position_seconds = int(position_seconds)
 
         # Update progress
-        progress = update_progress(user_id, video_id, position_seconds, db)
+        progress = update_progress(user.id, video_id, position_seconds, db)
 
         return jsonify(progress), 200
 
@@ -120,14 +132,14 @@ def update_progress_route(user_id, video_id):
         db.close()
 
 
-@progress_bp.route('/users/<int:user_id>/videos/<int:video_id>/complete', methods=['PUT'])
+@progress_bp.route('/users/<firebase_uid>/videos/<int:video_id>/complete', methods=['PUT'])
 @auth_required
-def mark_complete_route(user_id, video_id):
+def mark_complete_route(firebase_uid, video_id):
     """
     Mark a video as completed for a user.
 
     URL Parameters:
-        user_id (int): User database ID
+        firebase_uid (str): Firebase user ID
         video_id (int): Video database ID
 
     Returns:
@@ -142,11 +154,17 @@ def mark_complete_route(user_id, video_id):
 
     Status Codes:
         200: Success
+        404: User not found
         500: Internal server error
     """
     db = SessionLocal()
     try:
-        progress = mark_complete(user_id, video_id, db)
+        # Look up database user ID from Firebase UID
+        user = get_user_by_firebase_uid(firebase_uid, db)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        progress = mark_complete(user.id, video_id, db)
         return jsonify(progress), 200
 
     except ValueError as e:
@@ -160,14 +178,14 @@ def mark_complete_route(user_id, video_id):
         db.close()
 
 
-@progress_bp.route('/users/<int:user_id>', methods=['GET'])
+@progress_bp.route('/users/<firebase_uid>', methods=['GET'])
 @auth_required
-def get_all_progress(user_id):
+def get_all_progress(firebase_uid):
     """
     Get all progress records for a user.
 
     URL Parameters:
-        user_id (int): User database ID
+        firebase_uid (str): Firebase user ID
 
     Returns:
         {
@@ -189,14 +207,20 @@ def get_all_progress(user_id):
 
     Status Codes:
         200: Success
+        404: User not found
         500: Internal server error
     """
     db = SessionLocal()
     try:
-        progress_list = get_user_progress(user_id, db)
+        # Look up database user ID from Firebase UID
+        user = get_user_by_firebase_uid(firebase_uid, db)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        progress_list = get_user_progress(user.id, db)
 
         return jsonify({
-            'userId': user_id,
+            'userId': user.id,
             'progress': progress_list,
             'totalVideos': len(progress_list)
         }), 200
