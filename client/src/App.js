@@ -24,6 +24,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import VideoPage from "./pages/VideoPage";
+import QuizPage from "./pages/QuizPage";
 
 export default function App() {
   return (
@@ -49,6 +50,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <VideoPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/video/:videoId/quiz"
+            element={
+              <ProtectedRoute>
+                <QuizPage />
               </ProtectedRoute>
             }
           />

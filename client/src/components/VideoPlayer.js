@@ -40,6 +40,35 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
   const playerIdRef = useRef(`youtube-player-${Math.random().toString(36).slice(2, 11)}`);
 
   /**
+   * Handle Player Ready
+   * Wrapped in useCallback to maintain referential stability
+   */
+  const handlePlayerReady = useCallback((event) => {
+    // TODO: Use the `player` instance for future features (e.g., controlling playback, fetching player state)
+    if (onReady) {
+      onReady(playerRef.current);
+    }
+
+    // Start time tracking
+    timeIntervalRef.current = setInterval(() => {
+      if (playerRef.current && playerRef.current.getCurrentTime) {
+        const currentTime = playerRef.current.getCurrentTime();
+        if (onTimeUpdate) {
+          onTimeUpdate(currentTime);
+        }
+      }
+    }, 1000); // Check every second
+  }, [onReady, onTimeUpdate]);
+
+  /**
+   * Handle Player State Change
+   * Wrapped in useCallback to maintain referential stability
+   */
+  const handleStateChange = useCallback((event) => {
+    // TODO: Implement player state change handling if needed in future.
+  }, []);
+
+  /**
    * Initialize YouTube iframe API
    */
   useEffect(() => {
@@ -75,10 +104,8 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
       tag.src = 'https://www.youtube.com/iframe_api';
       const firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-    }
 
-    // Wait for API to be ready - use callback queue to avoid overwriting
-    if (!window.YT) {
+      // Wait for API to be ready - use callback queue to avoid overwriting
       const originalCallback = window.onYouTubeIframeAPIReady;
       window.onYouTubeIframeAPIReady = () => {
         if (originalCallback) originalCallback();
@@ -102,34 +129,6 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
       }
     };
   }, [embedUrl, handlePlayerReady, handleStateChange]);
-
-  /**
-   * Handle Player Ready
-   * Wrapped in useCallback to maintain referential stability
-   */
-  const handlePlayerReady = useCallback((event) => {
-    if (onReady) {
-      onReady(playerRef.current);
-    }
-
-    // Start time tracking
-    timeIntervalRef.current = setInterval(() => {
-      if (playerRef.current && playerRef.current.getCurrentTime) {
-        const currentTime = playerRef.current.getCurrentTime();
-        if (onTimeUpdate) {
-          onTimeUpdate(currentTime);
-        }
-      }
-    }, 1000); // Check every second
-  }, [onReady, onTimeUpdate]);
-
-  /**
-   * Handle Player State Change
-   * Wrapped in useCallback to maintain referential stability
-   */
-  const handleStateChange = useCallback((event) => {
-    // Handle state changes if needed
-  }, []);
 
   /**
    * Expose player control methods to parent via ref
@@ -165,7 +164,7 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
     <div className="video-section">
       <div className="video-wrapper">
         <div className="video-container">
-          <div ref={iframeRef} id={playerIdRef.current}></div>
+          <div id={playerIdRef.current}></div>
         </div>
       </div>
     </div>
