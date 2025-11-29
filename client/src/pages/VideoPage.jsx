@@ -108,7 +108,6 @@ export default function VideoPage() {
             const progressData = await progressService.getProgress(user.uid, videoData.id);
             if (progressData && !progressData.isCompleted) {
               setSavedProgress(progressData);
-              console.log(`Found saved progress: ${progressData.lastPositionSeconds}s (${progressData.progressPercentage}%)`);
             }
           } catch (err) {
             console.error("Error fetching progress:", err);
