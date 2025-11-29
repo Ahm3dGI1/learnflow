@@ -11,14 +11,14 @@ All routes are prefixed with /api/progress.
 from flask import Blueprint, request, jsonify
 from database import SessionLocal
 from services import update_progress, mark_complete, get_user_progress, get_video_progress
-from middleware.auth import require_auth
+from middleware.auth import auth_required
 
 
 progress_bp = Blueprint('progress', __name__, url_prefix='/api/progress')
 
 
 @progress_bp.route('/users/<int:user_id>/videos/<int:video_id>', methods=['GET'])
-@require_auth
+@auth_required
 def get_progress(user_id, video_id):
     """
     Get progress for a specific video and user.
@@ -56,7 +56,7 @@ def get_progress(user_id, video_id):
 
 
 @progress_bp.route('/users/<int:user_id>/videos/<int:video_id>', methods=['POST'])
-@require_auth
+@auth_required
 def update_progress_route(user_id, video_id):
     """
     Update user's progress for a video.
@@ -121,7 +121,7 @@ def update_progress_route(user_id, video_id):
 
 
 @progress_bp.route('/users/<int:user_id>/videos/<int:video_id>/complete', methods=['PUT'])
-@require_auth
+@auth_required
 def mark_complete_route(user_id, video_id):
     """
     Mark a video as completed for a user.
@@ -161,7 +161,7 @@ def mark_complete_route(user_id, video_id):
 
 
 @progress_bp.route('/users/<int:user_id>', methods=['GET'])
-@require_auth
+@auth_required
 def get_all_progress(user_id):
     """
     Get all progress records for a user.
