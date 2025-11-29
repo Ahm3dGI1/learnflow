@@ -119,21 +119,20 @@ export default function VideoPage() {
         // Generate embed URL with enablejsapi for player control
         setEmbedUrl(`https://www.youtube.com/embed/${videoId}?autoplay=0&enablejsapi=1`);
 
-        // TEMPORARILY DISABLED FOR TESTING PROGRESS TRACKING
         // Fetch checkpoints if transcript exists
         // Note: Backend caches checkpoints by videoId:languageCode to avoid regeneration
-        // if (videoData.transcript) {
-        //   try {
-        //     const checkpointData = await llmService.generateCheckpoints(
-        //       videoData.transcript,
-        //       { numCheckpoints: 5 }
-        //     );
-        //     setCheckpoints(checkpointData.checkpoints || []);
-        //   } catch (err) {
-        //     console.error("Error generating checkpoints:", err);
-        //     // Continue without checkpoints
-        //   }
-        // }
+        if (videoData.transcript) {
+          try {
+            const checkpointData = await llmService.generateCheckpoints(
+              videoData.transcript,
+              { numCheckpoints: 5 }
+            );
+            setCheckpoints(checkpointData.checkpoints || []);
+          } catch (err) {
+            console.error("Error generating checkpoints:", err);
+            // Continue without checkpoints
+          }
+        }
       } catch (err) {
         console.error("Error fetching video:", err);
 
@@ -148,20 +147,19 @@ export default function VideoPage() {
             setVideo(newVideo);
             setEmbedUrl(`https://www.youtube.com/embed/${videoId}?autoplay=0&enablejsapi=1`);
 
-            // TEMPORARILY DISABLED FOR TESTING PROGRESS TRACKING
             // Generate checkpoints if transcript was fetched
             // Note: Backend caches checkpoints to avoid regeneration on subsequent loads
-            // if (newVideo.transcript) {
-            //   try {
-            //     const checkpointData = await llmService.generateCheckpoints(
-            //       newVideo.transcript,
-            //       { numCheckpoints: 5 }
-            //     );
-            //     setCheckpoints(checkpointData.checkpoints || []);
-            //   } catch (err) {
-            //     console.error("Error generating checkpoints:", err);
-            //   }
-            // }
+            if (newVideo.transcript) {
+              try {
+                const checkpointData = await llmService.generateCheckpoints(
+                  newVideo.transcript,
+                  { numCheckpoints: 5 }
+                );
+                setCheckpoints(checkpointData.checkpoints || []);
+              } catch (err) {
+                console.error("Error generating checkpoints:", err);
+              }
+            }
           } catch (createErr) {
             console.error("Error creating video:", createErr);
             setError("Unable to load this video. The video may be private, unavailable, or the URL may be invalid. Please try a different video.");
