@@ -83,15 +83,20 @@ export default function Dashboard() {
    * Extracts video ID from input URL and navigates to VideoPage.
    * Also adds video to history for quick access.
    */
-  const handleLoadVideo = () => {
+  const handleLoadVideo = async () => {
     const videoId = extractVideoId(videoUrl);
     if (videoId) {
-      // Add to history
-      addToHistory({
-        videoId,
-        embedUrl: `https://www.youtube.com/embed/${videoId}`,
-        title: `YouTube Video - ${videoId}`,
-      });
+      // Add to history (fire and forget - errors are handled in hook)
+      try {
+        await addToHistory({
+          videoId,
+          embedUrl: `https://www.youtube.com/embed/${videoId}`,
+          title: `YouTube Video - ${videoId}`,
+        });
+      } catch (err) {
+        // Error already logged in hook, continue with navigation
+        console.error('Failed to add video to history:', err);
+      }
 
       // Navigate to video page
       navigate(`/video/${videoId}`);
@@ -120,9 +125,15 @@ export default function Dashboard() {
    * 
    * @param {number} id - Unique history entry ID
    */
-  const handleDeleteFromHistory = (id) => {
+  const handleDeleteFromHistory = async (id) => {
     if (window.confirm('Remove this video from your history?')) {
-      removeFromHistory(id);
+      try {
+        await removeFromHistory(id);
+      } catch (err) {
+        // Error already logged in hook
+        console.error('Failed to remove video from history:', err);
+        alert('Failed to remove video from history. Please try again.');
+      }
     }
   };
 
@@ -132,9 +143,15 @@ export default function Dashboard() {
    * Removes all videos from user's history after confirmation.
    * Warns user that action cannot be undone.
    */
-  const handleClearAllHistory = () => {
+  const handleClearAllHistory = async () => {
     if (window.confirm('Clear all video history? This cannot be undone.')) {
-        clearHistory();
+      try {
+        await clearHistory();
+      } catch (err) {
+        // Error already logged in hook
+        console.error('Failed to clear history:', err);
+        alert('Failed to clear history. Please try again.');
+      }
     }
   };
 
