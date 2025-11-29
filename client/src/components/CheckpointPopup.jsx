@@ -62,22 +62,6 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
   }, []);
 
   /**
-   * Handle Escape Key
-   * Note: Checkpoints are mandatory, so Escape won't close the modal
-   */
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape') {
-        // Checkpoints are mandatory - Escape key does nothing
-        // Could optionally show a message or highlight the requirement
-      }
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, []);
-
-  /**
    * Validate User Answer
    * 
    * Checks if user's answer matches the correct answer (case-insensitive).

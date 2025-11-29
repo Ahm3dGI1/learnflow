@@ -13,12 +13,12 @@
  * @module VideoPage
  */
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import VideoPlayer from "../components/VideoPlayer";
 import CheckpointPopup from "../components/CheckpointPopup";
-import { videoService, llmService } from "../services";
+import { videoService, llmService, progressService } from "../services";
 import "./VideoPage.css";
 
 /**
@@ -66,11 +66,19 @@ export default function VideoPage() {
   const [checkpoints, setCheckpoints] = useState([]);
   const [currentCheckpoint, setCurrentCheckpoint] = useState(null);
   const [checkpointsCompleted, setCheckpointsCompleted] = useState(new Set());
+  const [videoEnded, setVideoEnded] = useState(false);
+  const [savedProgress, setSavedProgress] = useState(null);
   const videoRef = useRef(null);
   const lastTriggeredCheckpoint = useRef(null);
-  
+  const lastProgressSaveTime = useRef(0);
+  const hasResumed = useRef(false);
+
   // Checkpoint trigger window in seconds
   const CHECKPOINT_TRIGGER_WINDOW = 1.5;
+  // Video end detection threshold in seconds
+  const VIDEO_END_THRESHOLD = 2;
+  // Progress update interval in seconds
+  const PROGRESS_UPDATE_INTERVAL = 10;
 
   /**
    * Fetch Video Data
@@ -93,6 +101,19 @@ export default function VideoPage() {
         // Fetch video from backend
         const videoData = await videoService.getVideo(videoId);
         setVideo(videoData);
+
+        // Fetch saved progress if user is logged in and video has database ID
+        if (user && videoData.id) {
+          try {
+            const progressData = await progressService.getProgress(user.uid, videoData.id);
+            if (progressData && !progressData.isCompleted) {
+              setSavedProgress(progressData);
+            }
+          } catch (err) {
+            console.error("Error fetching progress:", err);
+            // Continue without saved progress
+          }
+        }
 
         // Generate embed URL with enablejsapi for player control
         setEmbedUrl(`https://www.youtube.com/embed/${videoId}?autoplay=0&enablejsapi=1`);
@@ -157,9 +178,9 @@ export default function VideoPage() {
    *
    * Returns user to dashboard when back button is clicked.
    */
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     navigate("/dashboard");
-  };
+  }, [navigate]);
 
   /**
    * Handle Checkpoint Correct Answer
@@ -167,7 +188,7 @@ export default function VideoPage() {
    * Called when user answers checkpoint question correctly.
    * Marks checkpoint as completed and closes popup.
    */
-  const handleCheckpointCorrect = () => {
+  const handleCheckpointCorrect = useCallback(() => {
     if (currentCheckpoint) {
       setCheckpointsCompleted(prev => new Set([...prev, currentCheckpoint.id]));
       setCurrentCheckpoint(null);
@@ -177,7 +198,7 @@ export default function VideoPage() {
         videoRef.current.playVideo();
       }
     }
-  };
+  }, [currentCheckpoint]);
 
   /**
    * Handle Ask AI Tutor
@@ -187,20 +208,29 @@ export default function VideoPage() {
    * 
    * @param {Object} checkpoint - Checkpoint that needs help
    */
-  const handleAskTutor = (checkpoint) => {
+  const handleAskTutor = useCallback((checkpoint) => {
     // TODO: Integrate with chat interface
     alert(`Chat feature coming soon! You can ask about: "${checkpoint.question}"`);
-  };
+  }, []);
 
   /**
    * Handle Video Time Update
-   * 
+   *
    * Called every second to track video playback. Checks if current time
    * matches any checkpoint timestamp and triggers popup if needed.
-   * 
+   * Also detects when video ends and saves progress every 10 seconds.
+   *
    * @param {number} time - Current video time in seconds
    */
-  const handleTimeUpdate = (time) => {
+  const handleTimeUpdate = async (time) => {
+    // Check if video has ended (within VIDEO_END_THRESHOLD seconds of duration)
+    if (video?.durationSeconds && time >= video.durationSeconds - VIDEO_END_THRESHOLD) {
+      setVideoEnded(true);
+    } else if (videoEnded && time < video.durationSeconds - VIDEO_END_THRESHOLD) {
+      // Reset if user seeks backward
+      setVideoEnded(false);
+    }
+
     // Check if we should trigger a checkpoint
     if (!currentCheckpoint) {
       for (const checkpoint of checkpoints) {
@@ -231,16 +261,52 @@ export default function VideoPage() {
         lastTriggeredCheckpoint.current = null;
       }
     }
+
+    // Save progress every 10 seconds
+    const currentTime = Date.now();
+    const timeSinceLastSave = (currentTime - lastProgressSaveTime.current) / 1000;
+
+    if (
+      user &&
+      video?.id &&
+      time > 0 &&
+      timeSinceLastSave >= PROGRESS_UPDATE_INTERVAL
+    ) {
+      try {
+        await progressService.updateProgress(user.uid, video.id, Math.floor(time));
+        lastProgressSaveTime.current = currentTime;
+        console.log(`Progress saved: ${Math.floor(time)}s`);
+      } catch (err) {
+        console.error("Error saving progress:", err);
+      }
+    }
   };
 
   /**
    * Handle Video Player Ready
-   * 
+   *
    * Called when YouTube player is initialized and ready.
-   * 
+   * Auto-seeks to saved position if progress exists.
+   *
    * @param {Object} player - YouTube player instance
    */
   const handlePlayerReady = (player) => {
+    console.log('Video player ready');
+
+    // Auto-resume from saved position if available
+    // Add a small delay to allow YouTube to buffer
+    if (savedProgress && !hasResumed.current && videoRef.current) {
+      const resumePosition = savedProgress.lastPositionSeconds;
+      console.log(`Will resume from ${resumePosition}s in 1 second...`);
+
+      setTimeout(() => {
+        if (videoRef.current) {
+          console.log(`Resuming now from ${resumePosition}s`);
+          videoRef.current.seekTo(resumePosition);
+          hasResumed.current = true;
+        }
+      }, 1000); // Wait 1 second for initial buffering
+    }
   };
 
   // Loading state
@@ -344,6 +410,23 @@ export default function VideoPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Quiz Section - Shows only after video ends */}
+            {video?.transcript && videoEnded && (
+              <div className="video-quiz-section">
+                <h3>📝 Test Your Knowledge</h3>
+                <p className="quiz-section-subtitle">
+                  Great! You've finished the video. Ready to test what you've learned?
+                </p>
+                <button 
+                  className="take-quiz-button"
+                  onClick={() => navigate(`/video/${videoId}/quiz`)}
+                  aria-label="Take quiz for this video"
+                >
+                  Take Quiz →
+                </button>
               </div>
             )}
           </div>

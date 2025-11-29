@@ -12,3 +12,5 @@ server/.env
 *.pyc
 
 *.db
+server/secrets/
+.DS_Store

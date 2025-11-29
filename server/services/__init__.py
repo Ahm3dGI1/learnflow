@@ -17,6 +17,7 @@ from .checkpoint_service import generate_checkpoints
 from .chat_service import generate_chat_response, generate_chat_response_stream
 from .quiz_service import generate_quiz
 from .user_service import get_or_create_user, get_user_by_firebase_uid
+from .progress_service import update_progress, mark_complete, get_user_progress, get_video_progress
 from .transcript_service import (
     fetch_transcript,
     extract_video_id,
@@ -55,6 +56,10 @@ __all__ = [
     'update_video_metadata',
     'get_video_with_cache',
     'fetch_youtube_metadata',
-    'get_or_create_user', 
-    'get_user_by_firebase_uid'
+    'get_or_create_user',
+    'get_user_by_firebase_uid',
+    'update_progress',
+    'mark_complete',
+    'get_user_progress',
+    'get_video_progress'
 ]

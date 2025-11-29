@@ -103,10 +103,8 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
       tag.src = 'https://www.youtube.com/iframe_api';
       const firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-    }
 
-    // Wait for API to be ready - use callback queue to avoid overwriting
-    if (!window.YT) {
+      // Wait for API to be ready - use callback queue to avoid overwriting
       const originalCallback = window.onYouTubeIframeAPIReady;
       window.onYouTubeIframeAPIReady = () => {
         if (originalCallback) originalCallback();
@@ -165,7 +163,7 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
     <div className="video-section">
       <div className="video-wrapper">
         <div className="video-container">
-          <div ref={iframeRef} id={playerIdRef.current}></div>
+          <div id={playerIdRef.current}></div>
         </div>
       </div>
     </div>
