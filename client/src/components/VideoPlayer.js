@@ -44,7 +44,6 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
    * Wrapped in useCallback to maintain referential stability
    */
   const handlePlayerReady = useCallback((event) => {
-    // TODO: Use the `player` instance for future features (e.g., controlling playback, fetching player state)
     if (onReady) {
       onReady(playerRef.current);
     }
@@ -65,7 +64,7 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
    * Wrapped in useCallback to maintain referential stability
    */
   const handleStateChange = useCallback((event) => {
-    // TODO: Implement player state change handling if needed in future.
+    // Handle state changes if needed
   }, []);
 
   /**

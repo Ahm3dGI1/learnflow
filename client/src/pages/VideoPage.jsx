@@ -18,7 +18,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import VideoPlayer from "../components/VideoPlayer";
 import CheckpointPopup from "../components/CheckpointPopup";
-import { videoService, llmService } from "../services";
+import { videoService, llmService, progressService } from "../services";
 import "./VideoPage.css";
 
 /**
@@ -67,13 +67,18 @@ export default function VideoPage() {
   const [currentCheckpoint, setCurrentCheckpoint] = useState(null);
   const [checkpointsCompleted, setCheckpointsCompleted] = useState(new Set());
   const [videoEnded, setVideoEnded] = useState(false);
+  const [savedProgress, setSavedProgress] = useState(null);
   const videoRef = useRef(null);
   const lastTriggeredCheckpoint = useRef(null);
-  
+  const lastProgressSaveTime = useRef(0);
+  const hasResumed = useRef(false);
+
   // Checkpoint trigger window in seconds
   const CHECKPOINT_TRIGGER_WINDOW = 1.5;
   // Video end detection threshold in seconds
   const VIDEO_END_THRESHOLD = 2;
+  // Progress update interval in seconds
+  const PROGRESS_UPDATE_INTERVAL = 10;
 
   /**
    * Fetch Video Data
@@ -96,6 +101,19 @@ export default function VideoPage() {
         // Fetch video from backend
         const videoData = await videoService.getVideo(videoId);
         setVideo(videoData);
+
+        // Fetch saved progress if user is logged in and video has database ID
+        if (user && videoData.id) {
+          try {
+            const progressData = await progressService.getProgress(user.uid, videoData.id);
+            if (progressData && !progressData.isCompleted) {
+              setSavedProgress(progressData);
+            }
+          } catch (err) {
+            console.error("Error fetching progress:", err);
+            // Continue without saved progress
+          }
+        }
 
         // Generate embed URL with enablejsapi for player control
         setEmbedUrl(`https://www.youtube.com/embed/${videoId}?autoplay=0&enablejsapi=1`);
@@ -198,14 +216,14 @@ export default function VideoPage() {
 
   /**
    * Handle Video Time Update
-   * 
+   *
    * Called every second to track video playback. Checks if current time
    * matches any checkpoint timestamp and triggers popup if needed.
-   * Also detects when video ends.
-   * 
+   * Also detects when video ends and saves progress every 10 seconds.
+   *
    * @param {number} time - Current video time in seconds
    */
-  const handleTimeUpdate = (time) => {
+  const handleTimeUpdate = async (time) => {
     // Check if video has ended (within VIDEO_END_THRESHOLD seconds of duration)
     if (video?.durationSeconds && time >= video.durationSeconds - VIDEO_END_THRESHOLD) {
       setVideoEnded(true);
@@ -244,17 +262,52 @@ export default function VideoPage() {
         lastTriggeredCheckpoint.current = null;
       }
     }
+
+    // Save progress every 10 seconds
+    const currentTime = Date.now();
+    const timeSinceLastSave = (currentTime - lastProgressSaveTime.current) / 1000;
+
+    if (
+      user &&
+      video?.id &&
+      time > 0 &&
+      timeSinceLastSave >= PROGRESS_UPDATE_INTERVAL
+    ) {
+      try {
+        await progressService.updateProgress(user.uid, video.id, Math.floor(time));
+        lastProgressSaveTime.current = currentTime;
+        console.log(`Progress saved: ${Math.floor(time)}s`);
+      } catch (err) {
+        console.error("Error saving progress:", err);
+      }
+    }
   };
 
   /**
    * Handle Video Player Ready
-   * 
+   *
    * Called when YouTube player is initialized and ready.
-   * 
+   * Auto-seeks to saved position if progress exists.
+   *
    * @param {Object} player - YouTube player instance
    */
   const handlePlayerReady = (player) => {
     console.log('Video player ready');
+
+    // Auto-resume from saved position if available
+    // Add a small delay to allow YouTube to buffer
+    if (savedProgress && !hasResumed.current && videoRef.current) {
+      const resumePosition = savedProgress.lastPositionSeconds;
+      console.log(`Will resume from ${resumePosition}s in 1 second...`);
+
+      setTimeout(() => {
+        if (videoRef.current) {
+          console.log(`Resuming now from ${resumePosition}s`);
+          videoRef.current.seekTo(resumePosition);
+          hasResumed.current = true;
+        }
+      }, 1000); // Wait 1 second for initial buffering
+    }
   };
 
   // Loading state
