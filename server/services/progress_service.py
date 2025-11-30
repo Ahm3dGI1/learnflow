@@ -18,7 +18,7 @@ def get_or_create_progress(user_id, video_id, db):
         db: Database session
 
     Returns:
-        UserVideoProgress: Progress record
+        tuple: (UserVideoProgress, Video) - Progress record and associated video
 
     Raises:
         ValueError: If user or video doesn't exist
@@ -53,7 +53,7 @@ def get_or_create_progress(user_id, video_id, db):
         db.commit()
         db.refresh(progress)
 
-    return progress
+    return progress, video
 
 
 def update_progress(user_id, video_id, position_seconds, db):
@@ -84,11 +84,10 @@ def update_progress(user_id, video_id, position_seconds, db):
     if position_seconds < 0:
         raise ValueError("Position cannot be negative")
 
-    # Get or create progress
-    progress = get_or_create_progress(user_id, video_id, db)
+    # Get or create progress (also returns video to avoid redundant fetch)
+    progress, video = get_or_create_progress(user_id, video_id, db)
 
     # Get video duration for completion check
-    video = db.query(Video).filter(Video.id == video_id).first()
     video_duration = video.duration_seconds if video else 0
 
     # Update progress
@@ -127,8 +126,8 @@ def mark_complete(user_id, video_id, db):
     Raises:
         ValueError: If user or video doesn't exist
     """
-    # Get or create progress
-    progress = get_or_create_progress(user_id, video_id, db)
+    # Get or create progress (video not needed here, but returned to maintain consistency)
+    progress, _ = get_or_create_progress(user_id, video_id, db)
 
     # Mark as complete
     progress.is_completed = True
