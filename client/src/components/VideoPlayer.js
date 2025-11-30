@@ -34,7 +34,6 @@ import "./VideoPlayer.css";
  * // Later: playerRef.current.pauseVideo()
  */
 const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
-  const iframeRef = useRef(null);
   const playerRef = useRef(null);
   const timeIntervalRef = useRef(null);
   const playerIdRef = useRef(`youtube-player-${Math.random().toString(36).slice(2, 11)}`);
@@ -43,7 +42,7 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
    * Handle Player Ready
    * Wrapped in useCallback to maintain referential stability
    */
-  const handlePlayerReady = useCallback((event) => {
+  const handlePlayerReady = useCallback(() => {
     if (onReady) {
       onReady(playerRef.current);
     }
@@ -63,7 +62,7 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
    * Handle Player State Change
    * Wrapped in useCallback to maintain referential stability
    */
-  const handleStateChange = useCallback((event) => {
+  const handleStateChange = useCallback(() => {
     // Handle state changes if needed
   }, []);
 
@@ -134,9 +133,19 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
         }
       }, 100);
 
-      return () => clearInterval(checkInterval);
+      // Combined cleanup for this case
+      return () => {
+        clearInterval(checkInterval);
+        if (timeIntervalRef.current) {
+          clearInterval(timeIntervalRef.current);
+        }
+        if (playerRef.current && playerRef.current.destroy) {
+          playerRef.current.destroy();
+        }
+      };
     }
 
+    // Cleanup for all other cases
     return () => {
       if (timeIntervalRef.current) {
         clearInterval(timeIntervalRef.current);
