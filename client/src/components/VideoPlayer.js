@@ -75,7 +75,7 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
      * Initialize YouTube Player
      */
     const initializePlayer = () => {
-      if (!embedUrl || playerRef.current) return;
+      if (!embedUrl) return;
 
       // Extract video ID from embed URL
       const videoIdMatch = embedUrl.match(/embed\/([^?]+)/);
@@ -86,10 +86,22 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
       // Avoid creating duplicate players
       if (playerRef.current) {
         playerRef.current.destroy();
+        playerRef.current = null;
+      }
+
+      // Check if the target element exists
+      const targetElement = document.getElementById(playerIdRef.current);
+      if (!targetElement) {
+        console.error('Target element not found:', playerIdRef.current);
+        return;
       }
 
       playerRef.current = new window.YT.Player(playerIdRef.current, {
         videoId: videoId,
+        playerVars: {
+          autoplay: 0,
+          enablejsapi: 1,
+        },
         events: {
           onReady: handlePlayerReady,
           onStateChange: handleStateChange,
@@ -108,22 +120,28 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
       const originalCallback = window.onYouTubeIframeAPIReady;
       window.onYouTubeIframeAPIReady = () => {
         if (originalCallback) originalCallback();
-        if (iframeRef.current && embedUrl) {
+        initializePlayer();
+      };
+    } else if (window.YT && window.YT.Player) {
+      // If API already loaded, initialize immediately
+      initializePlayer();
+    } else {
+      // YT exists but Player not ready yet, wait for it
+      const checkInterval = setInterval(() => {
+        if (window.YT && window.YT.Player) {
+          clearInterval(checkInterval);
           initializePlayer();
         }
-      };
-    }
+      }, 100);
 
-    // If API already loaded, initialize immediately
-    if (window.YT && window.YT.Player) {
-      initializePlayer();
+      return () => clearInterval(checkInterval);
     }
 
     return () => {
       if (timeIntervalRef.current) {
         clearInterval(timeIntervalRef.current);
       }
-      if (playerRef.current) {
+      if (playerRef.current && playerRef.current.destroy) {
         playerRef.current.destroy();
       }
     };

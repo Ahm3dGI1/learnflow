@@ -33,8 +33,23 @@ def _initialize_app():
     cred_file = os.getenv('FIREBASE_SERVICE_ACCOUNT_FILE')
     cred_json = os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON')
 
-    if cred_file and os.path.exists(cred_file):
-        cred = credentials.Certificate(cred_file)
+    if cred_file:
+        # Resolve path relative to project root if needed
+        # Handle both absolute paths and paths relative to project root
+        if not os.path.isabs(cred_file):
+            # Get the directory containing this file (server/)
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            # Go up one level to project root
+            project_root = os.path.dirname(current_dir)
+            # Resolve the credential file path
+            cred_file = os.path.join(project_root, cred_file)
+
+        if os.path.exists(cred_file):
+            cred = credentials.Certificate(cred_file)
+        else:
+            raise RuntimeError(
+                f"Firebase service account file not found at: {cred_file}"
+            )
     elif cred_json:
         cred_dict = json.loads(cred_json)
         cred = credentials.Certificate(cred_dict)
