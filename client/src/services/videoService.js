@@ -165,60 +165,6 @@ const videoService = {
   },
 
   /**
-   * Save or update user's video progress
-   * @param {string} videoId - YouTube video ID
-   * @param {number} currentPosition - Current playback position in seconds
-   * @param {boolean} isCompleted - Whether the video is completed
-   * @returns {Promise<object>} Updated progress data
-   */
-  saveProgress: async (videoId, currentPosition, isCompleted = false) => {
-    try {
-      const response = await api.post(
-        `/api/videos/${videoId}/progress`,
-        {
-          currentPosition,
-          isCompleted,
-        },
-        {},
-        true // Requires authentication
-      );
-      return response;
-    } catch (error) {
-      console.error('Error saving video progress:', error);
-      throw error;
-    }
-  },
-
-  /**
-   * Get user's video watch history
-   * @returns {Promise<object>} List of watched videos with progress
-   */
-  getHistory: async () => {
-    try {
-      const response = await api.get('/api/user/videos/history', {}, true);
-      return response;
-    } catch (error) {
-      console.error('Error fetching video history:', error);
-      throw error;
-    }
-  },
-
-  /**
-   * Delete a video from user's history
-   * @param {string} videoId - YouTube video ID
-   * @returns {Promise<object>} Deletion confirmation
-   */
-  deleteFromHistory: async (videoId) => {
-    try {
-      const response = await api.delete(`/api/user/videos/${videoId}/history`, {}, true);
-      return response;
-    } catch (error) {
-      console.error('Error deleting video from history:', error);
-      throw error;
-    }
-  },
-
-  /**
    * Get video thumbnail URL
    * @param {string} videoId - YouTube video ID
    * @param {string} quality - Thumbnail quality ('default', 'medium', 'high', 'maxres')

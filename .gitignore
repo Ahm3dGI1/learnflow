@@ -12,3 +12,5 @@ server/.env
 *.db
 server/secrets/
 .DS_Store
+
+server/secrets

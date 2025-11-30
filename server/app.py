@@ -11,9 +11,13 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 import os
 from routes import llm_bp, video_bp, user_bp, progress_bp
+from database import init_db
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Initialize database tables (creates them if they don't exist)
+init_db()
 
 # Initialize Flask application
 app = Flask(__name__)
