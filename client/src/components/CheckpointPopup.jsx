@@ -42,7 +42,7 @@ import './CheckpointPopup.css';
  * />
  */
 export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTutor }) {
-  const [userAnswer, setUserAnswer] = useState('');
+  const [selectedOption, setSelectedOption] = useState(null);
   const [isCorrect, setIsCorrect] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const timeoutRef = useRef(null);
@@ -63,42 +63,38 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
 
   /**
    * Validate User Answer
-   * 
-   * Checks if user's answer matches the correct answer (case-insensitive).
-   * Trims whitespace and compares normalized strings.
-   * 
-   * @param {string} answer - User's answer
+   *
+   * Checks if selected option matches the correct answer.
+   *
+   * @param {string} option - Selected option
    * @returns {boolean} True if answer is correct
    */
-  const validateAnswer = (answer) => {
-    const normalizedUserAnswer = answer.trim().toLowerCase();
-    const normalizedCorrectAnswer = checkpoint.answer.trim().toLowerCase();
-    return normalizedUserAnswer === normalizedCorrectAnswer;
+  const validateAnswer = (option) => {
+    return option === checkpoint.correctAnswer;
   };
 
   /**
    * Handle Submit Answer
-   * 
-   * Validates user's answer and shows appropriate feedback.
+   *
+   * Validates user's selected option and shows appropriate feedback.
    * If correct, calls onCorrectAnswer callback to resume video.
    * If incorrect, shows feedback with Try Again and Ask Tutor options.
-   * Includes error handling for malformed checkpoint data.
    */
   const handleSubmit = () => {
-    if (!userAnswer.trim()) {
+    if (!selectedOption) {
       return;
     }
 
     try {
       // Validate checkpoint has required fields
-      if (!checkpoint || !checkpoint.answer) {
+      if (!checkpoint || !checkpoint.correctAnswer) {
         console.error('Checkpoint missing required fields:', checkpoint);
         setIsCorrect(false);
         setShowFeedback(true);
         return;
       }
 
-      const correct = validateAnswer(userAnswer);
+      const correct = validateAnswer(selectedOption);
       setIsCorrect(correct);
       setShowFeedback(true);
 
@@ -113,7 +109,7 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
               console.error('Error calling onCorrectAnswer callback:', error);
             }
           }
-        }, 1500);
+        }, 2000); // Longer delay to show explanation
       }
     } catch (error) {
       console.error('Error validating answer:', error);
@@ -124,35 +120,22 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
 
   /**
    * Handle Try Again
-   * 
-   * Resets the answer input and feedback state to allow another attempt.
+   *
+   * Resets the selected option and feedback state to allow another attempt.
    */
   const handleTryAgain = () => {
-    setUserAnswer('');
+    setSelectedOption(null);
     setIsCorrect(null);
     setShowFeedback(false);
   };
 
   /**
    * Handle Ask Tutor
-   * 
+   *
    * Passes checkpoint context to AI tutor and opens chat interface.
    */
   const handleAskTutor = () => {
     onAskTutor(checkpoint);
-  };
-
-  /**
-   * Handle Key Press
-   * 
-   * Allows Enter key to submit answer for better UX.
-   * 
-   * @param {KeyboardEvent} e - Keyboard event
-   */
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !showFeedback) {
-      handleSubmit();
-    }
   };
 
   return (
@@ -169,29 +152,29 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
           <p className="checkpoint-subtopic">{checkpoint.subtopic}</p>
           
           <div className="checkpoint-question-section">
-            <label className="checkpoint-question-label" htmlFor="checkpoint-answer-input">Question:</label>
+            <label className="checkpoint-question-label">Question:</label>
             <p className="checkpoint-question">{checkpoint.question}</p>
           </div>
 
-          {/* Answer Input */}
-          {!showFeedback && (
-            <div className="checkpoint-answer-section">
-              <input
-                type="text"
-                id="checkpoint-answer-input"
-                className="checkpoint-answer-input"
-                placeholder="Type your answer here..."
-                value={userAnswer}
-                onChange={(e) => setUserAnswer(e.target.value)}
-                onKeyPress={handleKeyPress}
-                autoFocus
-              />
+          {/* MCQ Options */}
+          {!showFeedback && checkpoint.options && (
+            <div className="checkpoint-options-section">
+              {checkpoint.options.map((option, index) => (
+                <button
+                  key={index}
+                  className={`checkpoint-option ${selectedOption === option ? 'selected' : ''}`}
+                  onClick={() => setSelectedOption(option)}
+                >
+                  <span className="option-letter">{String.fromCharCode(65 + index)}</span>
+                  <span className="option-text">{option}</span>
+                </button>
+              ))}
             </div>
           )}
 
           {/* Feedback */}
           {showFeedback && (
-            <div 
+            <div
               className={`checkpoint-feedback ${isCorrect ? 'correct' : 'incorrect'}`}
               role="status"
               aria-live="polite"
@@ -200,11 +183,18 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
                 <>
                   <div className="feedback-icon">✅</div>
                   <p className="feedback-message">Great job! That's correct!</p>
+                  {checkpoint.explanation && (
+                    <p className="feedback-explanation">{checkpoint.explanation}</p>
+                  )}
                 </>
               ) : (
                 <>
                   <div className="feedback-icon">❌</div>
                   <p className="feedback-message">Not quite right. Try again or ask the AI tutor for help!</p>
+                  <p className="feedback-hint">The correct answer is: <strong>{checkpoint.correctAnswer}</strong></p>
+                  {checkpoint.explanation && (
+                    <p className="feedback-explanation">{checkpoint.explanation}</p>
+                  )}
                 </>
               )}
             </div>
@@ -214,10 +204,10 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
         {/* Actions */}
         <div className="checkpoint-popup-actions">
           {!showFeedback ? (
-            <button 
-              onClick={handleSubmit} 
+            <button
+              onClick={handleSubmit}
               className="checkpoint-button checkpoint-button-primary"
-              disabled={!userAnswer.trim()}
+              disabled={!selectedOption}
             >
               Submit Answer
             </button>
