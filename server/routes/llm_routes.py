@@ -71,23 +71,64 @@ def generate_checkpoints_route():
 
         language_code = transcript_data.get('languageCode', 'en')
 
-        # Check cache first
+        # Check cache first (memory)
         cache_key = f"{video_id}:{language_code}"
         cached_data = checkpoint_cache.get(cache_key)
         if cached_data:
             response = cached_data.copy()
             response['cached'] = True
+            response['source'] = 'memory'
             return jsonify(response), 200
+
+        # Check database cache
+        from database import SessionLocal
+        from services import get_video_by_youtube_id, cache_checkpoints
+
+        db = SessionLocal()
+        try:
+            video = get_video_by_youtube_id(video_id, db)
+            if video and video.checkpoints_data:
+                # Parse checkpoints from database
+                import json
+                try:
+                    db_checkpoints = json.loads(video.checkpoints_data)
+                    # Cache in memory for faster subsequent access
+                    checkpoint_cache.set(cache_key, db_checkpoints)
+                    response = db_checkpoints.copy()
+                    response['cached'] = True
+                    response['source'] = 'database'
+                    return jsonify(response), 200
+                except json.JSONDecodeError:
+                    # If parsing fails, regenerate
+                    pass
+        except:
+            # If video doesn't exist or any error, continue to generation
+            pass
+        finally:
+            db.close()
 
         # Generate checkpoints
         checkpoints = generate_checkpoints(transcript_data, video_id)
 
-        # Cache the result
+        # Cache the result in memory
         checkpoint_cache.set(cache_key, checkpoints)
+
+        # Save to database
+        db = SessionLocal()
+        try:
+            video = get_video_by_youtube_id(video_id, db)
+            if video:
+                cache_checkpoints(video.id, checkpoints, db)
+        except Exception as e:
+            # Log error but don't fail the request
+            print(f"Error saving checkpoints to database: {e}")
+        finally:
+            db.close()
 
         # Add cached flag
         response = checkpoints.copy()
         response['cached'] = False
+        response['source'] = 'generated'
 
         return jsonify(response), 200
 
