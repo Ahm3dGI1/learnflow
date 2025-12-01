@@ -129,13 +129,17 @@ def validate_checkpoint_response(response_data):
         if not isinstance(checkpoint, dict):
             return False
 
-        required_fields = ['timestamp', 'title', 'subtopic', 'question', 'answer']
+        required_fields = ['timestamp', 'title', 'subtopic', 'question', 'options', 'correctAnswer', 'explanation']
         if not all(field in checkpoint for field in required_fields):
             return False
 
         # Validate timestamp format (MM:SS)
         timestamp = checkpoint['timestamp']
         if not re.match(r'^\d{1,2}:[0-5]\d$', timestamp):
+            return False
+
+        # Validate options is a list
+        if not isinstance(checkpoint['options'], list) or len(checkpoint['options']) != 4:
             return False
 
     return True
@@ -165,7 +169,11 @@ def generate_checkpoints(transcript_data, video_id):
                         "timestamp": "02:15",
                         "timestampSeconds": 135,
                         "title": "Title",
-                        "subtopic": "Description"
+                        "subtopic": "Description",
+                        "question": "MCQ question?",
+                        "options": ["A", "B", "C", "D"],
+                        "correctAnswer": "B",
+                        "explanation": "Explanation text"
                     }
                 ],
                 "totalCheckpoints": 1
@@ -232,7 +240,9 @@ def generate_checkpoints(transcript_data, video_id):
                 'title': checkpoint['title'],
                 'subtopic': checkpoint['subtopic'],
                 'question': checkpoint['question'],
-                'answer': checkpoint['answer']
+                'options': checkpoint['options'],
+                'correctAnswer': checkpoint['correctAnswer'],
+                'explanation': checkpoint['explanation']
             })
 
         return {

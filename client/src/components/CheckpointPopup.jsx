@@ -14,11 +14,11 @@ import './CheckpointPopup.css';
 
 /**
  * CheckpointPopup Component
- * 
+ *
  * Interactive modal for checkpoint questions. Pauses video playback and
  * requires user to answer correctly before continuing. Supports text-based
  * answers with case-insensitive validation.
- * 
+ *
  * @param {Object} props - Component props
  * @param {Object} props.checkpoint - Checkpoint data object
  * @param {string} props.checkpoint.title - Checkpoint title
@@ -27,8 +27,9 @@ import './CheckpointPopup.css';
  * @param {string} props.checkpoint.answer - Correct answer
  * @param {Function} props.onCorrectAnswer - Callback when answer is correct
  * @param {Function} props.onAskTutor - Callback to open AI tutor chat
+ * @param {Function} props.onSkip - Callback to skip checkpoint and resume video
  * @returns {React.ReactElement} Checkpoint popup modal
- * 
+ *
  * @example
  * <CheckpointPopup
  *   checkpoint={{
@@ -39,9 +40,10 @@ import './CheckpointPopup.css';
  *   }}
  *   onCorrectAnswer={() => resumeVideo()}
  *   onAskTutor={() => openChat()}
+ *   onSkip={() => resumeVideo()}
  * />
  */
-export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTutor }) {
+export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTutor, onSkip }) {
   const [selectedOption, setSelectedOption] = useState(null);
   const [isCorrect, setIsCorrect] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -138,11 +140,30 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
     onAskTutor(checkpoint);
   };
 
+  /**
+   * Handle Skip Checkpoint
+   *
+   * Closes popup and resumes video without answering.
+   */
+  const handleSkip = () => {
+    if (onSkip) {
+      onSkip();
+    }
+  };
+
   return (
     <div className="checkpoint-popup-overlay" role="dialog" aria-modal="true" aria-labelledby="checkpoint-title">
       <div className="checkpoint-popup-container">
         {/* Header */}
         <div className="checkpoint-popup-header">
+          <button
+            onClick={handleSkip}
+            className="checkpoint-close-button"
+            aria-label="Skip checkpoint"
+            title="Skip for now"
+          >
+            ✕
+          </button>
           <div className="checkpoint-icon">🎯</div>
           <h2 className="checkpoint-title" id="checkpoint-title">{checkpoint.title}</h2>
         </div>
