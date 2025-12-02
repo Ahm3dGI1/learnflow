@@ -101,9 +101,9 @@ def generate_checkpoints_route():
                 except json.JSONDecodeError:
                     # If parsing fails, regenerate
                     pass
-        except:
+        except Exception as e:
             # If video doesn't exist or any error, continue to generation
-            pass
+            print(f"Error checking database cache: {e}")
         finally:
             db.close()
 

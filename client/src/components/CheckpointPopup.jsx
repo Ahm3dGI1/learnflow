@@ -1,11 +1,11 @@
 /**
  * Checkpoint Popup Component
- * 
+ *
  * Modal popup that appears at checkpoint timestamps during video playback.
- * Displays a question to verify understanding and requires correct answer
- * before video can continue. Provides "Try Again" and "Ask AI Tutor" options
- * for wrong answers.
- * 
+ * Displays a multiple-choice question to verify understanding and requires
+ * correct answer before video can continue. Provides "Try Again", "Ask AI Tutor",
+ * and skip options. Shows explanations for answers.
+ *
  * @module CheckpointPopup
  */
 
@@ -16,15 +16,17 @@ import './CheckpointPopup.css';
  * CheckpointPopup Component
  *
  * Interactive modal for checkpoint questions. Pauses video playback and
- * requires user to answer correctly before continuing. Supports text-based
- * answers with case-insensitive validation.
+ * requires user to answer correctly before continuing. Supports multiple-choice
+ * question format with visual feedback and explanations.
  *
  * @param {Object} props - Component props
  * @param {Object} props.checkpoint - Checkpoint data object
  * @param {string} props.checkpoint.title - Checkpoint title
  * @param {string} props.checkpoint.subtopic - Checkpoint description
- * @param {string} props.checkpoint.question - Question to answer
- * @param {string} props.checkpoint.answer - Correct answer
+ * @param {string} props.checkpoint.question - MCQ question text
+ * @param {string[]} props.checkpoint.options - Array of 4 answer options
+ * @param {string} props.checkpoint.correctAnswer - The correct answer (must be in options)
+ * @param {string} props.checkpoint.explanation - Explanation of the correct answer
  * @param {Function} props.onCorrectAnswer - Callback when answer is correct
  * @param {Function} props.onAskTutor - Callback to open AI tutor chat
  * @param {Function} props.onSkip - Callback to skip checkpoint and resume video
@@ -36,7 +38,14 @@ import './CheckpointPopup.css';
  *     title: "Photosynthesis Definition",
  *     subtopic: "Understanding what photosynthesis is",
  *     question: "What is the primary purpose of photosynthesis?",
- *     answer: "To convert light energy into chemical energy"
+ *     options: [
+ *       "To produce oxygen for animals",
+ *       "To convert light energy into chemical energy",
+ *       "To absorb carbon dioxide",
+ *       "To create water molecules"
+ *     ],
+ *     correctAnswer: "To convert light energy into chemical energy",
+ *     explanation: "Photosynthesis converts light energy into chemical energy stored in glucose molecules."
  *   }}
  *   onCorrectAnswer={() => resumeVideo()}
  *   onAskTutor={() => openChat()}

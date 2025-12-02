@@ -142,6 +142,10 @@ def validate_checkpoint_response(response_data):
         if not isinstance(checkpoint['options'], list) or len(checkpoint['options']) != 4:
             return False
 
+        # Validate correctAnswer is in options
+        if checkpoint['correctAnswer'] not in checkpoint['options']:
+            return False
+
     return True
 
 
