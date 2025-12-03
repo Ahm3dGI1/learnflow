@@ -185,7 +185,7 @@ export default function VideoPage() {
 
   /**
    * Handle Checkpoint Correct Answer
-   * 
+   *
    * Called when user answers checkpoint question correctly.
    * Marks checkpoint as completed and closes popup.
    */
@@ -193,20 +193,35 @@ export default function VideoPage() {
     if (currentCheckpoint) {
       setCheckpointsCompleted(prev => new Set([...prev, currentCheckpoint.id]));
       setCurrentCheckpoint(null);
-      
+
       // Resume video playback
-      if (videoRef.current) {
+      if (videoRef.current && videoRef.current.playVideo) {
         videoRef.current.playVideo();
       }
     }
   }, [currentCheckpoint]);
 
   /**
+   * Handle Skip Checkpoint
+   *
+   * Closes checkpoint popup and resumes video without answering.
+   * Does not mark checkpoint as completed.
+   */
+  const handleSkipCheckpoint = useCallback(() => {
+    setCurrentCheckpoint(null);
+
+    // Resume video playback
+    if (videoRef.current && videoRef.current.playVideo) {
+      videoRef.current.playVideo();
+    }
+  }, []);
+
+  /**
    * Handle Ask AI Tutor
-   * 
+   *
    * Opens chat interface with checkpoint context.
    * For now, shows alert - will be connected to chat later.
-   * 
+   *
    * @param {Object} checkpoint - Checkpoint that needs help
    */
   const handleAskTutor = useCallback((checkpoint) => {
@@ -223,7 +238,7 @@ export default function VideoPage() {
    *
    * @param {number} time - Current video time in seconds
    */
-  const handleTimeUpdate = async (time) => {
+  const handleTimeUpdate = useCallback(async (time) => {
     // Check if video has ended (within VIDEO_END_THRESHOLD seconds of duration)
     if (video?.durationSeconds && time >= video.durationSeconds - VIDEO_END_THRESHOLD) {
       setVideoEnded(true);
@@ -281,7 +296,7 @@ export default function VideoPage() {
         console.error("Error saving progress:", err);
       }
     }
-  };
+  }, [video, videoEnded, currentCheckpoint, checkpoints, checkpointsCompleted, user]);
 
   /**
    * Handle Video Player Ready
@@ -291,7 +306,7 @@ export default function VideoPage() {
    *
    * @param {Object} player - YouTube player instance
    */
-  const handlePlayerReady = (player) => {
+  const handlePlayerReady = useCallback((player) => {
     console.log('Video player ready');
 
     // Auto-resume from saved position if available
@@ -308,7 +323,7 @@ export default function VideoPage() {
         }
       }, 1000); // Wait 1 second for initial buffering
     }
-  };
+  }, [savedProgress]);
 
   // Loading state
   if (loading) {
@@ -454,6 +469,7 @@ export default function VideoPage() {
           checkpoint={currentCheckpoint}
           onCorrectAnswer={handleCheckpointCorrect}
           onAskTutor={handleAskTutor}
+          onSkip={handleSkipCheckpoint}
         />
       )}
     </div>
