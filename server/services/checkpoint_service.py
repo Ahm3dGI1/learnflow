@@ -138,12 +138,22 @@ def validate_checkpoint_response(response_data):
         if not re.match(r'^\d{1,2}:[0-5]\d$', timestamp):
             return False
 
-        # Validate options is a list
+        # Validate options is a list with 4 items
         if not isinstance(checkpoint['options'], list) or len(checkpoint['options']) != 4:
+            return False
+
+        # Validate all options are non-empty strings
+        if not all(isinstance(opt, str) and opt.strip() for opt in checkpoint['options']):
             return False
 
         # Validate correctAnswer is in options
         if checkpoint['correctAnswer'] not in checkpoint['options']:
+            return False
+
+        # Validate explanation exists and is non-empty
+        if 'explanation' not in checkpoint:
+            return False
+        if not isinstance(checkpoint['explanation'], str) or not checkpoint['explanation'].strip():
             return False
 
     return True

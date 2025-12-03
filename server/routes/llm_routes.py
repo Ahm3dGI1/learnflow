@@ -3,13 +3,78 @@ LLM-related API routes for LearnFlow.
 Handles endpoints for checkpoint generation, chat, and other AI features.
 """
 
+import json
+import traceback
 from flask import Blueprint, request, jsonify, Response
-from services import generate_checkpoints, generate_chat_response, generate_chat_response_stream, generate_quiz
+from database import SessionLocal
+from services import (
+    generate_checkpoints,
+    generate_chat_response,
+    generate_chat_response_stream,
+    generate_quiz,
+    get_video_by_youtube_id,
+    cache_checkpoints
+)
 from utils import checkpoint_cache, quiz_cache
 
 
 # Blueprint for LLM routes
 llm_bp = Blueprint('llm', __name__, url_prefix='/api/llm')
+
+
+# ========== HELPER FUNCTIONS ==========
+
+def get_cached_checkpoints_from_db(video_id):
+    """
+    Get cached checkpoints from database.
+
+    Args:
+        video_id: YouTube video ID
+
+    Returns:
+        dict: Cached checkpoint data or None if not found/error
+    """
+    db = SessionLocal()
+    try:
+        video = get_video_by_youtube_id(video_id, db)
+        if video and video.checkpoints_data:
+            try:
+                return json.loads(video.checkpoints_data)
+            except json.JSONDecodeError as e:
+                print(f"Error parsing cached checkpoints: {e}")
+                return None
+    except Exception as e:
+        print(f"Error reading checkpoints from database: {e}")
+        traceback.print_exc()
+        return None
+    finally:
+        db.close()
+
+
+def save_checkpoints_to_db(video_id, checkpoints_data):
+    """
+    Save checkpoints to database.
+
+    Args:
+        video_id: YouTube video ID
+        checkpoints_data: Checkpoint data to cache
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    db = SessionLocal()
+    try:
+        video = get_video_by_youtube_id(video_id, db)
+        if video:
+            cache_checkpoints(video.id, checkpoints_data, db)
+            return True
+        return False
+    except Exception as e:
+        print(f"Error saving checkpoints to database: {e}")
+        traceback.print_exc()
+        return False
+    finally:
+        db.close()
 
 
 @llm_bp.route('/checkpoints/generate', methods=['POST'])
@@ -81,31 +146,14 @@ def generate_checkpoints_route():
             return jsonify(response), 200
 
         # Check database cache
-        from database import SessionLocal
-        from services import get_video_by_youtube_id, cache_checkpoints
-
-        db = SessionLocal()
-        try:
-            video = get_video_by_youtube_id(video_id, db)
-            if video and video.checkpoints_data:
-                # Parse checkpoints from database
-                import json
-                try:
-                    db_checkpoints = json.loads(video.checkpoints_data)
-                    # Cache in memory for faster subsequent access
-                    checkpoint_cache.set(cache_key, db_checkpoints)
-                    response = db_checkpoints.copy()
-                    response['cached'] = True
-                    response['source'] = 'database'
-                    return jsonify(response), 200
-                except json.JSONDecodeError:
-                    # If parsing fails, regenerate
-                    pass
-        except Exception as e:
-            # If video doesn't exist or any error, continue to generation
-            print(f"Error checking database cache: {e}")
-        finally:
-            db.close()
+        db_checkpoints = get_cached_checkpoints_from_db(video_id)
+        if db_checkpoints:
+            # Cache in memory for faster subsequent access
+            checkpoint_cache.set(cache_key, db_checkpoints)
+            response = db_checkpoints.copy()
+            response['cached'] = True
+            response['source'] = 'database'
+            return jsonify(response), 200
 
         # Generate checkpoints
         checkpoints = generate_checkpoints(transcript_data, video_id)
@@ -113,17 +161,8 @@ def generate_checkpoints_route():
         # Cache the result in memory
         checkpoint_cache.set(cache_key, checkpoints)
 
-        # Save to database
-        db = SessionLocal()
-        try:
-            video = get_video_by_youtube_id(video_id, db)
-            if video:
-                cache_checkpoints(video.id, checkpoints, db)
-        except Exception as e:
-            # Log error but don't fail the request
-            print(f"Error saving checkpoints to database: {e}")
-        finally:
-            db.close()
+        # Save to database (non-blocking - don't fail if it errors)
+        save_checkpoints_to_db(video_id, checkpoints)
 
         # Add cached flag
         response = checkpoints.copy()
