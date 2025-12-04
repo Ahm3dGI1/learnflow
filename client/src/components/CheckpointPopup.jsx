@@ -88,8 +88,8 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
    * Handle Submit Answer
    *
    * Validates user's selected option and shows appropriate feedback.
-   * If correct, calls onCorrectAnswer callback to resume video.
-   * If incorrect, shows feedback with Try Again and Ask Tutor options.
+   * If correct, calls onCorrectAnswer callback to resume video after a delay.
+   * If incorrect, shows feedback with correct answer, explanation, and action buttons.
    */
   const handleSubmit = () => {
     if (!selectedOption) {
@@ -98,7 +98,7 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
 
     try {
       // Validate checkpoint has required fields
-      if (!checkpoint || !checkpoint.correctAnswer) {
+      if (!checkpoint || !checkpoint.correctAnswer || !checkpoint.options) {
         console.error('Checkpoint missing required fields:', checkpoint);
         setIsCorrect(false);
         setShowFeedback(true);
@@ -110,7 +110,7 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
       setShowFeedback(true);
 
       if (correct) {
-        // Wait a moment to show success feedback, then resume
+        // Wait 2 seconds to show success feedback, then resume
         timeoutRef.current = setTimeout(() => {
           // Only call onCorrectAnswer if component is still mounted
           if (isMountedRef.current && onCorrectAnswer) {
@@ -180,7 +180,7 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
         {/* Content */}
         <div className="checkpoint-popup-content">
           <p className="checkpoint-subtopic">{checkpoint.subtopic}</p>
-          
+
           <div className="checkpoint-question-section">
             <label className="checkpoint-question-label">Question:</label>
             <p className="checkpoint-question">{checkpoint.question}</p>
@@ -194,6 +194,7 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
                   key={index}
                   className={`checkpoint-option ${selectedOption === option ? 'selected' : ''}`}
                   onClick={() => setSelectedOption(option)}
+                  type="button"
                 >
                   <span className="option-letter">{String.fromCharCode(65 + index)}</span>
                   <span className="option-text">{option}</span>
@@ -243,14 +244,14 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
             </button>
           ) : !isCorrect ? (
             <>
-              <button 
-                onClick={handleTryAgain} 
+              <button
+                onClick={handleTryAgain}
                 className="checkpoint-button checkpoint-button-secondary"
               >
                 Try Again
               </button>
-              <button 
-                onClick={handleAskTutor} 
+              <button
+                onClick={handleAskTutor}
                 className="checkpoint-button checkpoint-button-tutor"
               >
                 Ask AI Tutor
