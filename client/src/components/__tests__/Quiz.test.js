@@ -3,7 +3,7 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import Quiz from './Quiz';
+import Quiz from '../Quiz';
 
 describe('Quiz', () => {
   const mockQuiz = {
