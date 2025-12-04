@@ -169,7 +169,7 @@ describe('InputBar', () => {
   // ========== INPUT HANDLING TESTS ==========
 
   test('handles multiple character inputs', () => {
-    const { rerender } = render(
+    render(
       <InputBar
         videoUrl=""
         setVideoUrl={mockSetVideoUrl}

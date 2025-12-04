@@ -346,9 +346,10 @@ describe('VideoHistoryCard', () => {
       />
     );
 
-    // Should show formatted date (exact format depends on locale)
+    // Should show formatted date with year
     const dateElement = screen.getByText(/Last viewed/);
     expect(dateElement).toBeInTheDocument();
+    expect(dateElement.textContent).toMatch(/Last viewed.+2024/);
   });
 
   // ========== EDGE CASE TESTS ==========
