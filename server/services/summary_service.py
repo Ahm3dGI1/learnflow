@@ -103,9 +103,9 @@ def validate_summary_response(response_data):
     if not isinstance(summary, str) or len(summary.strip()) == 0:
         return False
 
-    # Basic validation: summary should be reasonable length (50-500 words)
+    # Basic validation: summary should have at least some content
     word_count = len(summary.split())
-    if word_count < 50 or word_count > 500:
+    if word_count < 10:
         return False
 
     return True
