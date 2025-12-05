@@ -48,9 +48,30 @@ export default function VideoSummary({ summary, loading, error, wordCount }) {
     setIsExpanded(!isExpanded);
   };
 
+  /**
+   * Handle Keyboard Navigation
+   *
+   * Allows keyboard users to toggle summary with Enter or Space keys.
+   *
+   * @param {KeyboardEvent} event - Keyboard event
+   */
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      toggleExpansion();
+    }
+  };
+
   return (
     <div className="video-summary-section">
-      <div className="video-summary-header" onClick={toggleExpansion} role="button" tabIndex={0} aria-expanded={isExpanded}>
+      <div
+        className="video-summary-header"
+        onClick={toggleExpansion}
+        onKeyDown={handleKeyDown}
+        role="button"
+        tabIndex={0}
+        aria-expanded={isExpanded}
+      >
         <div className="video-summary-header-content">
           <span className="summary-icon">📝</span>
           <h3 className="video-summary-title">Video Summary</h3>
