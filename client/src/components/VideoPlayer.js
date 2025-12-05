@@ -1,10 +1,10 @@
 /**
  * Video Player Component
- * 
+ *
  * Displays a YouTube video using an iframe embed with responsive layout.
  * Renders null when no embed URL is provided. Supports YouTube iframe API
  * for playback control and time tracking.
- * 
+ *
  * @module VideoPlayer
  */
 
@@ -13,20 +13,20 @@ import "./VideoPlayer.css";
 
 /**
  * VideoPlayer Component
- * 
+ *
  * Responsive YouTube video player with iframe API integration. Provides
  * playback control methods and time tracking through ref. Uses YouTube
  * iframe API for programmatic control.
- * 
+ *
  * @param {Object} props - Component props
  * @param {string} props.embedUrl - YouTube embed URL with enablejsapi=1
  * @param {Function} props.onTimeUpdate - Callback for current time updates (seconds)
  * @param {Function} props.onReady - Callback when player is ready
  * @returns {React.ReactElement|null} Video player iframe or null if no URL provided
- * 
+ *
  * @example
  * const playerRef = useRef();
- * <VideoPlayer 
+ * <VideoPlayer
  *   ref={playerRef}
  *   embedUrl="https://www.youtube.com/embed/abc?enablejsapi=1"
  *   onTimeUpdate={(time) => console.log(time)}

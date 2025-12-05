@@ -7,8 +7,8 @@
  * Features:
  * - Video player with metadata display
  * - AI Tutor chat interface in sidebar
- * - Checkpoints shown as popups at specific timestamps (future)
- * - Quiz and summary shown at video end (future)
+ * - Checkpoints shown as popups at specific timestamps
+ * - Quiz and summary shown at video end
  *
  * @module VideoPage
  */
@@ -18,6 +18,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import VideoPlayer from "../components/VideoPlayer";
 import CheckpointPopup from "../components/CheckpointPopup";
+import VideoSummary from "../components/VideoSummary";
 import { videoService, llmService, progressService } from "../services";
 import "./VideoPage.css";
 
@@ -68,6 +69,9 @@ export default function VideoPage() {
   const [checkpointsCompleted, setCheckpointsCompleted] = useState(new Set());
   const [videoEnded, setVideoEnded] = useState(false);
   const [savedProgress, setSavedProgress] = useState(null);
+  const [summaryData, setSummaryData] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState(null);
   const videoRef = useRef(null);
   const lastTriggeredCheckpoint = useRef(null);
   const lastProgressSaveTime = useRef(0);
@@ -131,6 +135,21 @@ export default function VideoPage() {
             console.error("Error generating checkpoints:", err);
             // Continue without checkpoints
           }
+
+          // Generate summary
+          try {
+            setSummaryLoading(true);
+            setSummaryError(null);
+            const summary = await llmService.generateSummary(
+              videoData.transcript
+            );
+            setSummaryData(summary);
+          } catch (err) {
+            console.error("Error generating summary:", err);
+            setSummaryError("Failed to generate summary");
+          } finally {
+            setSummaryLoading(false);
+          }
         }
       } catch (err) {
         console.error("Error fetching video:", err);
@@ -158,6 +177,21 @@ export default function VideoPage() {
               } catch (err) {
                 console.error("Error generating checkpoints:", err);
               }
+
+              // Generate summary
+              try {
+                setSummaryLoading(true);
+                setSummaryError(null);
+                const summary = await llmService.generateSummary(
+                  newVideo.transcript
+                );
+                setSummaryData(summary);
+              } catch (err) {
+                console.error("Error generating summary:", err);
+                setSummaryError("Failed to generate summary");
+              } finally {
+                setSummaryLoading(false);
+              }
             }
           } catch (createErr) {
             console.error("Error creating video:", createErr);
@@ -172,7 +206,7 @@ export default function VideoPage() {
     };
 
     fetchVideo();
-  }, [videoId]);
+  }, [videoId, user]);
 
   /**
    * Handle Back Navigation
@@ -401,6 +435,14 @@ export default function VideoPage() {
               </div>
             )}
 
+            {/* Video Summary */}
+            <VideoSummary
+              summary={summaryData?.summary}
+              loading={summaryLoading}
+              error={summaryError}
+              wordCount={summaryData?.wordCount}
+            />
+
             {/* Checkpoints List */}
             {checkpoints.length > 0 && (
               <div className="video-checkpoints">
@@ -436,7 +478,7 @@ export default function VideoPage() {
                 <p className="quiz-section-subtitle">
                   Great! You've finished the video. Ready to test what you've learned?
                 </p>
-                <button 
+                <button
                   className="take-quiz-button"
                   onClick={() => navigate(`/video/${videoId}/quiz`)}
                   aria-label="Take quiz for this video"

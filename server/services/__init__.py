@@ -16,6 +16,7 @@ input and return structured data for JSON serialization.
 from .checkpoint_service import generate_checkpoints
 from .chat_service import generate_chat_response, generate_chat_response_stream
 from .quiz_service import generate_quiz
+from .summary_service import generate_summary
 from .user_service import get_or_create_user, get_user_by_firebase_uid
 from .progress_service import update_progress, mark_complete, get_user_progress, get_video_progress
 from .transcript_service import (
@@ -42,6 +43,7 @@ __all__ = [
     'generate_chat_response',
     'generate_chat_response_stream',
     'generate_quiz',
+    'generate_summary',
     'fetch_transcript',
     'extract_video_id',
     'get_available_transcripts',
