@@ -67,7 +67,7 @@ export default function VideoPage() {
   const [checkpoints, setCheckpoints] = useState([]);
   const [currentCheckpoint, setCurrentCheckpoint] = useState(null);
   const [checkpointsCompleted, setCheckpointsCompleted] = useState(new Set());
-  const [summary, setSummary] = useState(null);
+  const [summaryData, setSummaryData] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState(null);
   const videoRef = useRef(null);
@@ -119,10 +119,10 @@ export default function VideoPage() {
           try {
             setSummaryLoading(true);
             setSummaryError(null);
-            const summaryData = await llmService.generateSummary(
+            const summary = await llmService.generateSummary(
               videoData.transcript
             );
-            setSummary(summaryData.summary);
+            setSummaryData(summary);
           } catch (err) {
             console.error("Error generating summary:", err);
             setSummaryError("Failed to generate summary");
@@ -161,10 +161,10 @@ export default function VideoPage() {
               try {
                 setSummaryLoading(true);
                 setSummaryError(null);
-                const summaryData = await llmService.generateSummary(
+                const summary = await llmService.generateSummary(
                   newVideo.transcript
                 );
-                setSummary(summaryData.summary);
+                setSummaryData(summary);
               } catch (err) {
                 console.error("Error generating summary:", err);
                 setSummaryError("Failed to generate summary");
@@ -357,10 +357,10 @@ export default function VideoPage() {
 
             {/* Video Summary */}
             <VideoSummary
-              summary={summary}
+              summary={summaryData?.summary}
               loading={summaryLoading}
               error={summaryError}
-              wordCount={summary ? summary.split(' ').length : 0}
+              wordCount={summaryData?.wordCount}
             />
 
             {/* Checkpoints List */}
