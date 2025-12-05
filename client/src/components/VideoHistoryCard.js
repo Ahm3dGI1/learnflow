@@ -12,11 +12,11 @@ import "./VideoHistoryCard.css";
 
 /**
  * VideoHistoryCard Component
- * 
+ *
  * Displays a single video history entry with thumbnail preview, play overlay,
- * title, relative timestamp, and delete button. Both the thumbnail and title
- * are clickable to select the video for playback.
- * 
+ * title, relative timestamp, progress bar, and delete button. Both the thumbnail
+ * and title are clickable to select the video for playback.
+ *
  * @param {Object} props - Component props
  * @param {Object} props.video - Video history entry data
  * @param {string} props.video.id - Unique entry ID
@@ -24,12 +24,15 @@ import "./VideoHistoryCard.css";
  * @param {string} props.video.title - Video title
  * @param {string} props.video.thumbnail - Thumbnail image URL
  * @param {string} props.video.lastViewedAt - ISO timestamp of last view
+ * @param {Object} [props.progress] - Optional progress data
+ * @param {number} props.progress.progressPercentage - Percentage completed (0-100)
+ * @param {boolean} props.progress.isCompleted - Whether video is fully watched
  * @param {Function} props.onSelect - Callback when video is selected for playback
  * @param {Function} props.onDelete - Callback when video is deleted from history
  * @returns {React.ReactElement} Video history card with thumbnail and controls
- * 
+ *
  * @example
- * <VideoHistoryCard 
+ * <VideoHistoryCard
  *   video={{
  *     id: 123,
  *     videoId: 'dQw4w9WgXcQ',
@@ -37,11 +40,12 @@ import "./VideoHistoryCard.css";
  *     thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
  *     lastViewedAt: '2024-01-15T10:30:00Z'
  *   }}
+ *   progress={{ progressPercentage: 45, isCompleted: false }}
  *   onSelect={handleVideoSelect}
  *   onDelete={handleVideoDelete}
  * />
  */
-export default function VideoHistoryCard({ video, onSelect, onDelete }) {
+export default function VideoHistoryCard({ video, progress, onSelect, onDelete }) {
   /**
    * Format Date to Relative Time
    * 
@@ -77,17 +81,32 @@ export default function VideoHistoryCard({ video, onSelect, onDelete }) {
 
   return (
     <div className="video-history-card">
-      <div className="video-thumbnail-container" onClick={() => onSelect(video)}>
-        <img
-          src={video.thumbnail}
-          alt={video.title}
-          className="video-thumbnail"
-        />
-        <div className="play-overlay">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="white">
-            <path d="M8 5v14l11-7z"/>
-          </svg>
+      <div>
+        <div className="video-thumbnail-container" onClick={() => onSelect(video)}>
+          <img
+            src={video.thumbnail}
+            alt={video.title}
+            className="video-thumbnail"
+          />
+          <div className="play-overlay">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="white">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          </div>
+          {progress?.isCompleted && (
+            <div className="completed-badge">✓ Completed</div>
+          )}
         </div>
+
+        {/* Progress Bar */}
+        {progress && !progress.isCompleted && (
+          <div className="progress-bar-container">
+            <div
+              className="progress-bar-fill"
+              style={{ width: `${progress.progressPercentage}%` }}
+            />
+          </div>
+        )}
       </div>
 
       <div className="video-info">
@@ -95,6 +114,9 @@ export default function VideoHistoryCard({ video, onSelect, onDelete }) {
           {video.title}
         </h4>
         <p className="video-date">Last viewed {formatDate(video.lastViewedAt)}</p>
+        {progress && !progress.isCompleted && (
+          <p className="video-progress">{Math.round(progress.progressPercentage)}% watched</p>
+        )}
       </div>
 
       <button

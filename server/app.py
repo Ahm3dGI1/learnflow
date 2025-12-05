@@ -10,10 +10,14 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
-from routes import llm_bp, video_bp, user_bp
+from routes import llm_bp, video_bp, user_bp, progress_bp
+from database import init_db
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Initialize database tables (creates them if they don't exist)
+init_db()
 
 # Initialize Flask application
 app = Flask(__name__)
@@ -22,7 +26,8 @@ CORS(app)  # Enable CORS for all routes
 # Register API blueprints
 app.register_blueprint(llm_bp)  # LLM routes (checkpoints, quiz, chat)
 app.register_blueprint(video_bp)  # Video routes (CRUD, metadata, transcripts)
-app.register_blueprint(user_bp) # User routes (create/update, fetch by Firebase UID)
+app.register_blueprint(user_bp)  # User routes (create/update, fetch by Firebase UID)
+app.register_blueprint(progress_bp)  # Progress routes (video watch tracking, resume)
 
 # Get server configuration from environment
 PORT = int(os.getenv('PORT', 5000))

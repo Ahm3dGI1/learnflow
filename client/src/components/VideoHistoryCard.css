@@ -87,6 +87,40 @@
   margin: 0;
 }
 
+.video-progress {
+  color: #667eea;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 4px;
+  background: #e0e0e0;
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  transition: width 0.3s ease;
+}
+
+.completed-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(46, 213, 115, 0.95);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
 .delete-button {
   background: transparent;
   border: none;

@@ -46,3 +46,19 @@ SessionLocal = sessionmaker(
     autoflush=False,  # Don't auto-flush before queries
     autocommit=False,  # Require explicit commits
 )
+
+
+def init_db():
+    """
+    Initialize database tables if they don't exist.
+
+    This function is called automatically when the app starts to ensure
+    all tables are created before handling any requests. It's safe to call
+    multiple times - existing tables won't be affected.
+    """
+    from models import Base
+
+    # Create all tables defined in models.py
+    # This is idempotent - won't recreate existing tables
+    Base.metadata.create_all(bind=engine)
+    print("✓ Database tables initialized")
