@@ -3,10 +3,20 @@ LLM-related API routes for LearnFlow.
 Handles endpoints for checkpoint generation, chat, and other AI features.
 """
 
+import logging
 from flask import Blueprint, request, jsonify, Response
-from services import generate_checkpoints, generate_chat_response, generate_chat_response_stream, generate_quiz, generate_summary
+from services import (
+    generate_checkpoints,
+    generate_chat_response,
+    generate_chat_response_stream,
+    generate_quiz,
+    generate_summary
+)
 from utils import checkpoint_cache, quiz_cache, summary_cache
 
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # Blueprint for LLM routes
 llm_bp = Blueprint('llm', __name__, url_prefix='/api/llm')
@@ -92,12 +102,18 @@ def generate_checkpoints_route():
         return jsonify(response), 200
 
     except ValueError as e:
+        # ValueError messages are safe to expose (validation errors only)
+        logger.warning(
+            f"Validation error generating checkpoints for video "
+            f"{video_id}: {str(e)}"
+        )
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({
-            'error': 'Failed to generate checkpoints',
-            'details': str(e)
-        }), 500
+        logger.error(
+            f"Error generating checkpoints for video {video_id}: {str(e)}",
+            exc_info=True
+        )
+        return jsonify({'error': 'Failed to generate checkpoints'}), 500
 
 
 @llm_bp.route('/checkpoints/cache/clear', methods=['POST'])
@@ -185,12 +201,12 @@ def chat_route():
         return jsonify(response), 200
 
     except ValueError as e:
+        # ValueError messages are safe to expose (validation errors only)
+        logger.warning(f"Validation error in chat: {str(e)}")
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({
-            'error': 'Failed to generate chat response',
-            'details': str(e)
-        }), 500
+        logger.error(f"Error generating chat response: {str(e)}", exc_info=True)
+        return jsonify({'error': 'Failed to generate chat response'}), 500
 
 
 @llm_bp.route('/chat/stream', methods=['POST'])
@@ -236,12 +252,15 @@ def chat_stream_route():
         return Response(generate(), mimetype='text/plain'), 200
 
     except ValueError as e:
+        # ValueError messages are safe to expose (validation errors only)
+        logger.warning(f"Validation error in chat stream: {str(e)}")
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({
-            'error': 'Failed to generate streaming chat response',
-            'details': str(e)
-        }), 500
+        logger.error(
+            f"Error generating streaming chat response: {str(e)}",
+            exc_info=True
+        )
+        return jsonify({'error': 'Failed to generate streaming chat response'}), 500
 
 
 # ========== QUIZ ROUTES ==========
@@ -334,12 +353,17 @@ def generate_quiz_route():
         return jsonify(response), 200
 
     except ValueError as e:
+        # ValueError messages are safe to expose (validation errors only)
+        logger.warning(
+            f"Validation error generating quiz for video {video_id}: {str(e)}"
+        )
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({
-            'error': 'Failed to generate quiz',
-            'details': str(e)
-        }), 500
+        logger.error(
+            f"Error generating quiz for video {video_id}: {str(e)}",
+            exc_info=True
+        )
+        return jsonify({'error': 'Failed to generate quiz'}), 500
 
 
 @llm_bp.route('/quiz/cache/clear', methods=['POST'])
@@ -436,12 +460,18 @@ def generate_summary_route():
         return jsonify(response), 200
 
     except ValueError as e:
+        # ValueError messages are safe to expose (validation errors only)
+        logger.warning(
+            f"Validation error generating summary for video "
+            f"{video_id}: {str(e)}"
+        )
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({
-            'error': 'Failed to generate summary',
-            'details': str(e)
-        }), 500
+        logger.error(
+            f"Error generating summary for video {video_id}: {str(e)}",
+            exc_info=True
+        )
+        return jsonify({'error': 'Failed to generate summary'}), 500
 
 
 @llm_bp.route('/summary/cache/clear', methods=['POST'])
