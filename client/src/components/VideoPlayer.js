@@ -181,6 +181,27 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
         playerRef.current.seekTo(seconds, true);
       }
     },
+    /**
+     * Set video playback rate/speed
+     *
+     * @param {number} rate - Playback rate (0.25 to 2)
+     */
+    setPlaybackRate: (rate) => {
+      if (playerRef.current && playerRef.current.setPlaybackRate) {
+        playerRef.current.setPlaybackRate(rate);
+      }
+    },
+    /**
+     * Get current playback rate
+     *
+     * @returns {number} Current playback rate
+     */
+    getPlaybackRate: () => {
+      if (playerRef.current && playerRef.current.getPlaybackRate) {
+        return playerRef.current.getPlaybackRate();
+      }
+      return 1;
+    },
   }));
 
   // Don't render if no embed URL provided

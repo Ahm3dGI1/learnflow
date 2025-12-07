@@ -1,0 +1,246 @@
+/**
+ * Playback Speed Control Component Styles
+ *
+ * Styles for the playback speed dropdown selector.
+ * Includes hover effects, selection states, and animations.
+ */
+
+/* ========== Container ========== */
+
+.playback-speed-control {
+  position: relative;
+  display: inline-block;
+}
+
+/* ========== Main Button ========== */
+
+.speed-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.speed-button:hover {
+  background: #e8e8e8;
+  border-color: #ccc;
+}
+
+.speed-button:focus-visible {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+/* ========== Button Icons ========== */
+
+.speed-icon {
+  color: #667eea;
+  flex-shrink: 0;
+}
+
+.speed-value {
+  min-width: 40px;
+  text-align: center;
+}
+
+.speed-chevron {
+  color: #999;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.speed-chevron.open {
+  transform: rotate(180deg);
+}
+
+/* ========== Dropdown ========== */
+
+.speed-dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin: 0 0 8px 0;
+  padding: 6px 0;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  list-style: none;
+  min-width: 140px;
+  z-index: 100;
+  animation: speed-dropdown-fade-in 0.15s ease-out;
+}
+
+@keyframes speed-dropdown-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ========== Dropdown Options ========== */
+
+.speed-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.speed-option:hover {
+  background: #f5f5f5;
+}
+
+.speed-option:focus-visible {
+  background: #eef0ff;
+  outline: none;
+}
+
+.speed-option.selected {
+  color: #667eea;
+  font-weight: 600;
+}
+
+/* ========== Check Icon ========== */
+
+.check-icon {
+  color: #667eea;
+  flex-shrink: 0;
+}
+
+.speed-option:not(.selected) .check-icon {
+  visibility: hidden;
+}
+
+/* Reserve space for check icon */
+.speed-option:not(.selected)::before {
+  content: '';
+  width: 14px;
+  flex-shrink: 0;
+}
+
+/* ========== Option Label ========== */
+
+.option-label {
+  flex: 1;
+}
+
+/* ========== Compact Variant ========== */
+
+.playback-speed-control.compact .speed-button {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.playback-speed-control.compact .speed-value {
+  min-width: 32px;
+}
+
+/* ========== Responsive ========== */
+
+@media (max-width: 480px) {
+  .speed-dropdown {
+    min-width: 130px;
+  }
+
+  .speed-option {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .speed-button {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+
+/* ========== Dark Mode ========== */
+
+@media (prefers-color-scheme: dark) {
+  .speed-button {
+    background: #2a2a2a;
+    border-color: #444;
+    color: #eee;
+  }
+
+  .speed-button:hover {
+    background: #333;
+    border-color: #555;
+  }
+
+  .speed-icon {
+    color: #a0b4ff;
+  }
+
+  .speed-chevron {
+    color: #777;
+  }
+
+  .speed-dropdown {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+
+  .speed-option {
+    color: #ddd;
+  }
+
+  .speed-option:hover {
+    background: #2a2a2a;
+  }
+
+  .speed-option:focus-visible {
+    background: #333;
+  }
+
+  .speed-option.selected {
+    color: #a0b4ff;
+  }
+
+  .check-icon {
+    color: #a0b4ff;
+  }
+}
+
+/* ========== Tooltip when used inline ========== */
+
+.speed-button[title]::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  background: #333;
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+
+.speed-button:hover[title]::after {
+  opacity: 1;
+  visibility: visible;
+}
+
