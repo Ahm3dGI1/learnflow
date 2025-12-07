@@ -1,0 +1,172 @@
+/**
+ * Toast Notification Component Styles
+ *
+ * Styles for the toast notification component.
+ * Supports success, error, and info variants.
+ */
+
+/* ========== Base Toast ========== */
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: #333;
+  color: white;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 10000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.toast-visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ========== Toast Types ========== */
+
+.toast-success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.toast-error {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.toast-info {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* ========== Icon ========== */
+
+.toast-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ========== Message ========== */
+
+.toast-message {
+  flex: 1;
+  line-height: 1.4;
+}
+
+/* ========== Close Button ========== */
+
+.toast-close {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  padding: 4px;
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.toast-close:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.toast-close:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+/* ========== Animation ========== */
+
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(-50%) translateY(100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-slide-out {
+  from {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-50%) translateY(100px);
+    opacity: 0;
+  }
+}
+
+/* ========== Responsive ========== */
+
+@media (max-width: 480px) {
+  .toast {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    transform: translateX(0) translateY(100px);
+    max-width: none;
+  }
+
+  .toast-visible {
+    transform: translateX(0) translateY(0);
+  }
+}
+
+/* ========== High Contrast Mode ========== */
+
+@media (prefers-contrast: high) {
+  .toast {
+    border: 2px solid white;
+  }
+
+  .toast-success {
+    background: #059669;
+  }
+
+  .toast-error {
+    background: #dc2626;
+  }
+
+  .toast-info {
+    background: #667eea;
+  }
+}
+
+/* ========== Reduced Motion ========== */
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    transition: opacity 0.2s ease;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .toast:not(.toast-visible) {
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
