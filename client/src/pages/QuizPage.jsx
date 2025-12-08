@@ -103,14 +103,17 @@ export default function QuizPage() {
     try {
       setSubmitting(true);
 
-      // Calculate results locally (since backend doesn't store quiz attempts yet)
+      // Calculate results locally and prepare for backend submission
       const resultsData = {
         score: 0,
         totalQuestions: quiz.questions.length,
         answers: []
       };
 
-      quiz.questions.forEach((question) => {
+      // Format answers for backend submission
+      const formattedAnswers = [];
+
+      quiz.questions.forEach((question, index) => {
         const userAnswerObj = answers.find(a => a.questionId === question.id);
         const userAnswer = userAnswerObj?.selectedAnswer;
         const isCorrect = userAnswer === question.correctAnswer;
@@ -128,14 +131,40 @@ export default function QuizPage() {
           isCorrect: isCorrect,
           explanation: question.explanation || ''
         });
+
+        // Format for backend
+        formattedAnswers.push({
+          questionIndex: index,
+          selectedAnswer: userAnswer || '',
+          isCorrect: isCorrect
+        });
       });
+
+      // Submit to backend and save to database
+      try {
+        // Get user ID from auth context (assuming user object has id or uid)
+        const userId = user?.id || user?.uid;
+        const quizId = quiz?.quizId || quiz?.id;
+
+        if (userId && quizId) {
+          const submittedResult = await llmService.submitQuiz(
+            userId,
+            quizId,
+            formattedAnswers,
+            null // timeTakenSeconds - could track this if needed
+          );
+          console.log('Quiz submitted to backend:', submittedResult);
+        } else {
+          console.warn('Missing userId or quizId, quiz not submitted to backend');
+        }
+      } catch (backendError) {
+        // Don't fail the whole submission if backend save fails
+        // Still show results to user
+        console.error('Error submitting to backend (continuing anyway):', backendError);
+      }
 
       setResults(resultsData);
       setShowResults(true);
-
-      // TODO: When backend supports quiz attempts, submit to backend:
-      // const submittedResults = await llmService.submitQuiz(quiz.quizId, answers);
-      // setResults(submittedResults);
 
     } catch (err) {
       console.error('Error submitting quiz:', err);
