@@ -6,7 +6,7 @@ Handles endpoints for checkpoint generation, chat, and other AI features.
 import json
 import logging
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request, jsonify, Response, g
 from database import SessionLocal
 from services import (
@@ -782,14 +782,16 @@ def submit_quiz():
     Submit quiz answers and calculate score.
 
     Requires authentication via Firebase ID token in Authorization header.
+    Answer validation is performed server-side against stored quiz questions.
+    Do NOT send isCorrect field - it will be calculated server-side.
 
     Request Body:
         {
             "userId": 1,
             "quizId": 5,
             "answers": [
-                {"questionIndex": 0, "selectedAnswer": "Option B", "isCorrect": true},
-                {"questionIndex": 1, "selectedAnswer": "Option A", "isCorrect": false},
+                {"questionIndex": 0, "selectedAnswer": "Option B"},
+                {"questionIndex": 1, "selectedAnswer": "Option A"},
                 ...
             ],
             "timeTakenSeconds": 120
@@ -807,10 +809,10 @@ def submit_quiz():
 
     Status Codes:
         200: Success
-        400: Invalid request data
+        400: Invalid request data (missing userId, quizId, or answers)
         401: Unauthorized (invalid/missing token or user mismatch)
         404: User or quiz not found
-        500: Server error
+        500: Server error (including invalid quiz data)
     """
     data = request.get_json()
 
@@ -845,16 +847,36 @@ def submit_quiz():
         if not quiz:
             return jsonify({'error': 'Quiz not found'}), 404
 
-        # Calculate score
+        # Parse quiz questions to validate answers server-side
+        quiz_questions = []
+        if quiz.questions_data:
+            try:
+                quiz_questions = json.loads(quiz.questions_data)
+            except json.JSONDecodeError:
+                return jsonify({'error': 'Invalid quiz data'}), 500
+
+        # Validate answers server-side - DO NOT trust client's isCorrect field
         total_questions = len(answers)
-        correct_count = sum(1 for answer in answers if answer.get('isCorrect', False))
+        correct_count = 0
+
+        for answer in answers:
+            question_idx = answer.get('questionIndex')
+            selected_answer = answer.get('selectedAnswer')
+
+            # Validate against server-side quiz data
+            if (isinstance(question_idx, int) and
+                0 <= question_idx < len(quiz_questions) and
+                selected_answer is not None):
+                correct_answer = quiz_questions[question_idx].get('correctAnswer')
+                if selected_answer == correct_answer:
+                    correct_count += 1
+
         score = correct_count / total_questions if total_questions > 0 else 0
 
         # Calculate started_at based on time_taken
-        submitted_at = datetime.utcnow()
+        submitted_at = datetime.now(timezone.utc)
         started_at = submitted_at
         if time_taken:
-            from datetime import timedelta
             started_at = submitted_at - timedelta(seconds=time_taken)
 
         # Create quiz attempt record
@@ -899,11 +921,12 @@ def mark_checkpoint_complete(checkpoint_id):
     Mark a checkpoint as completed for a user.
 
     Requires authentication via Firebase ID token in Authorization header.
+    Answer validation is performed server-side against stored checkpoint data.
 
     Request Body:
         {
             "userId": 1,
-            "isCorrect": true
+            "selectedAnswer": "B"
         }
 
     Returns:
@@ -917,7 +940,7 @@ def mark_checkpoint_complete(checkpoint_id):
 
     Status Codes:
         200: Success
-        400: Invalid request data
+        400: Invalid request data (missing userId or selectedAnswer)
         401: Unauthorized (invalid/missing token or user mismatch)
         404: User or checkpoint not found
         500: Server error
@@ -927,9 +950,11 @@ def mark_checkpoint_complete(checkpoint_id):
     # Validate required fields
     if 'userId' not in data:
         return jsonify({'error': 'Missing required field: userId'}), 400
+    if 'selectedAnswer' not in data:
+        return jsonify({'error': 'Missing required field: selectedAnswer'}), 400
 
     user_id = data['userId']
-    is_correct = data.get('isCorrect', False)
+    selected_answer = data['selectedAnswer']
 
     db = SessionLocal()
     try:
@@ -948,6 +973,18 @@ def mark_checkpoint_complete(checkpoint_id):
         if not checkpoint:
             return jsonify({'error': 'Checkpoint not found'}), 404
 
+        # Parse checkpoint question data to validate answer server-side
+        question_data = {}
+        if checkpoint.question_data:
+            try:
+                question_data = json.loads(checkpoint.question_data)
+            except json.JSONDecodeError:
+                return jsonify({'error': 'Invalid checkpoint data'}), 500
+
+        # Validate answer server-side - DO NOT trust client's isCorrect field
+        correct_answer = question_data.get('correctAnswer')
+        is_correct = (selected_answer == correct_answer) if correct_answer and selected_answer else False
+
         # Check if completion record exists
         completion = db.query(UserCheckpointCompletion).filter_by(
             user_id=user_id,
@@ -959,14 +996,14 @@ def mark_checkpoint_complete(checkpoint_id):
             completion.attempt_count += 1
             if is_correct and not completion.is_completed:
                 completion.is_completed = True
-                completion.completed_at = datetime.utcnow()
+                completion.completed_at = datetime.now(timezone.utc)
         else:
             # Create new completion record
             completion = UserCheckpointCompletion(
                 user_id=user_id,
                 checkpoint_id=checkpoint_id,
                 is_completed=is_correct,
-                completed_at=datetime.utcnow() if is_correct else None,
+                completed_at=datetime.now(timezone.utc) if is_correct else None,
                 attempt_count=1
             )
             db.add(completion)

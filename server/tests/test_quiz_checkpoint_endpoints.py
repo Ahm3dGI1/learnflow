@@ -9,7 +9,7 @@ These are UNIT TESTS - they use Flask test client and don't require a running se
 
 import json
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 from models import (
@@ -439,7 +439,7 @@ class TestCheckpointCompletion:
             f'/api/llm/checkpoints/{test_data["checkpoints"][0].id}/complete',
             json={
                 'userId': test_data['user'].id,
-                'isCorrect': True
+                'selectedAnswer': 'B'
             }
         )
 
@@ -450,13 +450,14 @@ class TestCheckpointCompletion:
         checkpoint_id = test_data['checkpoints'][0].id
         claims = {'uid': 'test-firebase-uid', 'email': 'test@example.com', 'name': 'Test User'}
 
+        # Test data checkpoints have correctAnswer: 'B'
         with patch(VERIFY_PATCH_PATH, return_value=claims):
             response = client.post(
                 f'/api/llm/checkpoints/{checkpoint_id}/complete',
                 headers={'Authorization': 'Bearer faketoken'},
                 json={
                     'userId': test_data['user'].id,
-                    'isCorrect': True
+                    'selectedAnswer': 'B'  # Correct answer
                 }
             )
 
@@ -485,14 +486,15 @@ class TestCheckpointCompletion:
         checkpoint_id = test_data['checkpoints'][0].id
         claims = {'uid': 'test-firebase-uid', 'email': 'test@example.com', 'name': 'Test User'}
 
+        # Test data checkpoints have correctAnswer: 'B'
         with patch(VERIFY_PATCH_PATH, return_value=claims):
-            # First attempt - incorrect
+            # First attempt - incorrect answer
             response = client.post(
                 f'/api/llm/checkpoints/{checkpoint_id}/complete',
                 headers={'Authorization': 'Bearer faketoken'},
                 json={
                     'userId': test_data['user'].id,
-                    'isCorrect': False
+                    'selectedAnswer': 'A'  # Wrong answer
                 }
             )
             assert response.status_code == 200
@@ -500,13 +502,13 @@ class TestCheckpointCompletion:
             assert data['isCompleted'] is False
             assert data['attemptCount'] == 1
 
-            # Second attempt - correct
+            # Second attempt - correct answer
             response = client.post(
                 f'/api/llm/checkpoints/{checkpoint_id}/complete',
                 headers={'Authorization': 'Bearer faketoken'},
                 json={
                     'userId': test_data['user'].id,
-                    'isCorrect': True
+                    'selectedAnswer': 'B'  # Correct answer
                 }
             )
             assert response.status_code == 200
@@ -535,7 +537,7 @@ class TestCheckpointCompletion:
                 headers={'Authorization': 'Bearer faketoken'},
                 json={
                     'userId': other_user.id,
-                    'isCorrect': True
+                    'selectedAnswer': 'B'
                 }
             )
 
@@ -563,7 +565,7 @@ class TestCheckpointProgress:
             user_id=test_data['user'].id,
             checkpoint_id=test_data['checkpoints'][0].id,
             is_completed=True,
-            completed_at=datetime.utcnow(),
+            completed_at=datetime.now(timezone.utc),
             attempt_count=1
         )
         completion2 = UserCheckpointCompletion(
