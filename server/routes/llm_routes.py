@@ -6,7 +6,8 @@ Handles endpoints for checkpoint generation, chat, and other AI features.
 import json
 import logging
 import traceback
-from flask import Blueprint, request, jsonify, Response
+from datetime import datetime
+from flask import Blueprint, request, jsonify, Response, g
 from database import SessionLocal
 from services import (
     generate_checkpoints,
@@ -18,6 +19,8 @@ from services import (
     cache_checkpoints
 )
 from utils import checkpoint_cache, quiz_cache, summary_cache
+from models import Checkpoint, Quiz, UserQuizAttempt, UserCheckpointCompletion, User, Video
+from middleware.auth import auth_required
 
 
 # Configure logging
@@ -31,23 +34,70 @@ llm_bp = Blueprint('llm', __name__, url_prefix='/api/llm')
 
 def get_cached_checkpoints_from_db(video_id):
     """
-    Get cached checkpoints from database.
+    Get cached checkpoints from database Checkpoint records.
 
     Args:
         video_id: YouTube video ID
 
     Returns:
-        dict: Cached checkpoint data or None if not found/error
+        dict: Checkpoint data with IDs or None if not found/error
     """
     db = SessionLocal()
     try:
         video = get_video_by_youtube_id(video_id, db)
-        if video and video.checkpoints_data:
-            try:
-                return json.loads(video.checkpoints_data)
-            except json.JSONDecodeError as e:
-                print(f"Error parsing cached checkpoints: {e}")
-                return None
+        if not video:
+            return None
+
+        # Get Checkpoint records ordered by order_index
+        checkpoint_records = db.query(Checkpoint).filter_by(
+            video_id=video.id
+        ).order_by(Checkpoint.order_index).all()
+
+        if not checkpoint_records:
+            # Fall back to Video.checkpoints_data JSON if no Checkpoint records
+            if video.checkpoints_data:
+                try:
+                    return json.loads(video.checkpoints_data)
+                except json.JSONDecodeError as e:
+                    print(f"Error parsing cached checkpoints: {e}")
+                    return None
+            return None
+
+        # Build checkpoints response from database records
+        checkpoints = []
+        for cp in checkpoint_records:
+            # Parse question_data JSON
+            question_data = {}
+            if cp.question_data:
+                try:
+                    question_data = json.loads(cp.question_data)
+                except json.JSONDecodeError:
+                    question_data = {}
+
+            # Convert seconds to MM:SS format
+            minutes = cp.time_seconds // 60
+            seconds = cp.time_seconds % 60
+            timestamp = f"{minutes:02d}:{seconds:02d}"
+
+            checkpoints.append({
+                'id': cp.id,
+                'timestamp': timestamp,
+                'timestampSeconds': cp.time_seconds,
+                'title': cp.title or '',
+                'subtopic': cp.subtopic or '',
+                'question': question_data.get('question', ''),
+                'options': question_data.get('options', []),
+                'correctAnswer': question_data.get('correctAnswer', ''),
+                'explanation': question_data.get('explanation', '')
+            })
+
+        return {
+            'videoId': video_id,
+            'language': 'en',  # Default, could be stored in Video model
+            'checkpoints': checkpoints,
+            'totalCheckpoints': len(checkpoints)
+        }
+
     except Exception as e:
         print(f"Error reading checkpoints from database: {e}")
         traceback.print_exc()
@@ -56,28 +106,166 @@ def get_cached_checkpoints_from_db(video_id):
         db.close()
 
 
-def save_checkpoints_to_db(video_id, checkpoints_data):
+def get_cached_quiz_from_db(video_id):
     """
-    Save checkpoints to database.
+    Get cached quiz from database Quiz records.
 
     Args:
         video_id: YouTube video ID
-        checkpoints_data: Checkpoint data to cache
 
     Returns:
-        bool: True if successful, False otherwise
+        dict: Quiz data with ID or None if not found/error
     """
     db = SessionLocal()
     try:
         video = get_video_by_youtube_id(video_id, db)
-        if video:
-            cache_checkpoints(video.id, checkpoints_data, db)
-            return True
-        return False
+        if not video:
+            return None
+
+        # Get most recent Quiz record for this video
+        quiz_record = db.query(Quiz).filter_by(
+            video_id=video.id
+        ).order_by(Quiz.created_at.desc()).first()
+
+        if not quiz_record:
+            # Fall back to Video.quiz_data JSON if no Quiz record
+            if video.quiz_data:
+                try:
+                    return json.loads(video.quiz_data)
+                except json.JSONDecodeError as e:
+                    print(f"Error parsing cached quiz: {e}")
+                    return None
+            return None
+
+        # Parse questions_data JSON
+        questions = []
+        if quiz_record.questions_data:
+            try:
+                questions = json.loads(quiz_record.questions_data)
+            except json.JSONDecodeError:
+                questions = []
+
+        return {
+            'quizId': quiz_record.id,
+            'videoId': video_id,
+            'language': 'en',  # Default
+            'questions': questions,
+            'totalQuestions': len(questions)
+        }
+
+    except Exception as e:
+        print(f"Error reading quiz from database: {e}")
+        traceback.print_exc()
+        return None
+    finally:
+        db.close()
+
+
+def save_quiz_to_db(video_id, quiz_data):
+    """
+    Save quiz to database as a Quiz record.
+
+    Args:
+        video_id: YouTube video ID
+        quiz_data: Quiz data dict with 'questions' array
+
+    Returns:
+        dict: Updated quiz_data with database ID, or None if failed
+    """
+    db = SessionLocal()
+    try:
+        video = get_video_by_youtube_id(video_id, db)
+        if not video:
+            return None
+
+        # Create Quiz record
+        num_questions = len(quiz_data.get('questions', []))
+        quiz_record = Quiz(
+            video_id=video.id,
+            title="Test Your Knowledge",
+            num_questions=num_questions,
+            difficulty="intermediate",  # Default, could be determined by analysis
+            questions_data=json.dumps(quiz_data.get('questions', []))
+        )
+        db.add(quiz_record)
+        db.commit()
+        db.refresh(quiz_record)
+
+        # Update quiz_data with database ID
+        quiz_data_with_id = quiz_data.copy()
+        quiz_data_with_id['quizId'] = quiz_record.id
+
+        return quiz_data_with_id
+
+    except Exception as e:
+        print(f"Error saving quiz to database: {e}")
+        traceback.print_exc()
+        db.rollback()
+        return None
+    finally:
+        db.close()
+
+
+def save_checkpoints_to_db(video_id, checkpoints_data):
+    """
+    Save checkpoints to database as individual Checkpoint records.
+
+    Args:
+        video_id: YouTube video ID
+        checkpoints_data: Checkpoint data dict with 'checkpoints' array
+
+    Returns:
+        dict: Updated checkpoints_data with database IDs, or None if failed
+    """
+    db = SessionLocal()
+    try:
+        video = get_video_by_youtube_id(video_id, db)
+        if not video:
+            return None
+
+        # Delete existing checkpoints for this video to avoid duplicates
+        db.query(Checkpoint).filter_by(video_id=video.id).delete()
+
+        # Create Checkpoint records for each checkpoint
+        checkpoint_records = []
+        checkpoints_list = checkpoints_data.get('checkpoints', [])
+
+        for idx, cp_data in enumerate(checkpoints_list, start=1):
+            # Create Checkpoint record
+            checkpoint_record = Checkpoint(
+                video_id=video.id,
+                time_seconds=cp_data.get('timestampSeconds', 0),
+                title=cp_data.get('title', ''),
+                subtopic=cp_data.get('subtopic', ''),
+                order_index=idx,
+                question_data=json.dumps({
+                    'question': cp_data.get('question', ''),
+                    'options': cp_data.get('options', []),
+                    'correctAnswer': cp_data.get('correctAnswer', ''),
+                    'explanation': cp_data.get('explanation', '')
+                })
+            )
+            db.add(checkpoint_record)
+            checkpoint_records.append(checkpoint_record)
+
+        # Commit to get IDs
+        db.commit()
+
+        # Update checkpoints_data with database IDs
+        for idx, checkpoint_record in enumerate(checkpoint_records):
+            db.refresh(checkpoint_record)
+            checkpoints_list[idx]['id'] = checkpoint_record.id
+
+        # Also cache in Video.checkpoints_data for backward compatibility
+        cache_checkpoints(video.id, checkpoints_data, db)
+
+        return checkpoints_data
+
     except Exception as e:
         print(f"Error saving checkpoints to database: {e}")
         traceback.print_exc()
-        return False
+        db.rollback()
+        return None
     finally:
         db.close()
 
@@ -163,14 +351,17 @@ def generate_checkpoints_route():
         # Generate checkpoints
         checkpoints = generate_checkpoints(transcript_data, video_id)
 
-        # Cache the result in memory
-        checkpoint_cache.set(cache_key, checkpoints)
+        # Save to database and get updated data with IDs
+        checkpoints_with_ids = save_checkpoints_to_db(video_id, checkpoints)
 
-        # Save to database (non-blocking - don't fail if it errors)
-        save_checkpoints_to_db(video_id, checkpoints)
+        # Use the version with IDs if available, otherwise use original
+        final_checkpoints = checkpoints_with_ids if checkpoints_with_ids else checkpoints
+
+        # Cache the result with IDs in memory
+        checkpoint_cache.set(cache_key, final_checkpoints)
 
         # Add cached flag
-        response = checkpoints.copy()
+        response = final_checkpoints.copy()
         response['cached'] = False
         response['source'] = 'generated'
 
@@ -403,12 +594,23 @@ def generate_quiz_route():
 
         language_code = transcript_data.get('languageCode', 'en')
 
-        # Check cache first
+        # Check cache first (memory)
         cache_key = f"{video_id}:{language_code}:{num_questions}"
         cached_data = quiz_cache.get(cache_key)
         if cached_data:
             response = cached_data.copy()
             response['cached'] = True
+            response['source'] = 'memory'
+            return jsonify(response), 200
+
+        # Check database cache
+        db_quiz = get_cached_quiz_from_db(video_id)
+        if db_quiz:
+            # Cache in memory for faster subsequent access
+            quiz_cache.set(cache_key, db_quiz)
+            response = db_quiz.copy()
+            response['cached'] = True
+            response['source'] = 'database'
             return jsonify(response), 200
 
         # Generate quiz
@@ -418,12 +620,19 @@ def generate_quiz_route():
             num_questions=num_questions
         )
 
-        # Cache the result
-        quiz_cache.set(cache_key, quiz)
+        # Save to database and get updated data with ID
+        quiz_with_id = save_quiz_to_db(video_id, quiz)
+
+        # Use the version with ID if available, otherwise use original
+        final_quiz = quiz_with_id if quiz_with_id else quiz
+
+        # Cache the result with ID in memory
+        quiz_cache.set(cache_key, final_quiz)
 
         # Add cached flag
-        response = quiz.copy()
+        response = final_quiz.copy()
         response['cached'] = False
+        response['source'] = 'generated'
 
         return jsonify(response), 200
 
@@ -567,9 +776,12 @@ def clear_summary_cache():
 # ========== QUIZ SUBMISSION ROUTES ==========
 
 @llm_bp.route('/quiz/submit', methods=['POST'])
+@auth_required
 def submit_quiz():
     """
     Submit quiz answers and calculate score.
+
+    Requires authentication via Firebase ID token in Authorization header.
 
     Request Body:
         {
@@ -589,18 +801,17 @@ def submit_quiz():
             "score": 0.75,
             "totalQuestions": 4,
             "correctAnswers": 3,
-            "submittedAt": "2025-12-07T18:30:00"
+            "submittedAt": "2025-12-07T18:30:00",
+            "startedAt": "2025-12-07T18:28:00"
         }
 
     Status Codes:
         200: Success
         400: Invalid request data
+        401: Unauthorized (invalid/missing token or user mismatch)
         404: User or quiz not found
         500: Server error
     """
-    from models import UserQuizAttempt, User, Quiz
-    from datetime import datetime
-
     data = request.get_json()
 
     # Validate required fields
@@ -619,10 +830,15 @@ def submit_quiz():
 
     db = SessionLocal()
     try:
-        # Verify user exists
+        # Verify user exists and matches authenticated user
         user = db.query(User).filter_by(id=user_id).first()
         if not user:
             return jsonify({'error': 'User not found'}), 404
+
+        # Check that authenticated user matches the userId in request
+        firebase_uid = g.firebase_user.get('uid')
+        if user.firebase_uid != firebase_uid:
+            return jsonify({'error': 'Unauthorized: Cannot submit quiz for another user'}), 401
 
         # Verify quiz exists
         quiz = db.query(Quiz).filter_by(id=quiz_id).first()
@@ -634,6 +850,13 @@ def submit_quiz():
         correct_count = sum(1 for answer in answers if answer.get('isCorrect', False))
         score = correct_count / total_questions if total_questions > 0 else 0
 
+        # Calculate started_at based on time_taken
+        submitted_at = datetime.utcnow()
+        started_at = submitted_at
+        if time_taken:
+            from datetime import timedelta
+            started_at = submitted_at - timedelta(seconds=time_taken)
+
         # Create quiz attempt record
         attempt = UserQuizAttempt(
             user_id=user_id,
@@ -641,7 +864,8 @@ def submit_quiz():
             score=score,
             answers=json.dumps(answers),
             time_taken_seconds=time_taken,
-            submitted_at=datetime.utcnow()
+            started_at=started_at,
+            submitted_at=submitted_at
         )
 
         db.add(attempt)
@@ -653,7 +877,8 @@ def submit_quiz():
             'score': score,
             'totalQuestions': total_questions,
             'correctAnswers': correct_count,
-            'submittedAt': attempt.submitted_at.isoformat()
+            'submittedAt': attempt.submitted_at.isoformat(),
+            'startedAt': attempt.started_at.isoformat() if attempt.started_at else None
         }), 200
 
     except Exception as e:
@@ -668,9 +893,12 @@ def submit_quiz():
 # ========== CHECKPOINT COMPLETION ROUTES ==========
 
 @llm_bp.route('/checkpoints/<int:checkpoint_id>/complete', methods=['POST'])
+@auth_required
 def mark_checkpoint_complete(checkpoint_id):
     """
     Mark a checkpoint as completed for a user.
+
+    Requires authentication via Firebase ID token in Authorization header.
 
     Request Body:
         {
@@ -690,12 +918,10 @@ def mark_checkpoint_complete(checkpoint_id):
     Status Codes:
         200: Success
         400: Invalid request data
+        401: Unauthorized (invalid/missing token or user mismatch)
         404: User or checkpoint not found
         500: Server error
     """
-    from models import UserCheckpointCompletion, User, Checkpoint
-    from datetime import datetime
-
     data = request.get_json()
 
     # Validate required fields
@@ -707,10 +933,15 @@ def mark_checkpoint_complete(checkpoint_id):
 
     db = SessionLocal()
     try:
-        # Verify user exists
+        # Verify user exists and matches authenticated user
         user = db.query(User).filter_by(id=user_id).first()
         if not user:
             return jsonify({'error': 'User not found'}), 404
+
+        # Check that authenticated user matches the userId in request
+        firebase_uid = g.firebase_user.get('uid')
+        if user.firebase_uid != firebase_uid:
+            return jsonify({'error': 'Unauthorized: Cannot mark checkpoint complete for another user'}), 401
 
         # Verify checkpoint exists
         checkpoint = db.query(Checkpoint).filter_by(id=checkpoint_id).first()
@@ -761,9 +992,12 @@ def mark_checkpoint_complete(checkpoint_id):
 
 
 @llm_bp.route('/videos/<int:video_id>/checkpoint-progress', methods=['GET'])
+@auth_required
 def get_checkpoint_progress(video_id):
     """
     Get checkpoint completion progress for a user on a specific video.
+
+    Requires authentication via Firebase ID token in Authorization header.
 
     Query Parameters:
         userId: User ID (required)
@@ -788,11 +1022,10 @@ def get_checkpoint_progress(video_id):
     Status Codes:
         200: Success
         400: Missing userId parameter
+        401: Unauthorized (invalid/missing token or user mismatch)
         404: Video not found
         500: Server error
     """
-    from models import UserCheckpointCompletion, Checkpoint, Video, User
-
     user_id = request.args.get('userId')
     if not user_id:
         return jsonify({'error': 'Missing required parameter: userId'}), 400
@@ -804,6 +1037,16 @@ def get_checkpoint_progress(video_id):
 
     db = SessionLocal()
     try:
+        # Verify user exists and matches authenticated user
+        user = db.query(User).filter_by(id=user_id).first()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        # Check that authenticated user matches the userId in request
+        firebase_uid = g.firebase_user.get('uid')
+        if user.firebase_uid != firebase_uid:
+            return jsonify({'error': 'Unauthorized: Cannot get progress for another user'}), 401
+
         # Verify video exists
         video = db.query(Video).filter_by(id=video_id).first()
         if not video:
@@ -833,7 +1076,7 @@ def get_checkpoint_progress(video_id):
 
         # Count completed checkpoints
         completed_count = sum(1 for c in completions if c.is_completed)
-        progress_percentage = (completed_count / total_checkpoints * 100) if total_checkpoints > 0 else 0
+        progress_percentage = (completed_count / total_checkpoints * 100)
 
         # Build response
         completion_data = []
