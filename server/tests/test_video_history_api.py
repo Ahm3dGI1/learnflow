@@ -255,7 +255,8 @@ def test_get_video_history_with_limit(client, db):
         
         assert resp.status_code == 200
         data = resp.get_json()
-        assert data["total"] <= 5
+        assert data["total"] == 5
+        assert len(data["data"]) == 5
     
     finally:
         cleanup_test_data(db, firebase_uid, [f"test_vid_{i}" for i in range(10)])

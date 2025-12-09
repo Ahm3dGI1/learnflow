@@ -25,7 +25,12 @@ def get_or_create_video(youtube_video_id, db):
         ValueError: If video ID is empty
     """
     # Validate video ID format
-    if not youtube_video_id:
+    if (
+        not youtube_video_id
+        or not isinstance(youtube_video_id, str)
+        or len(youtube_video_id) > 20
+        or not youtube_video_id.replace('-', '').replace('_', '').isalnum()
+    ):
         raise ValueError(f"Invalid YouTube video ID: {youtube_video_id}")
 
     # Try to get existing video
@@ -426,7 +431,7 @@ def save_video_to_history(user_id, youtube_video_id, last_position_seconds, is_c
 
     Args:
         user_id: Database user ID (integer)
-        youtube_video_id: YouTube video ID (11 characters)
+        youtube_video_id: YouTube video ID
         last_position_seconds: Current playback position in seconds
         is_completed: Whether video has been fully watched
         db: Database session
@@ -453,11 +458,19 @@ def save_video_to_history(user_id, youtube_video_id, last_position_seconds, is_c
         now = datetime.utcnow()
 
         if progress:
-            # Update existing record
-            progress.last_position_seconds = last_position_seconds
-            progress.is_completed = is_completed
-            progress.last_watched_at = now
-            progress.watch_count += 1
+            # Update existing record atomically
+            db.query(UserVideoProgress).filter(
+                UserVideoProgress.user_id == user_id,
+                UserVideoProgress.video_id == video.id
+            ).update(
+                {
+                    UserVideoProgress.last_position_seconds: last_position_seconds,
+                    UserVideoProgress.is_completed: is_completed,
+                    UserVideoProgress.last_watched_at: now,
+                    UserVideoProgress.watch_count: UserVideoProgress.watch_count + 1,
+                },
+                synchronize_session=False
+            )
         else:
             # Create new progress record
             progress = UserVideoProgress(
@@ -472,13 +485,19 @@ def save_video_to_history(user_id, youtube_video_id, last_position_seconds, is_c
             db.add(progress)
 
         db.commit()
-        db.refresh(progress)
+        
+        # Re-fetch the updated progress object
+        progress = db.query(UserVideoProgress).filter(
+            UserVideoProgress.user_id == user_id,
+            UserVideoProgress.video_id == video.id
+        ).first()
 
         return {
             'videoId': youtube_video_id,
             'lastPositionSeconds': progress.last_position_seconds,
             'lastWatchedAt': progress.last_watched_at.isoformat() + 'Z',
-            'isCompleted': progress.is_completed
+            'isCompleted': progress.is_completed,
+            'watchCount': progress.watch_count
         }
 
     except Exception as e:

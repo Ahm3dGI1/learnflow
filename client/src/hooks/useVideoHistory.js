@@ -108,18 +108,19 @@ export function useVideoHistory() {
         isCompleted: videoData.isCompleted || false
       });
 
-      // Update local state optimistically
+      // Update local state with backend response
       setHistory(prev => {
         const existingIndex = prev.findIndex(item => item.videoId === videoData.videoId);
+        const existingVideo = existingIndex !== -1 ? prev[existingIndex] : null;
 
         const updatedEntry = {
           videoId: videoData.videoId,
-          title: videoData.title || prev[existingIndex]?.title || 'Untitled Video',
-          thumbnailUrl: videoData.thumbnailUrl || prev[existingIndex]?.thumbnailUrl || `https://img.youtube.com/vi/${videoData.videoId}/mqdefault.jpg`,
+          title: videoData.title || existingVideo?.title || 'Untitled Video',
+          thumbnailUrl: videoData.thumbnailUrl || existingVideo?.thumbnailUrl || `https://img.youtube.com/vi/${videoData.videoId}/mqdefault.jpg`,
           lastPositionSeconds: result.lastPositionSeconds,
           lastWatchedAt: result.lastWatchedAt,
           isCompleted: result.isCompleted,
-          watchCount: prev[existingIndex]?.watchCount ? prev[existingIndex].watchCount + 1 : 1
+          watchCount: result.watchCount // Use backend value directly
         };
 
         if (existingIndex !== -1) {
