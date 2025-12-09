@@ -625,6 +625,8 @@ def add_to_video_history(firebase_uid):
             return jsonify({'error': 'lastPositionSeconds must be a valid integer'}), 400
 
         is_completed = data.get('isCompleted', False)
+        if not isinstance(is_completed, bool):
+            return jsonify({'error': 'isCompleted must be a boolean'}), 400
 
         # Get user
         user = db.query(User).filter(User.firebase_uid == firebase_uid).first()
