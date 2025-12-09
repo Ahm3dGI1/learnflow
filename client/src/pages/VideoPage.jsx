@@ -19,6 +19,7 @@ import { useAuth } from "../auth/AuthContext";
 import VideoPlayer from "../components/VideoPlayer";
 import CheckpointPopup from "../components/CheckpointPopup";
 import VideoSummary from "../components/VideoSummary";
+import CheckpointProgressBar from "../components/CheckpointProgressBar";
 import { videoService, llmService, progressService } from "../services";
 import "./VideoPage.css";
 
@@ -443,6 +444,20 @@ export default function VideoPage() {
               wordCount={summaryData?.wordCount}
             />
 
+            {/* Checkpoint Progress Bar */}
+            {user && video && (
+              <CheckpointProgressBar
+                firebaseUid={user.uid}
+                videoId={video.id}
+                videoDuration={video.durationSeconds}
+                onCheckpointClick={(timeSeconds) => {
+                  if (videoRef.current) {
+                    videoRef.current.seekTo(timeSeconds);
+                  }
+                }}
+              />
+            )}
+
             {/* Checkpoints List */}
             {checkpoints.length > 0 && (
               <div className="video-checkpoints">
@@ -512,6 +527,10 @@ export default function VideoPage() {
           onCorrectAnswer={handleCheckpointCorrect}
           onAskTutor={handleAskTutor}
           onSkip={handleSkipCheckpoint}
+          userId={user?.id || user?.uid}
+          checkpointId={currentCheckpoint?.id}
+          firebaseUid={user?.uid}
+          videoId={video?.id}
         />
       )}
     </div>

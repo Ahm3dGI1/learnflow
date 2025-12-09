@@ -13,7 +13,7 @@
  * @module QuizPage
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import Quiz from '../components/Quiz';
@@ -44,6 +44,9 @@ export default function QuizPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [showResults, setShowResults] = useState(false);
+
+  // Track quiz start time for time taken calculation
+  const quizStartTime = useRef(null);
 
   /**
    * Fetch Video and Generate Quiz
@@ -81,6 +84,8 @@ export default function QuizPage() {
         );
 
         setQuiz(quizData);
+        // Start tracking time when quiz loads
+        quizStartTime.current = Date.now();
       } catch (err) {
         console.error('Error fetching quiz:', err);
         setError(err.message || 'Failed to generate quiz. Please try again.');
@@ -103,14 +108,17 @@ export default function QuizPage() {
     try {
       setSubmitting(true);
 
-      // Calculate results locally (since backend doesn't store quiz attempts yet)
+      // Calculate results locally and prepare for backend submission
       const resultsData = {
         score: 0,
         totalQuestions: quiz.questions.length,
         answers: []
       };
 
-      quiz.questions.forEach((question) => {
+      // Format answers for backend submission
+      const formattedAnswers = [];
+
+      quiz.questions.forEach((question, index) => {
         const userAnswerObj = answers.find(a => a.questionId === question.id);
         const userAnswer = userAnswerObj?.selectedAnswer;
         const isCorrect = userAnswer === question.correctAnswer;
@@ -128,14 +136,44 @@ export default function QuizPage() {
           isCorrect: isCorrect,
           explanation: question.explanation || ''
         });
+
+        // Format for backend (without isCorrect - server validates)
+        formattedAnswers.push({
+          questionIndex: index,
+          selectedAnswer: userAnswer || ''
+        });
       });
+
+      // Submit to backend and save to database
+      try {
+        // Get user ID from auth context (assuming user object has id or uid)
+        const userId = user?.id || user?.uid;
+        const quizId = quiz?.quizId || quiz?.id;
+
+        // Calculate time taken in seconds
+        const timeTakenSeconds = quizStartTime.current
+          ? Math.floor((Date.now() - quizStartTime.current) / 1000)
+          : null;
+
+        if (userId && quizId) {
+          const submittedResult = await llmService.submitQuiz(
+            userId,
+            quizId,
+            formattedAnswers,
+            timeTakenSeconds
+          );
+          console.log('Quiz submitted to backend:', submittedResult);
+        } else {
+          console.warn('Missing userId or quizId, quiz not submitted to backend');
+        }
+      } catch (backendError) {
+        // Don't fail the whole submission if backend save fails
+        // Still show results to user
+        console.error('Error submitting to backend (continuing anyway):', backendError);
+      }
 
       setResults(resultsData);
       setShowResults(true);
-
-      // TODO: When backend supports quiz attempts, submit to backend:
-      // const submittedResults = await llmService.submitQuiz(quiz.quizId, answers);
-      // setResults(submittedResults);
 
     } catch (err) {
       console.error('Error submitting quiz:', err);
@@ -166,6 +204,8 @@ export default function QuizPage() {
       );
 
       setQuiz(quizData);
+      // Reset start time for new quiz
+      quizStartTime.current = Date.now();
     } catch (err) {
       console.error('Error generating new quiz:', err);
       setError('Failed to generate new quiz. Please try again.');
