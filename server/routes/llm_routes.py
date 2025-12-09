@@ -856,7 +856,8 @@ def submit_quiz():
                 return jsonify({'error': 'Invalid quiz data'}), 500
 
         # Validate answers server-side - DO NOT trust client's isCorrect field
-        total_questions = len(answers)
+        # Use quiz_questions length to prevent cheating (users can't cherry-pick questions)
+        total_questions = len(quiz_questions)
         correct_count = 0
 
         for answer in answers:
@@ -983,7 +984,7 @@ def mark_checkpoint_complete(checkpoint_id):
 
         # Validate answer server-side - DO NOT trust client's isCorrect field
         correct_answer = question_data.get('correctAnswer')
-        is_correct = (selected_answer == correct_answer) if correct_answer and selected_answer else False
+        is_correct = (selected_answer == correct_answer) if correct_answer and selected_answer is not None else False
 
         # Check if completion record exists
         completion = db.query(UserCheckpointCompletion).filter_by(

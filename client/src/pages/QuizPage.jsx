@@ -13,7 +13,7 @@
  * @module QuizPage
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import Quiz from '../components/Quiz';
@@ -44,6 +44,9 @@ export default function QuizPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [showResults, setShowResults] = useState(false);
+
+  // Track quiz start time for time taken calculation
+  const quizStartTime = useRef(null);
 
   /**
    * Fetch Video and Generate Quiz
@@ -81,6 +84,8 @@ export default function QuizPage() {
         );
 
         setQuiz(quizData);
+        // Start tracking time when quiz loads
+        quizStartTime.current = Date.now();
       } catch (err) {
         console.error('Error fetching quiz:', err);
         setError(err.message || 'Failed to generate quiz. Please try again.');
@@ -132,11 +137,10 @@ export default function QuizPage() {
           explanation: question.explanation || ''
         });
 
-        // Format for backend
+        // Format for backend (without isCorrect - server validates)
         formattedAnswers.push({
           questionIndex: index,
-          selectedAnswer: userAnswer || '',
-          isCorrect: isCorrect
+          selectedAnswer: userAnswer || ''
         });
       });
 
@@ -146,12 +150,17 @@ export default function QuizPage() {
         const userId = user?.id || user?.uid;
         const quizId = quiz?.quizId || quiz?.id;
 
+        // Calculate time taken in seconds
+        const timeTakenSeconds = quizStartTime.current
+          ? Math.floor((Date.now() - quizStartTime.current) / 1000)
+          : null;
+
         if (userId && quizId) {
           const submittedResult = await llmService.submitQuiz(
             userId,
             quizId,
             formattedAnswers,
-            null // timeTakenSeconds - could track this if needed
+            timeTakenSeconds
           );
           console.log('Quiz submitted to backend:', submittedResult);
         } else {
@@ -195,6 +204,8 @@ export default function QuizPage() {
       );
 
       setQuiz(quizData);
+      // Reset start time for new quiz
+      quizStartTime.current = Date.now();
     } catch (err) {
       console.error('Error generating new quiz:', err);
       setError('Failed to generate new quiz. Please try again.');

@@ -116,8 +116,8 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
       // Save completion to backend (don't block UI if it fails)
       if (userId && checkpointId) {
         try {
-          await llmService.markCheckpointComplete(checkpointId, userId, correct);
-          console.log('Checkpoint completion saved:', { checkpointId, userId, correct });
+          await llmService.markCheckpointComplete(checkpointId, userId, selectedOption);
+          console.log('Checkpoint completion saved:', { checkpointId, userId, selectedAnswer: selectedOption });
         } catch (backendError) {
           console.error('Error saving checkpoint completion (continuing anyway):', backendError);
         }
