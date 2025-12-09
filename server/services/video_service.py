@@ -7,7 +7,7 @@ import json
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 
-from models import Video
+from models import Video, UserVideoProgress
 
 
 def get_or_create_video(youtube_video_id, db):
@@ -15,17 +15,17 @@ def get_or_create_video(youtube_video_id, db):
     Get video from database or create new entry.
 
     Args:
-        youtube_video_id: YouTube video ID (11 characters)
+        youtube_video_id: YouTube video ID
         db: Database session
 
     Returns:
         Video model instance
 
     Raises:
-        ValueError: If video ID format is invalid
+        ValueError: If video ID is empty
     """
     # Validate video ID format
-    if not youtube_video_id or len(youtube_video_id) != 11:
+    if not youtube_video_id:
         raise ValueError(f"Invalid YouTube video ID: {youtube_video_id}")
 
     # Try to get existing video
@@ -369,3 +369,181 @@ def fetch_youtube_metadata(youtube_video_id):
         raise Exception("pytubefix library not installed. Run: pip install pytubefix")
     except Exception as e:
         raise Exception(f"Failed to fetch YouTube metadata: {str(e)}")
+
+
+def get_user_video_history(user_id, db, limit=50):
+    """
+    Get video watch history for a user.
+
+    Args:
+        user_id: Database user ID (integer)
+        db: Database session
+        limit: Maximum number of videos to return (default: 50)
+
+    Returns:
+        List of dictionaries with video history data:
+        [
+            {
+                "videoId": "abc123",
+                "title": "Video Title",
+                "thumbnailUrl": "https://...",
+                "lastPositionSeconds": 120,
+                "lastWatchedAt": "2025-01-20T10:30:00Z",
+                "isCompleted": false,
+                "watchCount": 3
+            },
+            ...
+        ]
+    """
+    # Query UserVideoProgress records ordered by last_watched_at (most recent first)
+    progress_records = db.query(UserVideoProgress).filter(
+        UserVideoProgress.user_id == user_id
+    ).order_by(UserVideoProgress.last_watched_at.desc()).limit(limit).all()
+
+    history = []
+    for record in progress_records:
+        video = record.video
+
+        history.append({
+            'videoId': video.youtube_video_id,
+            'title': video.title,
+            'thumbnailUrl': video.thumbnail_url or f"https://img.youtube.com/vi/{video.youtube_video_id}/mqdefault.jpg",
+            'lastPositionSeconds': record.last_position_seconds,
+            'lastWatchedAt': record.last_watched_at.isoformat() + 'Z' if record.last_watched_at else None,
+            'isCompleted': record.is_completed,
+            'watchCount': record.watch_count
+        })
+
+    return history
+
+
+def save_video_to_history(user_id, youtube_video_id, last_position_seconds, is_completed, db):
+    """
+    Add or update a video in user's watch history.
+
+    Creates or updates UserVideoProgress record. If video doesn't exist in
+    database, creates Video record first.
+
+    Args:
+        user_id: Database user ID (integer)
+        youtube_video_id: YouTube video ID (11 characters)
+        last_position_seconds: Current playback position in seconds
+        is_completed: Whether video has been fully watched
+        db: Database session
+
+    Returns:
+        Dictionary with saved data or None if failed:
+        {
+            "videoId": "abc123",
+            "lastPositionSeconds": 120,
+            "lastWatchedAt": "2025-01-20T10:30:00Z",
+            "isCompleted": false
+        }
+    """
+    try:
+        # Get or create video record
+        video = get_or_create_video(youtube_video_id, db)
+
+        # Check if progress record exists
+        progress = db.query(UserVideoProgress).filter(
+            UserVideoProgress.user_id == user_id,
+            UserVideoProgress.video_id == video.id
+        ).first()
+
+        now = datetime.utcnow()
+
+        if progress:
+            # Update existing record
+            progress.last_position_seconds = last_position_seconds
+            progress.is_completed = is_completed
+            progress.last_watched_at = now
+            progress.watch_count += 1
+        else:
+            # Create new progress record
+            progress = UserVideoProgress(
+                user_id=user_id,
+                video_id=video.id,
+                last_position_seconds=last_position_seconds,
+                is_completed=is_completed,
+                first_watched_at=now,
+                last_watched_at=now,
+                watch_count=1
+            )
+            db.add(progress)
+
+        db.commit()
+        db.refresh(progress)
+
+        return {
+            'videoId': youtube_video_id,
+            'lastPositionSeconds': progress.last_position_seconds,
+            'lastWatchedAt': progress.last_watched_at.isoformat() + 'Z',
+            'isCompleted': progress.is_completed
+        }
+
+    except Exception as e:
+        db.rollback()
+        print(f"Error saving video to history: {e}")
+        return None
+
+
+def delete_video_from_history(user_id, youtube_video_id, db):
+    """
+    Remove a specific video from user's watch history.
+
+    Args:
+        user_id: Database user ID (integer)
+        youtube_video_id: YouTube video ID to remove
+        db: Database session
+
+    Returns:
+        bool: True if deleted, False if not found
+    """
+    try:
+        # Get video
+        video = get_video_by_youtube_id(youtube_video_id, db)
+        if not video:
+            return False
+
+        # Find and delete progress record
+        progress = db.query(UserVideoProgress).filter(
+            UserVideoProgress.user_id == user_id,
+            UserVideoProgress.video_id == video.id
+        ).first()
+
+        if not progress:
+            return False
+
+        db.delete(progress)
+        db.commit()
+        return True
+
+    except Exception as e:
+        db.rollback()
+        print(f"Error deleting video from history: {e}")
+        return False
+
+
+def clear_video_history(user_id, db):
+    """
+    Clear all video watch history for a user.
+
+    Args:
+        user_id: Database user ID (integer)
+        db: Database session
+
+    Returns:
+        int: Number of records deleted
+    """
+    try:
+        deleted_count = db.query(UserVideoProgress).filter(
+            UserVideoProgress.user_id == user_id
+        ).delete()
+
+        db.commit()
+        return deleted_count
+
+    except Exception as e:
+        db.rollback()
+        print(f"Error clearing video history: {e}")
+        return 0

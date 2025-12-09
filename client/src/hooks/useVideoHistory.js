@@ -1,9 +1,9 @@
 /**
  * Video History Management Hook
  * 
- * Custom React hook for managing user video watch history with localStorage
- * persistence. Automatically syncs history with localStorage per user and
- * provides methods for adding, removing, and clearing history entries.
+ * Custom React hook for managing user video watch history with backend API
+ * persistence. Fetches history from server on mount and provides methods for
+ * adding, removing, and clearing history entries.
  * 
  * History entries include video metadata, thumbnails, and timestamps for
  * tracking watch history and providing quick access to recently viewed videos.
@@ -13,8 +13,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../auth/AuthContext';
-
-const STORAGE_KEY = 'learnflow_video_history';
+import videoService from '../services/videoService';
 
 /**
  * useVideoHistory Hook
@@ -47,100 +46,132 @@ const STORAGE_KEY = 'learnflow_video_history';
 export function useVideoHistory() {
   const { user } = useAuth();
   const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // Load history from localStorage on mount
+  // Load history from server on mount
   useEffect(() => {
-    if (user) {
-      const userKey = `${STORAGE_KEY}_${user.uid}`;
-      const saved = localStorage.getItem(userKey);
-      if (saved) {
-        try {
-          setHistory(JSON.parse(saved));
-        } catch (e) {
-          console.error('Failed to load history:', e);
-          setHistory([]);
-        }
+    const loadHistory = async () => {
+      if (!user) {
+        setHistory([]);
+        return;
       }
-    }
+
+      setLoading(true);
+      try {
+        const data = await videoService.getVideoHistory(user.uid);
+        setHistory(data);
+      } catch (error) {
+        console.error('Failed to load video history:', error);
+        setHistory([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadHistory();
   }, [user]);
 
-  // Save history to localStorage whenever it changes
-  useEffect(() => {
-    if (user && history.length > 0) {
-      const userKey = `${STORAGE_KEY}_${user.uid}`;
-      localStorage.setItem(userKey, JSON.stringify(history));
+  const refreshHistory = async () => {
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      const data = await videoService.getVideoHistory(user.uid);
+      setHistory(data);
+    } catch (error) {
+      console.error('Failed to refresh video history:', error);
+    } finally {
+      setLoading(false);
     }
-  }, [history, user]);
+  };
 
   /**
    * Add Video to History
    * 
-   * Adds a new video to history or updates existing entry. If video already exists,
-   * updates the lastViewedAt timestamp and moves it to the top. Automatically
-   * generates thumbnail URL and limits history to 50 most recent videos.
+   * Adds a new video to history or updates existing entry. Saves to backend
+   * and updates local state optimistically.
    * 
    * @param {Object} videoData - Video information to add
    * @param {string} videoData.videoId - YouTube video ID
-   * @param {string} videoData.embedUrl - YouTube embed URL
-   * @param {string} [videoData.title] - Video title (defaults to 'Untitled Video')
+   * @param {string} [videoData.title] - Video title (optional, for display)
+   * @param {number} [videoData.lastPositionSeconds=0] - Current playback position
+   * @param {boolean} [videoData.isCompleted=false] - Whether video is fully watched
    */
-  const addToHistory = (videoData) => {
+  const addToHistory = async (videoData) => {
     if (!user) return;
 
-    const newEntry = {
-      id: Date.now(),
-      videoId: videoData.videoId,
-      embedUrl: videoData.embedUrl,
-      title: videoData.title || 'Untitled Video',
-      thumbnail: `https://img.youtube.com/vi/${videoData.videoId}/mqdefault.jpg`,
-      addedAt: new Date().toISOString(),
-      lastViewedAt: new Date().toISOString(),
-    };
+    try {
+      // Save to backend
+      const result = await videoService.saveToHistory(user.uid, {
+        videoId: videoData.videoId,
+        lastPositionSeconds: videoData.lastPositionSeconds || 0,
+        isCompleted: videoData.isCompleted || false
+      });
 
-    setHistory(prev => {
-      // Check if video already exists
-      const existingIndex = prev.findIndex(item => item.videoId === videoData.videoId);
+      // Update local state optimistically
+      setHistory(prev => {
+        const existingIndex = prev.findIndex(item => item.videoId === videoData.videoId);
 
-      if (existingIndex !== -1) {
-        // Update lastViewedAt and move to top
-        const updated = [...prev];
-        updated[existingIndex] = {
-          ...updated[existingIndex],
-          lastViewedAt: new Date().toISOString(),
+        const updatedEntry = {
+          videoId: videoData.videoId,
+          title: videoData.title || prev[existingIndex]?.title || 'Untitled Video',
+          thumbnailUrl: videoData.thumbnailUrl || prev[existingIndex]?.thumbnailUrl || `https://img.youtube.com/vi/${videoData.videoId}/mqdefault.jpg`,
+          lastPositionSeconds: result.lastPositionSeconds,
+          lastWatchedAt: result.lastWatchedAt,
+          isCompleted: result.isCompleted,
+          watchCount: prev[existingIndex]?.watchCount ? prev[existingIndex].watchCount + 1 : 1
         };
-        // Move to front
-        const [item] = updated.splice(existingIndex, 1);
-        return [item, ...updated];
-      }
 
-      // Add new entry at the beginning
-      return [newEntry, ...prev].slice(0, 50); // Keep only last 50 videos
-    });
+        if (existingIndex !== -1) {
+          const updated = [...prev];
+          updated[existingIndex] = updatedEntry;
+          const [item] = updated.splice(existingIndex, 1);
+          return [item, ...updated];
+        }
+
+        return [updatedEntry, ...prev];
+      });
+    } catch (error) {
+      console.error('Failed to add video to history:', error);
+      throw error;
+    }
   };
 
   /**
    * Remove Video from History
    * 
-   * Removes a video entry from history by its unique ID. Does not affect
-   * localStorage until next save cycle (automatic via useEffect).
+   * Removes a video entry from history by its YouTube video ID.
+   * Updates backend and local state.
    * 
-   * @param {number} id - Unique ID of the history entry to remove
+   * @param {string} videoId - YouTube video ID to remove
    */
-  const removeFromHistory = (id) => {
-    setHistory(prev => prev.filter(item => item.id !== id));
+  const removeFromHistory = async (videoId) => {
+    if (!user) return;
+
+    try {
+      await videoService.deleteFromHistory(user.uid, videoId);
+      setHistory(prev => prev.filter(item => item.videoId !== videoId));
+    } catch (error) {
+      console.error('Failed to remove video from history:', error);
+      throw error;
+    }
   };
 
   /**
    * Clear All History
    * 
-   * Removes all video history entries for the current user from both state
-   * and localStorage. Requires user to be authenticated.
+   * Removes all video history entries for the current user from backend
+   * and clears local state.
    */
-  const clearHistory = () => {
-    if (user) {
-      const userKey = `${STORAGE_KEY}_${user.uid}`;
-      localStorage.removeItem(userKey);
+  const clearHistory = async () => {
+    if (!user) return;
+
+    try {
+      await videoService.clearVideoHistory(user.uid);
       setHistory([]);
+    } catch (error) {
+      console.error('Failed to clear video history:', error);
+      throw error;
     }
   };
 
@@ -158,9 +189,11 @@ export function useVideoHistory() {
 
   return {
     history,
+    loading,
     addToHistory,
     removeFromHistory,
     clearHistory,
     getVideoById,
+    refreshHistory,
   };
 }

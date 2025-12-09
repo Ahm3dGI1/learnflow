@@ -35,7 +35,11 @@ from .video_service import (
     cache_summary,
     update_video_metadata,
     get_video_with_cache,
-    fetch_youtube_metadata
+    fetch_youtube_metadata,
+    get_user_video_history,
+    save_video_to_history,
+    delete_video_from_history,
+    clear_video_history
 )
 
 __all__ = [
@@ -58,6 +62,10 @@ __all__ = [
     'update_video_metadata',
     'get_video_with_cache',
     'fetch_youtube_metadata',
+    'get_user_video_history',
+    'save_video_to_history',
+    'delete_video_from_history',
+    'clear_video_history',
     'get_or_create_user',
     'get_user_by_firebase_uid',
     'update_progress',
