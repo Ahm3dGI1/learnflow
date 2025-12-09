@@ -253,8 +253,8 @@ const videoService = {
    */
   getVideoHistory: async (firebaseUid, limit = 50) => {
     try {
-      const params = limit !== 50 ? { limit } : {};
-      const response = await api.get(`/api/videos/history/${firebaseUid}`, params);
+      const queryParam = limit !== 50 ? `?limit=${limit}` : '';
+      const response = await api.get(`/api/videos/history/${firebaseUid}${queryParam}`);
       return response.data || [];
     } catch (error) {
       console.error('Error fetching video history:', error);
