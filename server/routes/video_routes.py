@@ -619,8 +619,8 @@ def add_to_video_history(firebase_uid):
 
         try:
             last_position_seconds = int(last_position_seconds)
-            if last_position_seconds < 0:
-                return jsonify({'error': 'lastPositionSeconds must be non-negative'}), 400
+            if last_position_seconds < 0 or last_position_seconds > 86400:
+                return jsonify({'error': 'lastPositionSeconds must be between 0 and 86400'}), 400
         except (TypeError, ValueError):
             return jsonify({'error': 'lastPositionSeconds must be a valid integer'}), 400
 
