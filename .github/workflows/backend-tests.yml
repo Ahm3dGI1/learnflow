@@ -95,16 +95,6 @@ jobs:
             ls -lh test.db
           fi
 
-      - name: Generate test report
-        if: always()
-        working-directory: ./server
-        run: |
-          pytest tests/ \
-            --tb=no \
-            --quiet \
-            -m "not integration" \
-            || true
-
   lint:
     runs-on: ubuntu-latest
 
@@ -125,20 +115,20 @@ jobs:
       - name: Run Black (code formatter check)
         working-directory: ./server
         run: |
-          black --check --diff . || true
+          black --check --diff .
 
       - name: Run isort (import sorting check)
         working-directory: ./server
         run: |
-          isort --check-only --diff . || true
+          isort --check-only --diff .
 
       - name: Run Flake8 (linter)
         working-directory: ./server
         run: |
           # Stop the build if there are Python syntax errors or undefined names
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # Exit-zero treats all errors as warnings
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics || true
+          # Check for code quality issues (warnings only, won't fail build)
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
 
   security:
     runs-on: ubuntu-latest
@@ -160,10 +150,12 @@ jobs:
       - name: Run Bandit (security linter)
         working-directory: ./server
         run: |
+          # Generate JSON report for analysis
           bandit -r . -f json -o bandit-report.json || true
-          bandit -r . -ll || true
+          # Check for medium/high severity issues (will fail build if found)
+          bandit -r . -ll
 
       - name: Check dependencies for known vulnerabilities
         working-directory: ./server
         run: |
-          safety check --file requirements.txt --json || true
+          safety check --file requirements.txt --json

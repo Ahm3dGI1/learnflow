@@ -44,27 +44,28 @@ def session():
     """
     db = SessionLocal()
 
-    yield db
+    try:
+        yield db
+    finally:
+        # Clean up: rollback any uncommitted changes
+        db.rollback()
 
-    # Clean up: rollback any uncommitted changes and close
-    db.rollback()
+        # Clean up all tables after each test to ensure isolation
+        # This prevents data from one test affecting another
+        from models import (
+            ChatMessage, UserQuizAttempt, UserCheckpointCompletion,
+            UserVideoProgress, Quiz, Checkpoint, Video, User
+        )
 
-    # Clean up all tables after each test to ensure isolation
-    # This prevents data from one test affecting another
-    from models import (
-        ChatMessage, UserQuizAttempt, UserCheckpointCompletion,
-        UserVideoProgress, Quiz, Checkpoint, Video, User
-    )
+        # Delete in order to respect foreign key constraints
+        db.query(ChatMessage).delete()
+        db.query(UserQuizAttempt).delete()
+        db.query(UserCheckpointCompletion).delete()
+        db.query(UserVideoProgress).delete()
+        db.query(Quiz).delete()
+        db.query(Checkpoint).delete()
+        db.query(Video).delete()
+        db.query(User).delete()
+        db.commit()
 
-    # Delete in order to respect foreign key constraints
-    db.query(ChatMessage).delete()
-    db.query(UserQuizAttempt).delete()
-    db.query(UserCheckpointCompletion).delete()
-    db.query(UserVideoProgress).delete()
-    db.query(Quiz).delete()
-    db.query(Checkpoint).delete()
-    db.query(Video).delete()
-    db.query(User).delete()
-    db.commit()
-
-    db.close()
+        db.close()
