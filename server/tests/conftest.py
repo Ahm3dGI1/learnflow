@@ -39,18 +39,32 @@ def session():
     Provide a fresh database session for each test.
 
     This fixture provides a SQLAlchemy session for tests that need
-    direct database access. Uses transaction rollback for test isolation.
+    direct database access. After each test, it cleans up all data
+    to ensure test isolation.
     """
-    # Create a connection and begin a transaction
-    connection = engine.connect()
-    transaction = connection.begin()
-
-    # Create session bound to this connection
-    db = SessionLocal(bind=connection)
+    db = SessionLocal()
 
     yield db
 
-    # Rollback transaction and close connection for isolation
+    # Clean up: rollback any uncommitted changes and close
+    db.rollback()
+
+    # Clean up all tables after each test to ensure isolation
+    # This prevents data from one test affecting another
+    from models import (
+        ChatMessage, UserQuizAttempt, UserCheckpointCompletion,
+        UserVideoProgress, Quiz, Checkpoint, Video, User
+    )
+
+    # Delete in order to respect foreign key constraints
+    db.query(ChatMessage).delete()
+    db.query(UserQuizAttempt).delete()
+    db.query(UserCheckpointCompletion).delete()
+    db.query(UserVideoProgress).delete()
+    db.query(Quiz).delete()
+    db.query(Checkpoint).delete()
+    db.query(Video).delete()
+    db.query(User).delete()
+    db.commit()
+
     db.close()
-    transaction.rollback()
-    connection.close()
