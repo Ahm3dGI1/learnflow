@@ -404,7 +404,7 @@ def test_add_video_to_history_invalid_position(client, db):
                 headers={"Authorization": "Bearer faketoken"}
             )
         assert resp.status_code == 400
-        assert "non-negative" in resp.get_json()["error"]
+        assert "between 0 and" in resp.get_json()["error"]
         
         # Invalid type
         with patch(VERIFY_PATCH_PATH, return_value=claims):
