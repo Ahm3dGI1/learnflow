@@ -39,8 +39,18 @@ def session():
     Provide a fresh database session for each test.
 
     This fixture provides a SQLAlchemy session for tests that need
-    direct database access.
+    direct database access. Uses transaction rollback for test isolation.
     """
-    db = SessionLocal()
+    # Create a connection and begin a transaction
+    connection = engine.connect()
+    transaction = connection.begin()
+
+    # Create session bound to this connection
+    db = SessionLocal(bind=connection)
+
     yield db
+
+    # Rollback transaction and close connection for isolation
     db.close()
+    transaction.rollback()
+    connection.close()

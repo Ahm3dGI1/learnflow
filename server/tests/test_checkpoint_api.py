@@ -8,9 +8,13 @@ Usage:
     python tests/test_checkpoint_api.py
 """
 
+import pytest
 import requests
 import os
 from dotenv import load_dotenv
+
+# Mark all tests in this module as integration tests (require running server)
+pytestmark = pytest.mark.integration
 
 # Load environment variables
 load_dotenv()
