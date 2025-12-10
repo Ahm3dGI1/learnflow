@@ -18,8 +18,8 @@ import videoService from '../services/videoService';
 /**
  * useVideoHistory Hook
  * 
- * Manages video watch history with automatic localStorage persistence per user.
- * Loads history on mount, saves changes automatically, and provides CRUD operations.
+ * Manages video watch history with backend API persistence.
+ * Loads history on mount, syncs changes with server, and provides CRUD operations.
  * Maintains maximum of 50 videos per user and automatically moves recently viewed
  * videos to the top of the list.
  * 
@@ -100,6 +100,34 @@ export function useVideoHistory() {
   const addToHistory = async (videoData) => {
     if (!user) return;
 
+    // Store previous state for rollback
+    const previousHistory = [...history];
+
+    // Optimistically update UI
+    setHistory(prev => {
+      const existingIndex = prev.findIndex(item => item.videoId === videoData.videoId);
+      const existingVideo = existingIndex !== -1 ? prev[existingIndex] : null;
+
+      const updatedEntry = {
+        videoId: videoData.videoId,
+        title: videoData.title || existingVideo?.title || 'Untitled Video',
+        thumbnailUrl: videoData.thumbnailUrl || existingVideo?.thumbnailUrl || `https://img.youtube.com/vi/${videoData.videoId}/mqdefault.jpg`,
+        lastPositionSeconds: videoData.lastPositionSeconds || 0,
+        lastWatchedAt: new Date().toISOString(),
+        isCompleted: videoData.isCompleted || false,
+        watchCount: existingVideo?.watchCount || 0
+      };
+
+      if (existingIndex !== -1) {
+        const updated = [...prev];
+        updated[existingIndex] = updatedEntry;
+        const [item] = updated.splice(existingIndex, 1);
+        return [item, ...updated];
+      }
+
+      return [updatedEntry, ...prev];
+    });
+
     try {
       // Save to backend
       const result = await videoService.saveToHistory(user.uid, {
@@ -108,32 +136,25 @@ export function useVideoHistory() {
         isCompleted: videoData.isCompleted || false
       });
 
-      // Update local state with backend response
+      // Update with accurate backend data
       setHistory(prev => {
         const existingIndex = prev.findIndex(item => item.videoId === videoData.videoId);
-        const existingVideo = existingIndex !== -1 ? prev[existingIndex] : null;
+        if (existingIndex === -1) return prev;
 
-        const updatedEntry = {
-          videoId: videoData.videoId,
-          title: videoData.title || existingVideo?.title || 'Untitled Video',
-          thumbnailUrl: videoData.thumbnailUrl || existingVideo?.thumbnailUrl || `https://img.youtube.com/vi/${videoData.videoId}/mqdefault.jpg`,
+        const updated = [...prev];
+        updated[existingIndex] = {
+          ...updated[existingIndex],
           lastPositionSeconds: result.lastPositionSeconds,
           lastWatchedAt: result.lastWatchedAt,
           isCompleted: result.isCompleted,
-          watchCount: result.watchCount // Use backend value directly
+          watchCount: result.watchCount
         };
-
-        if (existingIndex !== -1) {
-          const updated = [...prev];
-          updated[existingIndex] = updatedEntry;
-          const [item] = updated.splice(existingIndex, 1);
-          return [item, ...updated];
-        }
-
-        return [updatedEntry, ...prev];
+        return updated;
       });
     } catch (error) {
       console.error('Failed to add video to history:', error);
+      // Revert to previous state on error
+      setHistory(previousHistory);
       throw error;
     }
   };

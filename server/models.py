@@ -103,6 +103,7 @@ class UserVideoProgress(Base):
 
     __table_args__ = (
         UniqueConstraint("user_id", "video_id", name="uq_user_video_progress"),
+        Index("ix_user_video_progress_last_watched_at", "last_watched_at"),
     )
 
     def __repr__(self):
