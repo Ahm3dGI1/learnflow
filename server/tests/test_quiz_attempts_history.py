@@ -7,6 +7,8 @@ a user's quiz attempt history for a specific video.
 
 import json
 import pytest
+import random
+import string
 from datetime import datetime, timezone, timedelta
 from unittest.mock import patch
 
@@ -231,16 +233,21 @@ class TestGetQuizAttempts:
 
     def test_get_attempts_wrong_user(self, client, test_data, session):
         """Test authenticated user trying to access another user's attempts."""
+        # Generate unique ID for different user to avoid collisions
+        unique_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+        different_firebase_uid = f'different-firebase-{unique_id}'
+        different_email = f'different-{unique_id}@example.com'
+        
         claims = {
-            'uid': 'different-firebase-uid',
-            'email': 'different@example.com',
+            'uid': different_firebase_uid,
+            'email': different_email,
             'name': 'Different User'
         }
 
         # Create different user in database
         other_user = User(
-            firebase_uid='different-firebase-uid',
-            email='different@example.com',
+            firebase_uid=different_firebase_uid,
+            email=different_email,
             display_name='Different User'
         )
         session.add(other_user)
