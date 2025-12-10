@@ -61,4 +61,4 @@ def init_db():
     # Create all tables defined in models.py
     # This is idempotent - won't recreate existing tables
     Base.metadata.create_all(bind=engine)
-    print("✓ Database tables initialized")
+    print("Database tables initialized")
