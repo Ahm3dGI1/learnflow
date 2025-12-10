@@ -913,6 +913,150 @@ def submit_quiz():
         db.close()
 
 
+@llm_bp.route('/quiz/attempts', methods=['GET'])
+@auth_required
+def get_quiz_attempts():
+    """
+    Get all quiz attempts for a user on a specific video.
+
+    Requires authentication via Firebase ID token in Authorization header.
+
+    Query Parameters:
+        videoId (str): YouTube video ID (required)
+
+    Returns:
+        {
+            "attempts": [
+                {
+                    "attemptId": 15,
+                    "quizId": 5,
+                    "score": 0.8,
+                    "totalQuestions": 5,
+                    "correctAnswers": 4,
+                    "timeTakenSeconds": 120,
+                    "submittedAt": "2025-12-07T18:30:00",
+                    "startedAt": "2025-12-07T18:28:00"
+                },
+                ...
+            ],
+            "totalAttempts": 3,
+            "bestScore": 0.8,
+            "averageScore": 0.7
+        }
+
+    Status Codes:
+        200: Success
+        400: Missing videoId parameter
+        401: Unauthorized (invalid/missing token)
+        404: Video not found
+        500: Server error
+    """
+    video_id = request.args.get('videoId')
+    
+    if not video_id:
+        return jsonify({'error': 'videoId query parameter is required'}), 400
+    
+    db = SessionLocal()
+    try:
+        # Get authenticated user
+        firebase_uid = g.firebase_user.get('uid')
+        user = db.query(User).filter_by(firebase_uid=firebase_uid).first()
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Get video by YouTube ID
+        from services import get_video_by_youtube_id
+        video = get_video_by_youtube_id(video_id, db)
+        
+        if not video:
+            return jsonify({'error': 'Video not found'}), 404
+        
+        # Get all quizzes for this video
+        quizzes = db.query(Quiz).filter_by(video_id=video.id).all()
+        quiz_ids = [q.id for q in quizzes]
+        
+        # Create quiz lookup dictionary to avoid N+1 queries
+        quiz_map = {q.id: q for q in quizzes}
+        
+        # Get all attempts by this user for quizzes on this video
+        attempts = db.query(UserQuizAttempt).filter(
+            UserQuizAttempt.user_id == user.id,
+            UserQuizAttempt.quiz_id.in_(quiz_ids)
+        ).order_by(UserQuizAttempt.submitted_at.desc()).all()
+        
+        # Parse attempts and extract question counts
+        attempts_data = []
+        scores = []
+        
+        for attempt in attempts:
+            # Get the quiz from the lookup dictionary
+            quiz = quiz_map.get(attempt.quiz_id)
+            total_questions = 0
+            
+            if quiz and quiz.questions_data:
+                try:
+                    questions = json.loads(quiz.questions_data)
+                    total_questions = len(questions)
+                except (json.JSONDecodeError, TypeError) as e:
+                    # Fallback to num_questions if questions_data is corrupted
+                    # Note: This may not match actual questions if data is inconsistent
+                    total_questions = quiz.num_questions or 0
+                    print(f"Warning: Failed to parse questions_data for quiz {quiz.id}: {e}")
+            
+            # Calculate correct answers server-side by validating against quiz data
+            correct_answers = 0
+            if attempt.answers and quiz and quiz.questions_data:
+                try:
+                    answers = json.loads(attempt.answers)
+                    questions = json.loads(quiz.questions_data)
+                    
+                    # Validate using questionIndex (0-based) which matches submit_quiz format
+                    for ans in answers:
+                        question_idx = ans.get('questionIndex')
+                        selected = ans.get('selectedAnswer')
+                        if (isinstance(question_idx, int) and 
+                            0 <= question_idx < len(questions) and 
+                            selected == questions[question_idx].get('correctAnswer')):
+                            correct_answers += 1
+                                
+                except Exception as e:
+                    print(f"Warning: Failed to validate answers for attempt {attempt.id}: {e}")
+                    pass
+            
+            attempts_data.append({
+                'attemptId': attempt.id,
+                'quizId': attempt.quiz_id,
+                'score': attempt.score,
+                'totalQuestions': total_questions,
+                'correctAnswers': correct_answers,
+                'timeTakenSeconds': attempt.time_taken_seconds,
+                'submittedAt': attempt.submitted_at.isoformat() if attempt.submitted_at else None,
+                'startedAt': attempt.started_at.isoformat() if attempt.started_at else None
+            })
+            
+            if attempt.score is not None:
+                scores.append(attempt.score)
+        
+        # Calculate statistics
+        best_score = max(scores) if scores else 0
+        average_score = sum(scores) / len(scores) if scores else 0
+        
+        return jsonify({
+            'attempts': attempts_data,
+            'totalAttempts': len(attempts_data),
+            'bestScore': best_score,
+            'averageScore': round(average_score, 3)
+        }), 200
+    
+    except Exception as e:
+        print(f"Error fetching quiz attempts: {e}")
+        traceback.print_exc()
+        return jsonify({'error': 'Failed to fetch quiz attempts'}), 500
+    finally:
+        db.close()
+
+
 # ========== CHECKPOINT COMPLETION ROUTES ==========
 
 @llm_bp.route('/checkpoints/<int:checkpoint_id>/complete', methods=['POST'])
