@@ -56,7 +56,9 @@ def test_data(session):
         transcript='Test transcript content'
     )
     session.add(video)
-    session.flush()    # Create quiz with questions
+    session.flush()
+    
+    # Create quiz with questions
     questions_data = [
         {
             "id": 1,
@@ -100,9 +102,9 @@ def test_data(session):
         quiz_id=quiz.id,
         score=1.0,
         answers=json.dumps([
-            {"questionIndex": 0, "selectedAnswer": "4", "isCorrect": True},
-            {"questionIndex": 1, "selectedAnswer": "Paris", "isCorrect": True},
-            {"questionIndex": 2, "selectedAnswer": "25", "isCorrect": True}
+            {"questionIndex": 0, "selectedAnswer": 2},
+            {"questionIndex": 1, "selectedAnswer": 1},
+            {"questionIndex": 2, "selectedAnswer": 1}
         ]),
         time_taken_seconds=120,
         started_at=now - timedelta(days=2, seconds=120),
@@ -116,9 +118,9 @@ def test_data(session):
         quiz_id=quiz.id,
         score=0.667,
         answers=json.dumps([
-            {"questionIndex": 0, "selectedAnswer": "4", "isCorrect": True},
-            {"questionIndex": 1, "selectedAnswer": "London", "isCorrect": False},
-            {"questionIndex": 2, "selectedAnswer": "25", "isCorrect": True}
+            {"questionIndex": 0, "selectedAnswer": 2},
+            {"questionIndex": 1, "selectedAnswer": 0},
+            {"questionIndex": 2, "selectedAnswer": 1}
         ]),
         time_taken_seconds=90,
         started_at=now - timedelta(days=1, seconds=90),
@@ -132,9 +134,9 @@ def test_data(session):
         quiz_id=quiz.id,
         score=0.333,
         answers=json.dumps([
-            {"questionIndex": 0, "selectedAnswer": "3", "isCorrect": False},
-            {"questionIndex": 1, "selectedAnswer": "London", "isCorrect": False},
-            {"questionIndex": 2, "selectedAnswer": "25", "isCorrect": True}
+            {"questionIndex": 0, "selectedAnswer": 1},
+            {"questionIndex": 1, "selectedAnswer": 0},
+            {"questionIndex": 2, "selectedAnswer": 1}
         ]),
         time_taken_seconds=60,
         started_at=now - timedelta(seconds=60),
@@ -227,7 +229,7 @@ class TestGetQuizAttempts:
 
         assert response.status_code == 401
 
-    def test_get_attempts_wrong_user(self, client, test_data):
+    def test_get_attempts_wrong_user(self, client, test_data, session):
         """Test authenticated user trying to access another user's attempts."""
         claims = {
             'uid': 'different-firebase-uid',
@@ -236,16 +238,13 @@ class TestGetQuizAttempts:
         }
 
         # Create different user in database
-        from database import SessionLocal
-        db = SessionLocal()
         other_user = User(
             firebase_uid='different-firebase-uid',
             email='different@example.com',
             display_name='Different User'
         )
-        db.add(other_user)
-        db.commit()
-        db.close()
+        session.add(other_user)
+        session.commit()
 
         with patch(VERIFY_PATCH_PATH, return_value=claims):
             response = client.get(
@@ -340,8 +339,8 @@ class TestGetQuizAttempts:
             quiz_id=quiz2.id,
             score=0.5,
             answers=json.dumps([
-                {"questionIndex": 0, "selectedAnswer": "A", "isCorrect": True},
-                {"questionIndex": 1, "selectedAnswer": "C", "isCorrect": False}
+                {"questionIndex": 0, "selectedAnswer": 0},
+                {"questionIndex": 1, "selectedAnswer": 0}
             ]),
             time_taken_seconds=45,
             started_at=now - timedelta(seconds=45),

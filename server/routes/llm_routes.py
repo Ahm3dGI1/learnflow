@@ -976,6 +976,9 @@ def get_quiz_attempts():
         quizzes = db.query(Quiz).filter_by(video_id=video.id).all()
         quiz_ids = [q.id for q in quizzes]
         
+        # Create quiz lookup dictionary to avoid N+1 queries
+        quiz_map = {q.id: q for q in quizzes}
+        
         # Get all attempts by this user for quizzes on this video
         attempts = db.query(UserQuizAttempt).filter(
             UserQuizAttempt.user_id == user.id,
@@ -987,24 +990,38 @@ def get_quiz_attempts():
         scores = []
         
         for attempt in attempts:
-            # Get the quiz to determine total questions
-            quiz = db.query(Quiz).filter_by(id=attempt.quiz_id).first()
+            # Get the quiz from the lookup dictionary
+            quiz = quiz_map.get(attempt.quiz_id)
             total_questions = 0
             
             if quiz and quiz.questions_data:
                 try:
                     questions = json.loads(quiz.questions_data)
                     total_questions = len(questions)
-                except:
+                except (json.JSONDecodeError, TypeError) as e:
+                    # Fallback to num_questions if questions_data is corrupted
+                    # Note: This may not match actual questions if data is inconsistent
                     total_questions = quiz.num_questions or 0
+                    print(f"Warning: Failed to parse questions_data for quiz {quiz.id}: {e}")
             
-            # Parse answers to count correct ones
+            # Calculate correct answers server-side by validating against quiz data
             correct_answers = 0
-            if attempt.answers:
+            if attempt.answers and quiz and quiz.questions_data:
                 try:
                     answers = json.loads(attempt.answers)
-                    correct_answers = sum(1 for ans in answers if ans.get('isCorrect', False))
-                except:
+                    questions = json.loads(quiz.questions_data)
+                    
+                    # Validate using questionIndex (0-based) which matches submit_quiz format
+                    for ans in answers:
+                        question_idx = ans.get('questionIndex')
+                        selected = ans.get('selectedAnswer')
+                        if (isinstance(question_idx, int) and 
+                            0 <= question_idx < len(questions) and 
+                            selected == questions[question_idx].get('correctAnswer')):
+                            correct_answers += 1
+                                
+                except Exception as e:
+                    print(f"Warning: Failed to validate answers for attempt {attempt.id}: {e}")
                     pass
             
             attempts_data.append({
