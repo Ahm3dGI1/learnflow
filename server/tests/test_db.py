@@ -122,6 +122,8 @@ def test_negative_progress_rejected(session):
 
 def test_checkpoint_and_completion(session):
     """Create a checkpoint for a video and a completion record for the user."""
+    import json
+
     user = session.query(User).filter_by(firebase_uid="uid-123").one()
     video = session.query(Video).filter_by(youtube_video_id="dQw4w9WgXcQ").one()
 
@@ -131,6 +133,12 @@ def test_checkpoint_and_completion(session):
         title="Intro to Variables",
         subtopic="What variables are",
         order_index=1,
+        question_data=json.dumps({
+            'question': 'What is a variable?',
+            'options': ['A storage location', 'A function', 'A loop', 'A class'],
+            'correctAnswer': 'A storage location',
+            'explanation': 'Variables store data values'
+        })
     )
     session.add(checkpoint)
     session.commit()

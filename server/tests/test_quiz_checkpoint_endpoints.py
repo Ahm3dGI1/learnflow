@@ -33,19 +33,22 @@ def client():
         yield client
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def test_data(session):
     """Create test data."""
-    # Check if user already exists to avoid unique constraint violation
-    user = session.query(User).filter_by(firebase_uid='test-firebase-uid').first()
-    if not user:
-        user = User(
-            firebase_uid='test-firebase-uid',
-            email='test@example.com',
-            display_name='Test User'
-        )
-        session.add(user)
-        session.flush()
+    # Clean up test users from previous runs first
+    session.query(User).filter(User.firebase_uid.in_(['test-firebase-uid', 'other-firebase-uid'])).delete(synchronize_session=False)
+    session.commit()
+
+    # Create fresh user
+    user = User(
+        firebase_uid='test-firebase-uid',
+        email='test@example.com',
+        display_name='Test User'
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
 
     # Check if video already exists
     video = session.query(Video).filter_by(youtube_video_id='test-video-123').first()
@@ -70,9 +73,6 @@ def test_data(session):
     ).delete(synchronize_session=False)
     session.query(Quiz).filter_by(video_id=video.id).delete()
     session.query(Checkpoint).filter_by(video_id=video.id).delete()
-
-    # Clean up test users from previous runs
-    session.query(User).filter(User.firebase_uid == 'other-firebase-uid').delete()
 
     session.flush()
 
