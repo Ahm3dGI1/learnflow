@@ -1,0 +1,102 @@
+/**
+ * Checkpoint Progress Bar Styles
+ *
+ * Styles for the visual checkpoint timeline component.
+ */
+
+.checkpoint-progress-bar {
+  margin: 1rem 0;
+  padding: 0.5rem;
+}
+
+.progress-bar-container {
+  width: 100%;
+}
+
+.progress-bar-track {
+  width: 100%;
+  height: 8px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  position: relative;
+}
+
+.checkpoint-marker {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background-color: #667eea;
+  border-radius: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.checkpoint-marker:hover {
+  transform: translate(-50%, -50%) scale(1.2);
+  background-color: #764ba2;
+}
+
+.checkpoint-marker.completed {
+  background-color: #28a745;
+}
+
+.checkpoint-marker.active {
+  background-color: #ff6b6b;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(255, 107, 107, 0);
+  }
+}
+
+/* Progress fill */
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* Tooltip for checkpoint info */
+.checkpoint-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  margin-bottom: 8px;
+}
+
+.checkpoint-marker:hover .checkpoint-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .checkpoint-marker {
+    width: 10px;
+    height: 10px;
+  }
+  
+  .progress-bar-track {
+    height: 6px;
+  }
+}
