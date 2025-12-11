@@ -2,12 +2,11 @@
 Tests for chat history persistence endpoints.
 """
 
-import json
 import pytest
 import random
 import string
 from datetime import datetime, timezone
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from models import User, Video, ChatMessage
 from database import SessionLocal
 
@@ -30,9 +29,6 @@ def client():
 @pytest.fixture
 def test_data(session):
     """Create test data for chat history tests."""
-    import random
-    import string
-    
     # Generate unique identifiers for each test
     unique_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
     
@@ -196,16 +192,19 @@ class TestChatSendEndpoint:
 
     def test_send_chat_wrong_user(self, client, test_data, session):
         """Test authenticated user trying to send message as another user."""
+        # Generate unique identifier for this test
+        unique_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+
         claims = {
-            'uid': 'different-firebase-uid',
-            'email': 'different@example.com',
+            'uid': f'different-firebase-uid-{unique_id}',
+            'email': f'different-{unique_id}@example.com',
             'name': 'Different User'
         }
 
         # Create different user
         other_user = User(
-            firebase_uid='different-firebase-uid',
-            email='different@example.com',
+            firebase_uid=f'different-firebase-uid-{unique_id}',
+            email=f'different-{unique_id}@example.com',
             display_name='Different User'
         )
         session.add(other_user)
@@ -362,9 +361,12 @@ class TestChatHistoryEndpoint:
 
     def test_get_history_empty(self, client, test_data, session):
         """Test get history when no messages exist."""
+        # Generate unique identifier for this test
+        unique_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+
         # Create a new video with no messages
         new_video = Video(
-            youtube_video_id='empty_chat_video',
+            youtube_video_id=f'empty_chat_video_{unique_id}',
             title='Empty Chat Video',
             duration_seconds=300,
             transcript='Empty transcript'
