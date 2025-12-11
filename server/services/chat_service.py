@@ -4,7 +4,7 @@ Handles business logic for conversational tutoring interactions.
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from llm import get_client
 from prompts.chat_prompt import get_chat_prompt
@@ -157,7 +157,7 @@ def save_chat_message(user_id, video_id, role, message, session_id=None, timesta
             message=message,
             session_id=session_id,
             timestamp_context=timestamp_context,
-            created_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc)
         )
         db.add(chat_message)
         db.commit()
