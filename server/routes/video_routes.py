@@ -26,6 +26,12 @@ from services import (
     delete_video_from_history,
     clear_video_history
 )
+from utils.logger import get_logger
+from utils.exceptions import (
+    InvalidVideoIdError,
+    MissingParameterError,
+    ValidationError
+)
 from youtube_transcript_api._errors import (
     TranscriptsDisabled,
     NoTranscriptFound,
@@ -36,6 +42,8 @@ from database import SessionLocal
 from middleware.auth import auth_required
 from models import User
 
+# Initialize logger
+logger = get_logger(__name__)
 
 video_bp = Blueprint('video', __name__, url_prefix='/api/videos')
 
@@ -358,7 +366,7 @@ def create_video():
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'No data provided'}), 400
+            raise ValidationError("No data provided")
 
         video_input = data.get('videoId')
         fetch_metadata = data.get('fetchMetadata', False)
@@ -366,18 +374,28 @@ def create_video():
         language_codes = data.get('languageCodes')
 
         if not video_input:
-            return jsonify({'error': 'videoId is required'}), 400
+            raise MissingParameterError('videoId')
 
         # Extract video ID
         try:
             youtube_video_id = extract_video_id(video_input)
         except ValueError as e:
-            return jsonify({'error': str(e)}), 400
+            raise InvalidVideoIdError(str(e))
+
+        logger.info(
+            f"Creating video entry",
+            extra={
+                "video_id": youtube_video_id,
+                "fetch_metadata": fetch_metadata,
+                "fetch_transcript": fetch_transcript_flag
+            }
+        )
 
         # Get or create video
         video = get_or_create_video(youtube_video_id, db)
 
         # Fetch metadata if requested
+        metadata_error = None
         if fetch_metadata:
             try:
                 metadata = fetch_youtube_metadata(youtube_video_id)
@@ -389,25 +407,60 @@ def create_video():
                     duration_seconds=metadata.get('durationSeconds'),
                     db=db
                 )
+                logger.info(f"Metadata fetched successfully", extra={"video_id": youtube_video_id})
             except Exception as e:
                 # Optional: Continue even if metadata fetch fails
                 # Video is still created successfully without metadata
-                pass
+                metadata_error = str(e)
+                logger.warning(
+                    f"Failed to fetch metadata: {e}",
+                    extra={"video_id": youtube_video_id}
+                )
 
         # Fetch and cache transcript if requested
         transcript_data = None
+        transcript_error = None
         if fetch_transcript_flag:
             try:
                 transcript_data = fetch_transcript(youtube_video_id, language_codes)
                 cache_transcript(video.id, transcript_data, db)
+                logger.info(f"Transcript fetched and cached", extra={"video_id": youtube_video_id})
+            except TranscriptsDisabled:
+                transcript_error = "Transcripts are disabled for this video"
+                logger.warning(transcript_error, extra={"video_id": youtube_video_id})
+            except NoTranscriptFound as e:
+                transcript_error = f"No transcript found: {str(e)}"
+                logger.warning(transcript_error, extra={"video_id": youtube_video_id})
+            except VideoUnavailable:
+                transcript_error = "Video is unavailable or does not exist"
+                logger.warning(transcript_error, extra={"video_id": youtube_video_id})
             except Exception as e:
-                # Optional: Continue even if transcript fetch fails
-                # Video is still created successfully without transcript
-                pass
+                # Unexpected error
+                transcript_error = str(e)
+                logger.error(
+                    f"Unexpected error fetching transcript: {e}",
+                    exc_info=True,
+                    extra={"video_id": youtube_video_id}
+                )
 
         # Get updated video data
         video_data = get_video_with_cache(youtube_video_id, db)
         video_data['message'] = 'Video created successfully'
+
+        # Include any warnings about failed fetches
+        if metadata_error:
+            video_data['metadataWarning'] = f'Failed to fetch metadata: {metadata_error}'
+        if transcript_error:
+            video_data['transcriptWarning'] = f'Failed to fetch transcript: {transcript_error}'
+
+        logger.info(
+            f"Video created successfully",
+            extra={
+                "video_id": youtube_video_id,
+                "has_metadata": not metadata_error,
+                "has_transcript": not transcript_error
+            }
+        )
 
         return jsonify(video_data), 201
 

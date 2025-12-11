@@ -8,7 +8,6 @@ user database IDs from the auth middleware.
 All routes are prefixed with /api/progress.
 """
 
-import logging
 from flask import Blueprint, request, jsonify, g
 from database import SessionLocal
 from services import (
@@ -16,8 +15,10 @@ from services import (
     get_video_progress, get_user_by_firebase_uid
 )
 from middleware.auth import auth_required
+from utils.logger import get_logger
+from utils.exceptions import UserNotFoundError, VideoNotFoundError, MissingParameterError
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 progress_bp = Blueprint('progress', __name__, url_prefix='/api/progress')
 
