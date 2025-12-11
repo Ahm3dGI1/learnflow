@@ -472,6 +472,8 @@ def chat_route():
         # Validation
         if not message:
             return jsonify({'error': 'message is required'}), 400
+        if len(message) > 10000:  # Limit message to 10,000 characters
+            return jsonify({'error': 'message exceeds maximum length of 10,000 characters'}), 400
         if not user_id:
             return jsonify({'error': 'userId is required'}), 400
         if not video_youtube_id:
@@ -574,6 +576,8 @@ def chat_stream_route():
         # Validation
         if not message:
             return jsonify({'error': 'message is required'}), 400
+        if len(message) > 10000:  # Limit message to 10,000 characters
+            return jsonify({'error': 'message exceeds maximum length of 10,000 characters'}), 400
         if not user_id:
             return jsonify({'error': 'userId is required'}), 400
         if not video_youtube_id:
