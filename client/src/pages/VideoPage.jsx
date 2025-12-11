@@ -20,6 +20,7 @@ import VideoPlayer from "../components/VideoPlayer";
 import CheckpointPopup from "../components/CheckpointPopup";
 import VideoSummary from "../components/VideoSummary";
 import CheckpointProgressBar from "../components/CheckpointProgressBar";
+import ChatInterface from "../components/ChatInterface";
 import { videoService, llmService, progressService } from "../services";
 import "./VideoPage.css";
 
@@ -42,6 +43,19 @@ function formatDuration(seconds) {
     // Format: MM:SS
     return `${minutes}:${String(secs).padStart(2, '0')}`;
   }
+}
+
+/**
+ * Format seconds to MM:SS timestamp format
+ * @param {number} seconds - Time in seconds
+ * @returns {string} Formatted timestamp (MM:SS)
+ */
+function formatTimestamp(seconds) {
+  if (!seconds || seconds < 0) return "00:00";
+
+  const minutes = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
 /**
@@ -73,6 +87,9 @@ export default function VideoPage() {
   const [summaryData, setSummaryData] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [initialChatMessage, setInitialChatMessage] = useState(null);
+  const [currentVideoTime, setCurrentVideoTime] = useState(0);
   const videoRef = useRef(null);
   const lastTriggeredCheckpoint = useRef(null);
   const lastProgressSaveTime = useRef(0);
@@ -255,13 +272,13 @@ export default function VideoPage() {
    * Handle Ask AI Tutor
    *
    * Opens chat interface with checkpoint context.
-   * For now, shows alert - will be connected to chat later.
    *
    * @param {Object} checkpoint - Checkpoint that needs help
    */
   const handleAskTutor = useCallback((checkpoint) => {
-    // TODO: Integrate with chat interface
-    alert(`Chat feature coming soon! You can ask about: "${checkpoint.question}"`);
+    const message = `I need help with this checkpoint question: "${checkpoint.question}"`;
+    setInitialChatMessage(message);
+    setIsChatOpen(true);
   }, []);
 
   /**
@@ -274,6 +291,9 @@ export default function VideoPage() {
    * @param {number} time - Current video time in seconds
    */
   const handleTimeUpdate = useCallback(async (time) => {
+    // Update current video time for chat context
+    setCurrentVideoTime(time);
+
     // Check if video has ended (within VIDEO_END_THRESHOLD seconds of duration)
     if (video?.durationSeconds && time >= video.durationSeconds - VIDEO_END_THRESHOLD) {
       setVideoEnded(true);
@@ -507,13 +527,21 @@ export default function VideoPage() {
 
         {/* Right Column - AI Tutor Chat */}
         <div className="video-sidebar-column">
-          {/* Chat Section - Placeholder */}
+          {/* Chat Section */}
           <div className="chat-section">
             <h2>💬 AI Tutor</h2>
             <div className="placeholder-content">
               <p>Chat with an AI tutor about this video</p>
-              <button className="feature-placeholder-button" disabled>
-                Start Chat (Coming Soon)
+              <button
+                className="feature-placeholder-button"
+                onClick={() => setIsChatOpen(true)}
+                style={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                Open Chat
               </button>
             </div>
           </div>
@@ -531,6 +559,30 @@ export default function VideoPage() {
           checkpointId={currentCheckpoint?.id}
           firebaseUid={user?.uid}
           videoId={video?.id}
+        />
+      )}
+
+      {/* Chat Interface */}
+      {isChatOpen && video && user && (
+        <ChatInterface
+          isOpen={isChatOpen}
+          onClose={() => {
+            setIsChatOpen(false);
+            setInitialChatMessage(null);
+          }}
+          userId={user.id || parseInt(user.uid, 10)}
+          videoId={videoId}
+          videoContext={{
+            videoId: videoId,
+            transcriptSnippet: video.transcript?.snippets
+              ?.slice(0, 10)
+              ?.map(s => s.text)
+              ?.join(' ')
+              ?.substring(0, 500) || '',
+            language: video.transcript?.languageCode || 'en'
+          }}
+          currentTimestamp={formatTimestamp(currentVideoTime)}
+          initialMessage={initialChatMessage}
         />
       )}
     </div>
