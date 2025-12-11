@@ -33,48 +33,27 @@ def client():
         yield client
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def test_data(session):
-    """Create test data."""
-    # Check if user already exists to avoid unique constraint violation
-    user = session.query(User).filter_by(firebase_uid='test-firebase-uid').first()
-    if not user:
-        user = User(
-            firebase_uid='test-firebase-uid',
-            email='test@example.com',
-            display_name='Test User'
-        )
-        session.add(user)
-        session.flush()
+    """Create test data for each test. Cleanup is handled by session fixture."""
+    # Create user
+    user = User(
+        firebase_uid='test-firebase-uid',
+        email='test@example.com',
+        display_name='Test User'
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
 
-    # Check if video already exists
-    video = session.query(Video).filter_by(youtube_video_id='test-video-123').first()
-    if not video:
-        video = Video(
-            youtube_video_id='test-video-123',
-            title='Test Video'
-        )
-        session.add(video)
-        session.flush()
-
-    # Delete existing data for this video to ensure clean state
-    session.query(UserCheckpointCompletion).filter(
-        UserCheckpointCompletion.checkpoint_id.in_(
-            session.query(Checkpoint.id).filter_by(video_id=video.id)
-        )
-    ).delete(synchronize_session=False)
-    session.query(UserQuizAttempt).filter(
-        UserQuizAttempt.quiz_id.in_(
-            session.query(Quiz.id).filter_by(video_id=video.id)
-        )
-    ).delete(synchronize_session=False)
-    session.query(Quiz).filter_by(video_id=video.id).delete()
-    session.query(Checkpoint).filter_by(video_id=video.id).delete()
-
-    # Clean up test users from previous runs
-    session.query(User).filter(User.firebase_uid == 'other-firebase-uid').delete()
-
-    session.flush()
+    # Create video
+    video = Video(
+        youtube_video_id='test-video-123',
+        title='Test Video'
+    )
+    session.add(video)
+    session.commit()
+    session.refresh(video)
 
     # Create quiz
     quiz = Quiz(

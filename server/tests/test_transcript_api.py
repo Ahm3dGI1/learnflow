@@ -21,9 +21,12 @@ Usage:
 """
 
 import os
-
+import pytest
 import requests
 from dotenv import load_dotenv
+
+# Mark all tests in this module as integration tests (require running server)
+pytestmark = pytest.mark.integration
 
 # Load environment variables
 load_dotenv()
