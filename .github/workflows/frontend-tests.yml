@@ -33,12 +33,10 @@ jobs:
       - name: Install dependencies
         working-directory: ./client
         run: |
-          # Regenerate package-lock.json if out of sync
+          # Try npm ci first, fallback to npm install if lock file is out of sync
           if ! npm ci 2>/dev/null; then
-            echo "package-lock.json out of sync, regenerating..."
-            rm -f package-lock.json
-            npm install --package-lock-only
-            npm ci
+            echo "package-lock.json out of sync, using npm install..."
+            npm install
           fi
 
       - name: Run linter (ESLint)
@@ -89,12 +87,10 @@ jobs:
       - name: Install dependencies
         working-directory: ./client
         run: |
-          # Regenerate package-lock.json if out of sync
+          # Try npm ci first, fallback to npm install if lock file is out of sync
           if ! npm ci 2>/dev/null; then
-            echo "package-lock.json out of sync, regenerating..."
-            rm -f package-lock.json
-            npm install --package-lock-only
-            npm ci
+            echo "package-lock.json out of sync, using npm install..."
+            npm install
           fi
 
       - name: Build frontend
