@@ -613,8 +613,10 @@ def chat_stream_route():
 
         # Generate streaming response and collect it
         full_response = []
-        
+        error_occurred = False
+
         def generate():
+            nonlocal error_occurred
             try:
                 for chunk in generate_chat_response_stream(
                     message=message,
@@ -623,8 +625,8 @@ def chat_stream_route():
                 ):
                     full_response.append(chunk)
                     yield chunk
-                
-                # Save assistant response after streaming completes
+
+                # Save assistant response after streaming completes successfully
                 if full_response:
                     save_chat_message(
                         user_id=user_id,
@@ -635,7 +637,22 @@ def chat_stream_route():
                         timestamp_context=timestamp
                     )
             except Exception as e:
-                yield f"\n[Error: {str(e)}]"
+                error_occurred = True
+                error_message = f"[Error: Failed to generate response - {str(e)}]"
+                yield f"\n{error_message}"
+
+                # Save error message as assistant response for consistency
+                try:
+                    save_chat_message(
+                        user_id=user_id,
+                        video_id=video.id,
+                        role='assistant',
+                        message=error_message,
+                        session_id=session_id,
+                        timestamp_context=timestamp
+                    )
+                except Exception as save_error:
+                    logger.error(f"Failed to save error message: {str(save_error)}")
 
         return Response(generate(), mimetype='text/plain'), 200
 
