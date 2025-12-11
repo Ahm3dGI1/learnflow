@@ -68,24 +68,37 @@ const llmService = {
    * Send a chat message to the AI tutor
    * @param {string} message - User's question
    * @param {object} context - Context for the conversation
-   * @param {string} context.videoId - Current video ID
-   * @param {object} context.transcript - Current video transcript
-   * @param {string} context.sessionId - Chat session ID (optional)
+   * @param {number} context.userId - Current user ID
+   * @param {string} context.videoId - Current video ID (YouTube ID)
+   * @param {object} context.videoContext - Video context including transcript snippet
+   * @param {string} context.sessionId - Chat session ID (optional, auto-generated if not provided)
+   * @param {string} context.timestamp - Current video timestamp (optional)
    * @returns {Promise<object>} AI response
    * @example
-   * const response = await llmService.sendChatMessage('Explain this concept', { videoId: 'abc123', transcript });
+   * const response = await llmService.sendChatMessage('Explain this concept', {
+   *   userId: 1,
+   *   videoId: 'abc123',
+   *   videoContext: { videoId: 'abc123', transcriptSnippet: 'text', language: 'en' },
+   *   timestamp: '05:30'
+   * });
    * // Returns: { response: 'Here is the explanation...', sessionId, timestamp }
    */
   sendChatMessage: async (message, context = {}) => {
     try {
       const body = {
-        message,
+        userId: context.userId,
         videoId: context.videoId,
-        transcript: context.transcript,
+        message,
+        videoContext: context.videoContext || {
+          videoId: context.videoId,
+          transcriptSnippet: '',
+          language: 'en'
+        },
         sessionId: context.sessionId || null,
+        timestamp: context.timestamp || null,
       };
 
-      const response = await api.post('/api/llm/chat/send', body, {}, false);
+      const response = await api.post('/api/llm/chat/send', body, {}, true);
       return response;
     } catch (error) {
       console.error('Error sending chat message:', error);
@@ -97,12 +110,17 @@ const llmService = {
    * Send a chat message with streaming response
    * @param {string} message - User's question
    * @param {object} context - Context for the conversation
+   * @param {number} context.userId - Current user ID
+   * @param {string} context.videoId - Current video ID (YouTube ID)
+   * @param {object} context.videoContext - Video context including transcript snippet
+   * @param {string} context.sessionId - Chat session ID (optional)
+   * @param {string} context.timestamp - Current video timestamp (optional)
    * @param {Function} onChunk - Callback for each chunk of response
    * @returns {Promise<string>} Full response text
    * @example
    * const fullResponse = await llmService.sendChatMessageStream(
    *   'Explain this concept',
-   *   { videoId: 'abc123', transcript },
+   *   { userId: 1, videoId: 'abc123', videoContext: {...} },
    *   (chunk) => console.log('Received:', chunk)
    * );
    */
@@ -112,10 +130,16 @@ const llmService = {
       const url = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/llm/chat/stream`;
 
       const body = JSON.stringify({
-        message,
+        userId: context.userId,
         videoId: context.videoId,
-        transcript: context.transcript,
+        message,
+        videoContext: context.videoContext || {
+          videoId: context.videoId,
+          transcriptSnippet: '',
+          language: 'en'
+        },
         sessionId: context.sessionId || null,
+        timestamp: context.timestamp || null,
       });
 
       const response = await fetch(url, {
@@ -156,31 +180,25 @@ const llmService = {
   },
 
   /**
-   * Get chat history for a session
-   * @param {string} sessionId - Chat session ID
-   * @returns {Promise<object>} Chat history
+   * Get chat history for a video
+   * @param {string} videoId - YouTube video ID
+   * @param {number} userId - User ID
+   * @param {number} limit - Maximum number of messages to retrieve (optional)
+   * @returns {Promise<object>} Chat history with messages array
+   * @example
+   * const history = await llmService.getChatHistory('abc123', 1, 50);
+   * // Returns: { videoId: 'abc123', messages: [...], totalMessages: 10 }
    */
-  getChatHistory: async (sessionId) => {
+  getChatHistory: async (videoId, userId, limit = null) => {
     try {
-      const response = await api.get(`/api/llm/chat/history/${sessionId}`, {}, true);
+      const queryParams = new URLSearchParams({ userId: userId.toString() });
+      if (limit) {
+        queryParams.append('limit', limit.toString());
+      }
+      const response = await api.get(`/api/llm/chat/history/${videoId}?${queryParams.toString()}`, {}, true);
       return response;
     } catch (error) {
       console.error('Error fetching chat history:', error);
-      throw error;
-    }
-  },
-
-  /**
-   * Clear chat history for a session
-   * @param {string} sessionId - Chat session ID
-   * @returns {Promise<object>} Deletion confirmation
-   */
-  clearChatHistory: async (sessionId) => {
-    try {
-      const response = await api.delete(`/api/llm/chat/history/${sessionId}`, {}, true);
-      return response;
-    } catch (error) {
-      console.error('Error clearing chat history:', error);
       throw error;
     }
   },
