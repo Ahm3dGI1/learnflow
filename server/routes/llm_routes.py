@@ -696,10 +696,12 @@ def get_chat_history_route(video_id):
     try:
         user_id = request.args.get('userId', type=int)
         limit = request.args.get('limit', type=int, default=50)
-        
+
         # Validation
         if not user_id:
             return jsonify({'error': 'userId is required'}), 400
+        if limit is not None and (limit <= 0 or limit > 1000):
+            return jsonify({'error': 'limit must be between 1 and 1000'}), 400
         
         # Verify user exists and matches authenticated user
         user = db.query(User).filter_by(id=user_id).first()
