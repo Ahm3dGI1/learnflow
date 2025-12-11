@@ -114,16 +114,16 @@ jobs:
       - name: Check build output
         working-directory: ./client
         run: |
-          if [ ! -d "dist" ]; then
-            echo "Error: Build output directory 'dist' not found"
+          if [ ! -d "build" ]; then
+            echo "Error: Build output directory 'build' not found"
             exit 1
           fi
           echo "Build successful! Output:"
-          ls -lh dist/
+          ls -lh build/
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
-          path: client/dist/
+          path: client/build/
           retention-days: 7
