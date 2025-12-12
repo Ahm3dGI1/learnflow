@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Trash2, CheckCircle } from 'lucide-react';
+import { Play, Trash2 } from 'lucide-react';
 
 /**
  * VideoHistoryCard Component
