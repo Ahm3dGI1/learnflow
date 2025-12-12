@@ -469,18 +469,19 @@ def create_video():
         # Let APIError exceptions (ValidationError, MissingParameterError, etc.)
         # propagate to global error handler for consistent error responses
         db.rollback()
-        db.close()
         raise
     except Exception as e:
         # Unexpected errors
         db.rollback()
-        db.close()
         logger.error(
             f"Unexpected error creating video: {str(e)}",
             exc_info=True,
             extra={"video_id": youtube_video_id if 'youtube_video_id' in locals() else None}
         )
         raise
+    finally:
+        # Always close the database session
+        db.close()
 
 
 @video_bp.route('/<youtube_video_id>/metadata', methods=['GET'])
