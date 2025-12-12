@@ -74,8 +74,7 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
         </div>
         {completed && (
           <div className="absolute top-2 right-2 bg-green-500/90 text-white text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1 shadow-sm backdrop-blur-sm">
-            <CheckCircle className="w-3 h-3" />
-            Completed
+            ✓ Completed
           </div>
         )}
 
