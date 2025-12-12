@@ -152,7 +152,7 @@ export default function Dashboard() {
       navigate(`/video/${videoId}`);
     } catch (error) {
       console.error("Failed to load video:", error);
-      alert("Failed to save video to history. Please try again.");
+      alert(`Failed to save video to history: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
