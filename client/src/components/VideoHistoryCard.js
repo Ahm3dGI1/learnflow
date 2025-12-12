@@ -57,7 +57,7 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
           alt={video.title}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center play-overlay">
           <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center transform scale-90 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-300 shadow-lg">
             <Play className="w-5 h-5 text-blue-600 ml-1" />
           </div>
