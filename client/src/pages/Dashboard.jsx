@@ -128,11 +128,13 @@ export default function Dashboard() {
   const handleLoadVideo = () => {
     const videoId = extractVideoId(videoUrl);
     if (videoId) {
-      // Add to history
+      // Add to history (non-blocking, handle error silently to prevent crash)
       addToHistory({
         videoId,
         embedUrl: `https://www.youtube.com/embed/${videoId}`,
         title: `YouTube Video - ${videoId}`,
+      }).catch(err => {
+        console.warn("Failed to add to history from Dashboard:", err);
       });
 
       // Navigate to video page
@@ -176,7 +178,7 @@ export default function Dashboard() {
    */
   const handleClearAllHistory = () => {
     if (window.confirm('Clear all video history? This cannot be undone.')) {
-        clearHistory();
+      clearHistory();
     }
   };
 
@@ -232,8 +234,8 @@ export default function Dashboard() {
         {history.length === 0 && (
           <div className="empty-state">
             <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1">
-              <path d="M23 7l-7 5 7 5V7z"/>
-              <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+              <path d="M23 7l-7 5 7 5V7z" />
+              <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
             </svg>
             <h3>No videos yet</h3>
             <p>Start learning by loading a YouTube video above</p>
