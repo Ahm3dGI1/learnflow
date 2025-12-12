@@ -1,14 +1,5 @@
-/**
- * Video History Card Component
- * 
- * Individual card for displaying video history entries with thumbnail,
- * title, timestamp, and delete functionality. Provides relative time
- * formatting (e.g., "5 minutes ago") and clickable areas for video selection.
- * 
- * @module VideoHistoryCard
- */
-
-import "./VideoHistoryCard.css";
+import React from 'react';
+import { Play, Trash2, CheckCircle } from 'lucide-react';
 
 /**
  * VideoHistoryCard Component
@@ -19,48 +10,23 @@ import "./VideoHistoryCard.css";
  *
  * @param {Object} props - Component props
  * @param {Object} props.video - Video history entry data
- * @param {string} props.video.id - Unique entry ID
  * @param {string} props.video.videoId - YouTube video ID
  * @param {string} props.video.title - Video title
- * @param {string} props.video.thumbnail - Thumbnail image URL
- * @param {string} props.video.lastViewedAt - ISO timestamp of last view
+ * @param {string} props.video.thumbnailUrl - Thumbnail image URL
+ * @param {string} props.video.lastWatchedAt - ISO timestamp of last view
  * @param {Object} [props.progress] - Optional progress data
  * @param {number} props.progress.progressPercentage - Percentage completed (0-100)
  * @param {boolean} props.progress.isCompleted - Whether video is fully watched
  * @param {Function} props.onSelect - Callback when video is selected for playback
  * @param {Function} props.onDelete - Callback when video is deleted from history
  * @returns {React.ReactElement} Video history card with thumbnail and controls
- *
- * @example
- * <VideoHistoryCard
- *   video={{
- *     id: 123,
- *     videoId: 'dQw4w9WgXcQ',
- *     title: 'Example Video',
- *     thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
- *     lastViewedAt: '2024-01-15T10:30:00Z'
- *   }}
- *   progress={{ progressPercentage: 45, isCompleted: false }}
- *   onSelect={handleVideoSelect}
- *   onDelete={handleVideoDelete}
- * />
  */
 export default function VideoHistoryCard({ video, progress, onSelect, onDelete }) {
   /**
    * Format Date to Relative Time
-   * 
-   * Converts an ISO date string to human-readable relative time format:
-   * - Under 1 hour: "X minutes ago"
-   * - Under 24 hours: "X hours ago"
-   * - Under 1 week: "X days ago"
-   * - Over 1 week: Full date using locale format
-   * 
-   * Properly handles singular/plural forms for time units.
-   * 
-   * @param {string} dateString - ISO 8601 date string
-   * @returns {string} Formatted relative or absolute date string
    */
   const formatDate = (dateString) => {
+    if (!dateString) return '';
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now - date;
@@ -80,54 +46,75 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
   };
 
   return (
-    <div className="video-history-card">
-      <div>
-        <div className="video-thumbnail-container" onClick={() => onSelect(video)}>
-          <img
-            src={video.thumbnail}
-            alt={video.title}
-            className="video-thumbnail"
-          />
-          <div className="play-overlay">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="white">
-              <path d="M8 5v14l11-7z"/>
-            </svg>
+    <div className="group relative flex flex-col md:flex-row bg-white/80 backdrop-blur-md border border-white/60 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+      {/* Thumbnail Section */}
+      <div
+        className="relative w-full md:w-48 h-32 flex-shrink-0 cursor-pointer overflow-hidden"
+        onClick={() => onSelect(video)}
+      >
+        <img
+          src={video.thumbnailUrl}
+          alt={video.title}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center transform scale-90 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-300 shadow-lg">
+            <Play className="w-5 h-5 text-blue-600 ml-1" />
           </div>
-          {progress?.isCompleted && (
-            <div className="completed-badge">✓ Completed</div>
-          )}
         </div>
+        {progress?.isCompleted && (
+          <div className="absolute top-2 right-2 bg-green-500/90 text-white text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1 shadow-sm backdrop-blur-sm">
+            <CheckCircle className="w-3 h-3" />
+            Completed
+          </div>
+        )}
 
-        {/* Progress Bar */}
+        {/* Progress Bar (Bottom of Thumbnail) */}
         {progress && !progress.isCompleted && (
-          <div className="progress-bar-container">
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200">
             <div
-              className="progress-bar-fill"
+              className="h-full bg-blue-500"
               style={{ width: `${progress.progressPercentage}%` }}
             />
           </div>
         )}
       </div>
 
-      <div className="video-info">
-        <h4 className="video-title" onClick={() => onSelect(video)}>
-          {video.title}
-        </h4>
-        <p className="video-date">Last viewed {formatDate(video.lastViewedAt)}</p>
-        {progress && !progress.isCompleted && (
-          <p className="video-progress">{Math.round(progress.progressPercentage)}% watched</p>
-        )}
-      </div>
+      {/* Info Section */}
+      <div className="flex-1 p-4 flex flex-col justify-between">
+        <div>
+          <h4
+            className="text-lg font-semibold text-gray-900 mb-1 line-clamp-1 cursor-pointer hover:text-blue-600 transition-colors"
+            onClick={() => onSelect(video)}
+          >
+            {video.title}
+          </h4>
+          <p className="text-sm text-gray-500">
+            Last viewed {formatDate(video.lastWatchedAt)}
+          </p>
+        </div>
 
-      <button
-        className="delete-button"
-        onClick={() => onDelete(video.id)}
-        aria-label="Delete from history"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-        </svg>
-      </button>
+        <div className="flex items-center justify-between mt-2">
+          {progress && !progress.isCompleted ? (
+            <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+              {Math.round(progress.progressPercentage)}% watched
+            </span>
+          ) : (
+            <span></span>
+          )}
+
+          <button
+            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(video.videoId);
+            }}
+            aria-label="Delete from history"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

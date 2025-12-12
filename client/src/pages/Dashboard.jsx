@@ -125,15 +125,19 @@ export default function Dashboard() {
    * Extracts video ID from input URL and navigates to VideoPage.
    * Also adds video to history for quick access.
    */
-  const handleLoadVideo = () => {
+  const handleLoadVideo = async () => {
     const videoId = extractVideoId(videoUrl);
     if (videoId) {
       // Add to history
-      addToHistory({
-        videoId,
-        embedUrl: `https://www.youtube.com/embed/${videoId}`,
-        title: `YouTube Video - ${videoId}`,
-      });
+      try {
+        await addToHistory({
+          videoId,
+          embedUrl: `https://www.youtube.com/embed/${videoId}`,
+          title: `YouTube Video - ${videoId}`,
+        });
+      } catch (error) {
+        console.error("Failed to add video to history:", error);
+      }
 
       // Navigate to video page
       navigate(`/video/${videoId}`);
@@ -160,11 +164,11 @@ export default function Dashboard() {
    * Removes a single video from history after user confirmation.
    * Shows native confirmation dialog to prevent accidental deletion.
    * 
-   * @param {number} id - Unique history entry ID
+   * @param {string} videoId - YouTube video ID
    */
-  const handleDeleteFromHistory = (id) => {
+  const handleDeleteFromHistory = (videoId) => {
     if (window.confirm('Remove this video from your history?')) {
-      removeFromHistory(id);
+      removeFromHistory(videoId);
     }
   };
 
@@ -176,7 +180,7 @@ export default function Dashboard() {
    */
   const handleClearAllHistory = () => {
     if (window.confirm('Clear all video history? This cannot be undone.')) {
-        clearHistory();
+      clearHistory();
     }
   };
 
@@ -218,7 +222,7 @@ export default function Dashboard() {
             <div className="history-grid">
               {history.map((video) => (
                 <VideoHistoryCard
-                  key={video.id}
+                  key={video.videoId}
                   video={video}
                   progress={progressMap[video.videoId]}
                   onSelect={handleSelectFromHistory}
@@ -229,11 +233,12 @@ export default function Dashboard() {
           </div>
         )}
 
+
         {history.length === 0 && (
           <div className="empty-state">
             <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1">
-              <path d="M23 7l-7 5 7 5V7z"/>
-              <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+              <path d="M23 7l-7 5 7 5V7z" />
+              <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
             </svg>
             <h3>No videos yet</h3>
             <p>Start learning by loading a YouTube video above</p>
