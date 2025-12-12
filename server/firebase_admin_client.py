@@ -33,6 +33,11 @@ def _initialize_app():
     cred_file = os.getenv('FIREBASE_SERVICE_ACCOUNT_FILE')
     cred_json = os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON')
 
+    # Handle case where JSON content is passed in the FILE variable
+    if cred_file and cred_file.strip().startswith('{'):
+        cred_json = cred_file
+        cred_file = None
+
     if cred_file:
         # Resolve path relative to project root if needed
         # Handle both absolute paths and paths relative to project root
