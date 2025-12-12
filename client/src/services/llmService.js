@@ -263,28 +263,6 @@ const llmService = {
   },
 
   /**
-   * Submit quiz answers and get results
-   * @param {string} quizId - Quiz ID
-   * @param {array} answers - Array of user's answers
-   * @returns {Promise<object>} Quiz results with score
-   * @example
-   * const results = await llmService.submitQuiz('quiz123', [
-   *   { questionId: 1, selectedAnswer: 'B' },
-   *   { questionId: 2, selectedAnswer: 'A' }
-   * ]);
-   * // Returns: { attemptId, score, totalQuestions, correctAnswers, answers: [...] }
-   */
-  submitQuiz: async (quizId, answers) => {
-    try {
-      const response = await api.post(`/api/quizzes/${quizId}/submit`, { answers }, {}, true);
-      return response;
-    } catch (error) {
-      console.error('Error submitting quiz:', error);
-      throw error;
-    }
-  },
-
-  /**
    * Get user's quiz attempts for a video
    * @param {string} videoId - YouTube video ID
    * @returns {Promise<object>} List of quiz attempts
