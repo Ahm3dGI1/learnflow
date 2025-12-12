@@ -14,3 +14,5 @@ server/secrets/
 .DS_Store
 
 server/secrets
+
+logs
