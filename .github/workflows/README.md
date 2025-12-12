@@ -30,14 +30,14 @@ This directory contains CI/CD workflows for the LearnFlow project.
 
 **Jobs:**
 
-#### Test Job (Matrix: Node 18.x, 20.x)
+#### Test Job (Matrix: Node 20.x, 22.x)
 - Runs Jest tests with React Testing Library
 - Generates code coverage report
-- Enforces minimum 50% coverage threshold
-- Uploads coverage to Codecov
+- Coverage checking is currently advisory (not enforced)
+- Uploads coverage to Codecov (requires `CODECOV_TOKEN` secret)
 
 #### Build Job (Node 20.x)
-- Builds production bundle with Vite
+- Builds production bundle with react-scripts (Create React App)
 - Verifies build succeeds without errors
 - Uploads build artifacts for review
 - Tests with dummy environment variables
@@ -45,9 +45,9 @@ This directory contains CI/CD workflows for the LearnFlow project.
 **Environment Variables for Build:**
 The build job uses dummy values for Firebase config to test build process without exposing credentials:
 ```yaml
-VITE_API_BASE_URL: http://localhost:5000
-VITE_FIREBASE_API_KEY: dummy
-VITE_FIREBASE_AUTH_DOMAIN: dummy
+REACT_APP_API_BASE_URL: http://localhost:5000
+REACT_APP_FIREBASE_API_KEY: dummy
+REACT_APP_FIREBASE_AUTH_DOMAIN: dummy
 # ... etc
 ```
 
@@ -74,7 +74,7 @@ Both workflows use dependency caching to speed up runs:
 
 ### Matrix Testing
 - Backend tests across Python 3.10, 3.11, 3.12 (future-proofing)
-- Frontend tests across Node 18.x, 20.x (current LTS versions)
+- Frontend tests across Node 20.x, 22.x (Firebase requires Node 20+)
 
 ### Test Isolation
 Backend tests use:

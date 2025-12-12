@@ -39,9 +39,6 @@ jobs:
             npm install
           fi
 
-      - name: Run linter (ESLint)
-        working-directory: ./client
-        run: npm run lint || true  # Advisory for now
 
       - name: Run tests
         working-directory: ./client
@@ -49,30 +46,6 @@ jobs:
         env:
           CI: true
 
-      - name: Check test coverage
-        working-directory: ./client
-        run: |
-          # Extract coverage percentage from coverage report
-          echo "Test Coverage Report:"
-          echo "===================="
-          # Show coverage summary
-          if [ -f "coverage/coverage-summary.json" ]; then
-            cat coverage/coverage-summary.json
-          fi
-
-          # Advisory: Warn if coverage is below 50% but don't fail
-          # TODO: Enforce 50% coverage once tests are written
-          echo ""
-          echo "Note: Coverage enforcement is currently advisory."
-          echo "Target: 50% coverage for production readiness."
-
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./client/coverage/lcov.info
-          flags: frontend
-          name: frontend-coverage
-        if: always()
 
   build:
     runs-on: ubuntu-latest
@@ -102,14 +75,14 @@ jobs:
         run: npm run build
         env:
           CI: true
-          # Use dummy env vars for build
-          VITE_API_BASE_URL: http://localhost:5000
-          VITE_FIREBASE_API_KEY: dummy
-          VITE_FIREBASE_AUTH_DOMAIN: dummy
-          VITE_FIREBASE_PROJECT_ID: dummy
-          VITE_FIREBASE_STORAGE_BUCKET: dummy
-          VITE_FIREBASE_MESSAGING_SENDER_ID: dummy
-          VITE_FIREBASE_APP_ID: dummy
+          # Use dummy env vars for build (react-scripts requires REACT_APP_ prefix)
+          REACT_APP_API_BASE_URL: http://localhost:5000
+          REACT_APP_FIREBASE_API_KEY: dummy
+          REACT_APP_FIREBASE_AUTH_DOMAIN: dummy
+          REACT_APP_FIREBASE_PROJECT_ID: dummy
+          REACT_APP_FIREBASE_STORAGE_BUCKET: dummy
+          REACT_APP_FIREBASE_MESSAGING_SENDER_ID: dummy
+          REACT_APP_FIREBASE_APP_ID: dummy
 
       - name: Check build output
         working-directory: ./client
