@@ -90,7 +90,14 @@ export default function Quiz({ quiz, onSubmit, loading = false }) {
   return (
     <div className="quiz-container">
       <div className="quiz-header">
-        <h2>📝 Quiz Time</h2>
+        <div className="quiz-title-wrapper">
+          <div className="quiz-icon-wrapper">
+            <svg viewBox="0 0 24 24" fill="none" className="quiz-icon" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2>Quiz Time</h2>
+        </div>
         <p className="quiz-subtitle">
           Test your understanding of the video content
         </p>
@@ -99,8 +106,8 @@ export default function Quiz({ quiz, onSubmit, loading = false }) {
             {answeredCount} of {totalCount} questions answered
           </span>
           <div className="progress-bar">
-            <div 
-              className="progress-fill" 
+            <div
+              className="progress-fill"
               style={{ width: `${(answeredCount / totalCount) * 100}%` }}
               role="progressbar"
               aria-valuenow={answeredCount}
@@ -114,18 +121,18 @@ export default function Quiz({ quiz, onSubmit, loading = false }) {
 
       <div className="quiz-questions">
         {quiz.questions.map((question, index) => (
-          <div 
-            key={question.id} 
+          <div
+            key={question.id}
             className={`question-card ${selectedAnswers[question.id] !== undefined ? 'answered' : ''}`}
           >
             <div className="question-number">Question {index + 1}</div>
             <h3 className="question-text">{question.question}</h3>
-            
+
             <div className="options-container" role="radiogroup" aria-labelledby={`question-${question.id}`}>
               {question.options.map((option, optionIndex) => {
                 const isSelected = selectedAnswers[question.id] === optionIndex;
                 const optionLetter = String.fromCharCode(65 + optionIndex); // A, B, C, D
-                
+
                 return (
                   <label
                     key={optionIndex}
