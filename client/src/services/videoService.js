@@ -247,16 +247,26 @@ const videoService = {
    * @param {string} firebaseUid - Firebase user ID
    * @param {number} limit - Maximum number of videos to return (default: 50, max: 100)
    * @returns {Promise<array>} Array of video history entries
-   * @example
-   * const history = await videoService.getVideoHistory(user.uid, 50);
-   * // Returns: [{ videoId, title, thumbnailUrl, lastPositionSeconds, lastWatchedAt, isCompleted, watchCount }, ...]
    */
   getVideoHistory: async (firebaseUid, limit = 50) => {
     try {
+      console.log(`[VideoService] Fetching history for ${firebaseUid}`);
       const queryParam = limit !== 50 ? `?limit=${limit}` : '';
       const response = await api.get(`/api/videos/history/${firebaseUid}${queryParam}`);
+
+      console.log('[VideoService] Raw history response:', response);
+
       // Backend returns { data: [...], total: ... }
-      return response.data || [];
+      // We need to return the array in 'data'
+      if (response && Array.isArray(response.data)) {
+        return response.data;
+      } else if (Array.isArray(response)) {
+        // Fallback if structure changes
+        return response;
+      }
+
+      console.warn('[VideoService] Unexpected history format:', response);
+      return [];
     } catch (error) {
       console.error('Error fetching video history:', error);
       throw error;
@@ -267,18 +277,19 @@ const videoService = {
    * Add or update a video in user's watch history
    * @param {string} firebaseUid - Firebase user ID
    * @param {object} videoData - Video data to save
-   * @param {string} videoData.videoId - YouTube video ID
-   * @param {number} videoData.lastPositionSeconds - Current playback position
-   * @param {boolean} [videoData.isCompleted=false] - Whether video is fully watched
    * @returns {Promise<object>} Saved video data
-   * @example
-   * await videoService.saveToHistory(user.uid, { videoId: 'abc123', lastPositionSeconds: 120, isCompleted: false });
    */
   saveToHistory: async (firebaseUid, videoData) => {
     try {
+      console.log('[VideoService] Saving to history:', videoData);
       const response = await api.post(`/api/videos/history/${firebaseUid}`, videoData);
+      console.log('[VideoService] Save response:', response);
+
       // Backend returns { message: "...", data: { ... } }
-      return response.data;
+      if (response && response.data) {
+        return response.data;
+      }
+      return response;
     } catch (error) {
       console.error('Error saving video to history:', error);
       throw error;

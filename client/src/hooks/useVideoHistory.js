@@ -89,72 +89,51 @@ export function useVideoHistory() {
    * Add Video to History
    * 
    * Adds a new video to history or updates existing entry. Saves to backend
-   * and updates local state optimistically.
+   * and then updates local state with the authoritative data from server.
    * 
    * @param {Object} videoData - Video information to add
    * @param {string} videoData.videoId - YouTube video ID
-   * @param {string} [videoData.title] - Video title (optional, for display)
+   * @param {string} [videoData.title] - Video title (optional)
    * @param {number} [videoData.lastPositionSeconds=0] - Current playback position
    * @param {boolean} [videoData.isCompleted=false] - Whether video is fully watched
    */
   const addToHistory = async (videoData) => {
     if (!user) return;
 
-    // Store previous state for rollback
-    const previousHistory = [...history];
-
-    // Optimistically update UI
-    setHistory(prev => {
-      const existingIndex = prev.findIndex(item => item.videoId === videoData.videoId);
-      const existingVideo = existingIndex !== -1 ? prev[existingIndex] : null;
-
-      const updatedEntry = {
-        videoId: videoData.videoId,
-        title: videoData.title || existingVideo?.title || 'Untitled Video',
-        thumbnailUrl: videoData.thumbnailUrl || existingVideo?.thumbnailUrl || `https://img.youtube.com/vi/${videoData.videoId}/mqdefault.jpg`,
-        lastPositionSeconds: videoData.lastPositionSeconds || 0,
-        lastWatchedAt: new Date().toISOString(),
-        isCompleted: videoData.isCompleted || false,
-        watchCount: existingVideo?.watchCount || 0
-      };
-
-      if (existingIndex !== -1) {
-        const updated = [...prev];
-        updated[existingIndex] = updatedEntry;
-        const [item] = updated.splice(existingIndex, 1);
-        return [item, ...updated];
-      }
-
-      return [updatedEntry, ...prev];
-    });
-
     try {
-      // Save to backend
-      const result = await videoService.saveToHistory(user.uid, {
+      // Save to backend first
+      const savedData = await videoService.saveToHistory(user.uid, {
         videoId: videoData.videoId,
         lastPositionSeconds: videoData.lastPositionSeconds || 0,
         isCompleted: videoData.isCompleted || false
       });
 
-      // Update with accurate backend data
+      console.log('[useVideoHistory] Backend confirm save:', savedData);
+
+      // Update local state with returned data
       setHistory(prev => {
         const existingIndex = prev.findIndex(item => item.videoId === videoData.videoId);
-        if (existingIndex === -1) return prev;
+        const newState = [...prev];
 
-        const updated = [...prev];
-        updated[existingIndex] = {
-          ...updated[existingIndex],
-          lastPositionSeconds: result.lastPositionSeconds,
-          lastWatchedAt: result.lastWatchedAt,
-          isCompleted: result.isCompleted,
-          watchCount: result.watchCount
+        // Merge backend data with any extra frontend fields we might have (like title/thumbnail if backend didn't return them yet)
+        const newEntry = {
+          videoId: videoData.videoId,
+          // Use title/thumbnail from input if available, otherwise keep existing, or fallback
+          title: videoData.title || (existingIndex !== -1 ? prev[existingIndex].title : 'Untitled Video'),
+          thumbnailUrl: videoData.thumbnailUrl || (existingIndex !== -1 ? prev[existingIndex].thumbnailUrl : `https://img.youtube.com/vi/${videoData.videoId}/mqdefault.jpg`),
+          ...savedData // Overwrite with authoritative backend data
         };
-        return updated;
+
+        if (existingIndex !== -1) {
+          newState.splice(existingIndex, 1);
+        }
+
+        return [newEntry, ...newState];
       });
+
     } catch (error) {
       console.error('Failed to add video to history:', error);
-      // Revert to previous state on error
-      setHistory(previousHistory);
+      // No rollback needed since we didn't optimistically update
       throw error;
     }
   };
