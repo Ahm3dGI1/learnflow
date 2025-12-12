@@ -65,6 +65,34 @@ const llmService = {
   },
 
   /**
+   * Generate flashcards from video transcript
+   * @param {object} transcript - Transcript object with snippets
+   * @param {object} options - Generation options
+   * @param {number} options.numCards - Number of flashcards to generate (default: 10)
+   * @param {string} options.difficulty - Difficulty level: 'beginner', 'intermediate', 'advanced'
+   * @returns {Promise<object>} Generated flashcards
+   * @example
+   * const flashcards = await llmService.generateFlashcards(transcript, { numCards: 10 });
+   * // Returns: { flashcards: [{ front, back, category, hint }], totalCards }
+   */
+  generateFlashcards: async (transcript, options = {}) => {
+    try {
+      const body = {
+        transcript: transcript,
+        videoId: transcript.videoId,
+        numCards: options.numCards || 10,
+        difficulty: options.difficulty || 'intermediate',
+      };
+
+      const response = await api.post('/api/llm/flashcards/generate', body, {}, false);
+      return response;
+    } catch (error) {
+      console.error('Error generating flashcards:', error);
+      throw error;
+    }
+  },
+
+  /**
    * Send a chat message to the AI tutor
    * @param {string} message - User's question
    * @param {object} context - Context for the conversation

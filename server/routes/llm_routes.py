@@ -13,6 +13,7 @@ from services import (
     generate_chat_response,
     generate_chat_response_stream,
     generate_quiz,
+    generate_flashcards,
     generate_summary,
     get_video_by_youtube_id,
     cache_checkpoints,
@@ -1018,6 +1019,130 @@ def clear_summary_cache():
     cleared_count = summary_cache.clear()
     return jsonify({
         'message': 'Summary cache cleared',
+        'clearedItems': cleared_count
+    }), 200
+
+
+# ========== FLASHCARD ROUTES ==========
+
+@llm_bp.route('/flashcards/generate', methods=['POST'])
+def generate_flashcards_route():
+    """
+    Generate flashcards from video transcript.
+
+    Request Body:
+        {
+            "videoId": "abc123",
+            "transcript": {
+                "snippets": [
+                    {"text": "...", "start": 0.0, "duration": 1.5},
+                    ...
+                ],
+                "language": "English",
+                "languageCode": "en"
+            },
+            "numCards": 10
+        }
+
+    Returns:
+        {
+            "videoId": "abc123",
+            "language": "en",
+            "cached": false,
+            "flashcards": [
+                {
+                    "id": 1,
+                    "front": "Question or concept",
+                    "back": "Answer or explanation",
+                    "category": "Definition",
+                    "hint": "Memory tip"
+                }
+            ],
+            "totalCards": 10
+        }
+
+    Status Codes:
+        200: Success
+        400: Invalid request data
+        500: Internal server error
+    """
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        video_id = data.get('videoId')
+        transcript_data = data.get('transcript')
+        num_cards = data.get('numCards', 10)
+
+        # Validation
+        if not video_id:
+            return jsonify({'error': 'videoId is required'}), 400
+
+        if not transcript_data:
+            return jsonify({'error': 'transcript is required'}), 400
+
+        if not transcript_data.get('snippets'):
+            return jsonify({'error': 'transcript.snippets is required'}), 400
+
+        language_code = transcript_data.get('languageCode', 'en')
+
+        # Import flashcard_cache here to avoid circular imports
+        from utils import flashcard_cache
+
+        # Check cache first (memory)
+        cache_key = f"{video_id}:{language_code}:{num_cards}"
+        cached_data = flashcard_cache.get(cache_key)
+        if cached_data:
+            response = cached_data.copy()
+            response['cached'] = True
+            response['source'] = 'memory'
+            return jsonify(response), 200
+
+        # Generate flashcards
+        flashcards = generate_flashcards(
+            transcript_data=transcript_data,
+            video_id=video_id,
+            num_cards=num_cards
+        )
+
+        # Cache the result in memory
+        flashcard_cache.set(cache_key, flashcards)
+
+        # Add cached flag
+        response = flashcards.copy()
+        response['cached'] = False
+        response['source'] = 'generated'
+
+        return jsonify(response), 200
+
+    except ValueError as e:
+        # ValueError messages are safe to expose (validation errors only)
+        logger.warning(
+            f"Validation error generating flashcards for video {video_id}: {str(e)}"
+        )
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        logger.error(
+            f"Error generating flashcards for video {video_id}: {str(e)}",
+            exc_info=True
+        )
+        return jsonify({'error': 'Failed to generate flashcards'}), 500
+
+
+@llm_bp.route('/flashcards/cache/clear', methods=['POST'])
+def clear_flashcard_cache():
+    """
+    Clear the flashcard cache (for testing/admin purposes).
+
+    Returns:
+        {"message": "Cache cleared", "clearedItems": 5}
+    """
+    from utils import flashcard_cache
+    cleared_count = flashcard_cache.clear()
+    return jsonify({
+        'message': 'Flashcard cache cleared',
         'clearedItems': cleared_count
     }), 200
 

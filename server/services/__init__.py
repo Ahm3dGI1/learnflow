@@ -22,6 +22,7 @@ from .chat_service import (
     generate_session_id
 )
 from .quiz_service import generate_quiz
+from .flashcard_service import generate_flashcards
 from .summary_service import generate_summary
 from .user_service import get_or_create_user, get_user_by_firebase_uid
 from .progress_service import update_progress, mark_complete, get_user_progress, get_video_progress
@@ -56,6 +57,7 @@ __all__ = [
     'get_chat_history',
     'generate_session_id',
     'generate_quiz',
+    'generate_flashcards',
     'generate_summary',
     'fetch_transcript',
     'extract_video_id',

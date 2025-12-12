@@ -16,7 +16,7 @@
  */
 
 import './App.css';
-import { BrowserRouter, Routes, Route} from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import Home from "./pages/Home";
@@ -25,6 +25,7 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import VideoPage from "./pages/VideoPage";
 import QuizPage from "./pages/QuizPage";
+import FlashcardPage from "./pages/FlashcardPage";
 import Toast from "./components/Toast";
 import useToast from "./hooks/useToast";
 
@@ -62,6 +63,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <QuizPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/video/:videoId/flashcards"
+            element={
+              <ProtectedRoute>
+                <FlashcardPage />
               </ProtectedRoute>
             }
           />
