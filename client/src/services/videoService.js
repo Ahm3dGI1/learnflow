@@ -255,7 +255,8 @@ const videoService = {
     try {
       const queryParam = limit !== 50 ? `?limit=${limit}` : '';
       const response = await api.get(`/api/videos/history/${firebaseUid}${queryParam}`);
-      return Array.isArray(response) ? response : [];
+      // Backend returns { data: [...], total: ... }
+      return response.data || [];
     } catch (error) {
       console.error('Error fetching video history:', error);
       throw error;
@@ -276,7 +277,8 @@ const videoService = {
   saveToHistory: async (firebaseUid, videoData) => {
     try {
       const response = await api.post(`/api/videos/history/${firebaseUid}`, videoData);
-      return response;
+      // Backend returns { message: "...", data: { ... } }
+      return response.data;
     } catch (error) {
       console.error('Error saving video to history:', error);
       throw error;
