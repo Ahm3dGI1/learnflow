@@ -8,7 +8,6 @@
 /* CSS Custom Properties for consistent theming */
 :root {
   --home-primary: #0ea5e9;
-  --home-primary-light: #38bdf8;
   --home-primary-dark: #0284c7;
   --home-accent: #06b6d4;
   --home-glass-bg: rgba(255, 255, 255, 0.25);
@@ -218,7 +217,7 @@
 }
 
 /* Glass card wrapper for video components */
-.home-video-section .input-bar,
+.home-video-section .input-wrapper,
 .home-video-section .video-container {
   background: var(--home-glass-bg);
   backdrop-filter: blur(24px);
