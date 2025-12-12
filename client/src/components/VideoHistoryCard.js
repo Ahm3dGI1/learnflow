@@ -45,6 +45,16 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
     }
   };
 
+  // Normalized/fallback values to match test expectations and various prop shapes
+  const thumbnailSrc = video?.thumbnailUrl ?? video?.thumbnail ?? '';
+  const lastViewed = video?.lastViewedAt ?? video?.lastWatchedAt ?? '';
+  const deleteId = video?.id ?? video?.videoId ?? null;
+
+  // Progress normalization and computed values
+  const percent = progress?.progressPercentage ?? progress?.percentage ?? 0;
+  const roundedPercent = Math.round(percent);
+  const completed = progress?.isCompleted ?? roundedPercent >= 100;
+
   return (
     <div className="group relative flex flex-col md:flex-row bg-white/80 backdrop-blur-md border border-white/60 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
       {/* Thumbnail Section */}
@@ -53,16 +63,16 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
         onClick={() => onSelect(video)}
       >
         <img
-          {...(video.thumbnailUrl ? { src: video.thumbnailUrl } : {})}
+          {...(thumbnailSrc ? { src: thumbnailSrc } : {})}
           alt={video.title}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center play-overlay">
-          <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center transform scale-90 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-300 shadow-lg">
+          <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center transform scale-90 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-300">
             <Play className="w-5 h-5 text-blue-600 ml-1" />
           </div>
         </div>
-        {progress?.isCompleted && (
+        {completed && (
           <div className="absolute top-2 right-2 bg-green-500/90 text-white text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1 shadow-sm backdrop-blur-sm">
             <CheckCircle className="w-3 h-3" />
             Completed
@@ -70,11 +80,12 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
         )}
 
         {/* Progress Bar (Bottom of Thumbnail) */}
-        {progress && !progress.isCompleted && (
+        {progress && !completed && (
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200">
             <div
-              className="h-full bg-blue-500"
-              style={{ width: `${progress.progressPercentage}%` }}
+              className="h-full bg-blue-500 progress-bar-fill"
+              data-testid="progress-bar-fill"
+              style={{ width: `${roundedPercent}%` }}
             />
           </div>
         )}
@@ -90,14 +101,14 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
             {video.title}
           </h4>
           <p className="text-sm text-gray-500">
-            Last viewed {formatDate(video.lastWatchedAt)}
+            Last viewed {formatDate(lastViewed)}
           </p>
         </div>
 
         <div className="flex items-center justify-between mt-2">
-          {progress && !progress.isCompleted ? (
+          {progress && !completed ? (
             <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
-              {Math.round(progress.progressPercentage)}% watched
+              {roundedPercent}% watched
             </span>
           ) : (
             <span></span>
@@ -107,7 +118,7 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
             className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100"
             onClick={(e) => {
               e.stopPropagation();
-              onDelete(video.videoId);
+              if (deleteId) onDelete(deleteId);
             }}
             aria-label="Delete from history"
           >
