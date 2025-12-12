@@ -25,6 +25,7 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import VideoPage from "./pages/VideoPage";
 import QuizPage from "./pages/QuizPage";
+import ForgotPassword from "./pages/ForgotPassword";
 
 export default function App() {
   return (
