@@ -20,6 +20,7 @@ import VideoPlayer from "../components/VideoPlayer";
 import CheckpointPopup from "../components/CheckpointPopup";
 import VideoSummary from "../components/VideoSummary";
 import CheckpointProgressBar from "../components/CheckpointProgressBar";
+import ChatInterface from "../components/ChatInterface";
 import { videoService, llmService, progressService } from "../services";
 import "./VideoPage.css";
 
@@ -65,6 +66,7 @@ export default function VideoPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [embedUrl, setEmbedUrl] = useState("");
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [checkpoints, setCheckpoints] = useState([]);
   const [currentCheckpoint, setCurrentCheckpoint] = useState(null);
   const [checkpointsCompleted, setCheckpointsCompleted] = useState(new Set());
@@ -137,20 +139,7 @@ export default function VideoPage() {
             // Continue without checkpoints
           }
 
-          // Generate summary
-          try {
-            setSummaryLoading(true);
-            setSummaryError(null);
-            const summary = await llmService.generateSummary(
-              videoData.transcript
-            );
-            setSummaryData(summary);
-          } catch (err) {
-            console.error("Error generating summary:", err);
-            setSummaryError("Failed to generate summary");
-          } finally {
-            setSummaryLoading(false);
-          }
+          setSummaryLoading(false);
         }
       } catch (err) {
         console.error("Error fetching video:", err);
@@ -391,7 +380,7 @@ export default function VideoPage() {
     <div className="video-page-container">
       {/* Header */}
       <header className="video-page-header">
-        <button onClick={handleBack} className="back-button">
+        <button onClick={handleBack} className="video-page-back-button">
           ← Back to Dashboard
         </button>
         <div className="user-info">
@@ -417,7 +406,22 @@ export default function VideoPage() {
 
           {/* Video Info */}
           <div className="video-info-section">
-            <h1 className="video-title">{video?.title || "Untitled Video"}</h1>
+            <div className="video-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: '1rem' }}>
+              <h1 className="video-title">{video?.title || "Untitled Video"}</h1>
+
+              {/* Quiz Button - Always visible if transcript exists */}
+              {video?.transcript && (
+                <button
+                  className="take-quiz-button"
+                  onClick={() => navigate(`/video/${videoId}/quiz`)}
+                  aria-label="Take quiz for this video"
+                  style={{ flexShrink: 0, padding: '8px 16px', marginTop: '4px' }}
+                >
+                  Take Quiz
+                </button>
+              )}
+            </div>
+
             <div className="video-metadata">
               <span className="metadata-item">
                 {formatDuration(video?.durationSeconds)}
@@ -429,10 +433,22 @@ export default function VideoPage() {
                 <span className="metadata-item">{video.totalViews} views</span>
               )}
             </div>
+
             {video?.description && (
               <div className="video-description">
                 <h3>Description</h3>
-                <p>{video.description}</p>
+                <div className={`description-content ${isDescriptionExpanded ? 'expanded' : 'collapsed'}`}>
+                  {isDescriptionExpanded ? video.description : `${video.description.substring(0, 150)}...`}
+                </div>
+                {video.description.length > 150 && (
+                  <button
+                    className="show-more-button"
+                    onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                    style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', padding: '4px 0', marginTop: '4px' }}
+                  >
+                    {isDescriptionExpanded ? "Show Less" : "Show More"}
+                  </button>
+                )}
               </div>
             )}
 
@@ -442,6 +458,19 @@ export default function VideoPage() {
               loading={summaryLoading}
               error={summaryError}
               wordCount={summaryData?.wordCount}
+              onGenerate={() => {
+                if (video?.transcript) {
+                  setSummaryLoading(true);
+                  setSummaryError(null);
+                  llmService.generateSummary(video.transcript, videoId)
+                    .then(data => setSummaryData(data))
+                    .catch(err => {
+                      console.error("Summary gen error:", err);
+                      setSummaryError("Failed to generate summary");
+                    })
+                    .finally(() => setSummaryLoading(false));
+                }
+              }}
             />
 
             {/* Checkpoint Progress Bar */}
@@ -469,9 +498,8 @@ export default function VideoPage() {
                   {checkpoints.map((checkpoint) => (
                     <div
                       key={checkpoint.id}
-                      className={`checkpoint-item ${
-                        checkpointsCompleted.has(checkpoint.id) ? 'completed' : ''
-                      }`}
+                      className={`checkpoint-item ${checkpointsCompleted.has(checkpoint.id) ? 'completed' : ''
+                        }`}
                     >
                       <div className="checkpoint-marker">
                         {checkpointsCompleted.has(checkpoint.id) ? '✅' : '⏱️'}
@@ -485,38 +513,12 @@ export default function VideoPage() {
                 </div>
               </div>
             )}
-
-            {/* Quiz Section - Shows only after video ends */}
-            {video?.transcript && videoEnded && (
-              <div className="video-quiz-section">
-                <h3>📝 Test Your Knowledge</h3>
-                <p className="quiz-section-subtitle">
-                  Great! You've finished the video. Ready to test what you've learned?
-                </p>
-                <button
-                  className="take-quiz-button"
-                  onClick={() => navigate(`/video/${videoId}/quiz`)}
-                  aria-label="Take quiz for this video"
-                >
-                  Take Quiz →
-                </button>
-              </div>
-            )}
           </div>
         </div>
 
         {/* Right Column - AI Tutor Chat */}
         <div className="video-sidebar-column">
-          {/* Chat Section - Placeholder */}
-          <div className="chat-section">
-            <h2>💬 AI Tutor</h2>
-            <div className="placeholder-content">
-              <p>Chat with an AI tutor about this video</p>
-              <button className="feature-placeholder-button" disabled>
-                Start Chat (Coming Soon)
-              </button>
-            </div>
-          </div>
+          <ChatInterface videoId={videoId} videoTitle={video?.title} />
         </div>
       </div>
 
