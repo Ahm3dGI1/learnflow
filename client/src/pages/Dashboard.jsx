@@ -119,6 +119,8 @@ export default function Dashboard() {
     return null;
   };
 
+  const [isLoading, setIsLoading] = useState(false);
+
   /**
    * Handle Load Video
    *
@@ -126,23 +128,33 @@ export default function Dashboard() {
    * Also adds video to history for quick access.
    */
   const handleLoadVideo = async () => {
+    if (!videoUrl.trim()) {
+      alert("Please enter a YouTube URL");
+      return;
+    }
+
     const videoId = extractVideoId(videoUrl);
-    if (videoId) {
-      // Add to history
-      try {
-        await addToHistory({
-          videoId,
-          embedUrl: `https://www.youtube.com/embed/${videoId}`,
-          title: `YouTube Video - ${videoId}`,
-        });
-      } catch (error) {
-        console.error("Failed to add video to history:", error);
-      }
+    if (!videoId) {
+      alert("Invalid YouTube URL. Please try again.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Add to history first to ensure it exists in our backend
+      await addToHistory({
+        videoId,
+        embedUrl: `https://www.youtube.com/embed/${videoId}`,
+        title: `YouTube Video - ${videoId}`,
+      });
 
       // Navigate to video page
       navigate(`/video/${videoId}`);
-    } else if (videoUrl.trim()) {
-      alert("Please enter a valid YouTube URL");
+    } catch (error) {
+      console.error("Failed to load video:", error);
+      alert("Failed to save video to history. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -208,6 +220,7 @@ export default function Dashboard() {
             videoUrl={videoUrl}
             setVideoUrl={setVideoUrl}
             onSend={handleLoadVideo}
+            isLoading={isLoading}
           />
         </div>
 
