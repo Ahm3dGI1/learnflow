@@ -53,7 +53,7 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
         onClick={() => onSelect(video)}
       >
         <img
-          src={video.thumbnailUrl}
+          src={video.thumbnailUrl || ''}
           alt={video.title}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />

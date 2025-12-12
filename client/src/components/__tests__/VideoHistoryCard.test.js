@@ -10,7 +10,7 @@ describe('VideoHistoryCard', () => {
     id: 123,
     videoId: 'abc123',
     title: 'Learn React Testing',
-    thumbnail: 'https://img.youtube.com/vi/abc123/mqdefault.jpg',
+    thumbnailUrl: 'https://img.youtube.com/vi/abc123/mqdefault.jpg',
     lastViewedAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
   };
 
@@ -45,7 +45,7 @@ describe('VideoHistoryCard', () => {
 
     expect(screen.getByText('Learn React Testing')).toBeInTheDocument();
     expect(screen.getByAltText('Learn React Testing')).toBeInTheDocument();
-    expect(screen.getByAltText('Learn React Testing')).toHaveAttribute('src', mockVideo.thumbnail);
+    expect(screen.getByAltText('Learn React Testing')).toHaveAttribute('src', mockVideo.thumbnailUrl);
   });
 
   test('renders without progress data', () => {
@@ -377,7 +377,7 @@ describe('VideoHistoryCard', () => {
   test('handles missing thumbnail gracefully', () => {
     const videoWithoutThumbnail = {
       ...mockVideo,
-      thumbnail: null,
+      thumbnailUrl: null,
     };
 
     render(
