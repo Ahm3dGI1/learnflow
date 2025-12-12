@@ -21,16 +21,12 @@ const TOAST_DURATION = 5000;
 export const useToast = () => {
   const [toasts, setToasts] = useState([]);
 
-  // Register toast callback with error service
-  useEffect(() => {
-    const showToast = (message, severity) => {
-      show(message, severity);
-    };
-    errorService.setToastCallback(showToast);
-
-    return () => {
-      errorService.setToastCallback(null);
-    };
+  /**
+   * Dismiss a specific toast
+   * @param {number} id - Toast ID
+   */
+  const dismiss = useCallback((id) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
   /**
@@ -48,20 +44,25 @@ export const useToast = () => {
     // Auto-dismiss after duration
     if (duration > 0) {
       setTimeout(() => {
-        dismiss(id);
+        // Use setToasts directly to avoid dependency on dismiss
+        setToasts((prev) => prev.filter((t) => t.id !== id));
       }, duration);
     }
 
     return id;
   }, []);
 
-  /**
-   * Dismiss a specific toast
-   * @param {number} id - Toast ID
-   */
-  const dismiss = useCallback((id) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id));
-  }, []);
+  // Register toast callback with error service
+  useEffect(() => {
+    const showToast = (message, severity) => {
+      show(message, severity);
+    };
+    errorService.setToastCallback(showToast);
+
+    return () => {
+      errorService.setToastCallback(null);
+    };
+  }, [show]);
 
   /**
    * Clear all toasts

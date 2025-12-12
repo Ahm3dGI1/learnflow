@@ -28,6 +28,7 @@ from services import (
 )
 from utils.logger import get_logger
 from utils.exceptions import (
+    APIError,
     InvalidVideoIdError,
     MissingParameterError,
     ValidationError
@@ -464,14 +465,22 @@ def create_video():
 
         return jsonify(video_data), 201
 
-    except Exception as e:
+    except APIError:
+        # Let APIError exceptions (ValidationError, MissingParameterError, etc.)
+        # propagate to global error handler for consistent error responses
         db.rollback()
-        return jsonify({
-            'error': 'Failed to create video',
-            'details': str(e)
-        }), 500
-    finally:
         db.close()
+        raise
+    except Exception as e:
+        # Unexpected errors
+        db.rollback()
+        db.close()
+        logger.error(
+            f"Unexpected error creating video: {str(e)}",
+            exc_info=True,
+            extra={"video_id": youtube_video_id if 'youtube_video_id' in locals() else None}
+        )
+        raise
 
 
 @video_bp.route('/<youtube_video_id>/metadata', methods=['GET'])

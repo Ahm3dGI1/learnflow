@@ -16,7 +16,6 @@ from services import (
 )
 from middleware.auth import auth_required
 from utils.logger import get_logger
-from utils.exceptions import UserNotFoundError, VideoNotFoundError, MissingParameterError
 
 logger = get_logger(__name__)
 
