@@ -1,41 +1,17 @@
-/**
- * QuizPage Component
- * 
- * Dedicated page for taking quizzes based on video content.
- * Fetches quiz data, manages quiz state, and displays results.
- * 
- * Features:
- * - Generates quiz from video transcript
- * - Displays all questions with multiple choice options
- * - Submits answers and shows results
- * - Allows retaking quiz with new questions
- * 
- * @module QuizPage
- */
-
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
-import Quiz from '../components/Quiz';
+import { useToast } from '../hooks/useToast';
 import QuizResults from '../components/QuizResults';
 import { videoService, llmService } from '../services';
 import './QuizPage.css';
 
-/**
- * QuizPage Component
- * 
- * Main quiz page that handles quiz generation, submission, and results display.
- * 
- * @returns {React.ReactElement} Quiz page with quiz or results
- * 
- * @example
- * // Used in App routing
- * <Route path="/video/:videoId/quiz" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
- */
 export default function QuizPage() {
   const { videoId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const toast = useToast();
 
   const [video, setVideo] = useState(null);
   const [quiz, setQuiz] = useState(null);
@@ -45,13 +21,14 @@ export default function QuizPage() {
   const [error, setError] = useState(null);
   const [showResults, setShowResults] = useState(false);
 
+  // New state for local answer tracking
+  const [selectedAnswers, setSelectedAnswers] = useState({}); // { questionId: optionIndex }
+
   // Track quiz start time for time taken calculation
   const quizStartTime = useRef(null);
 
   /**
    * Fetch Video and Generate Quiz
-   * 
-   * Fetches video data and generates a quiz from the transcript.
    */
   useEffect(() => {
     const fetchQuiz = async () => {
@@ -77,7 +54,6 @@ export default function QuizPage() {
         }
 
         // Generate quiz
-        // Backend caches quiz by videoId:languageCode:numQuestions
         const quizData = await llmService.generateQuiz(
           videoData.transcript,
           { numQuestions: 5 }
@@ -89,22 +65,34 @@ export default function QuizPage() {
       } catch (err) {
         console.error('Error fetching quiz:', err);
         setError(err.message || 'Failed to generate quiz. Please try again.');
+        toast.error('Failed to load quiz');
       } finally {
         setLoading(false);
       }
     };
 
     fetchQuiz();
-  }, [videoId]);
+  }, [videoId, toast]);
+
+  /**
+   * Handle Option Selection
+   */
+  const handleOptionSelect = (questionId, optionIndex) => {
+    setSelectedAnswers(prev => ({
+      ...prev,
+      [questionId]: optionIndex
+    }));
+  };
 
   /**
    * Handle Quiz Submission
-   * 
-   * Submits user answers and displays results.
-   * 
-   * @param {Array} answers - Array of {questionId, selectedAnswer} objects
    */
-  const handleQuizSubmit = async (answers) => {
+  /**
+   * Handle Quiz Submission
+   */
+  const handleQuizSubmit = async () => {
+    if (!quiz || !quiz.questions) return;
+
     try {
       setSubmitting(true);
 
@@ -119,9 +107,8 @@ export default function QuizPage() {
       const formattedAnswers = [];
 
       quiz.questions.forEach((question, index) => {
-        const userAnswerObj = answers.find(a => a.questionId === question.id);
-        const userAnswer = userAnswerObj?.selectedAnswer;
-        const isCorrect = userAnswer === question.correctAnswer;
+        const userAnswerIndex = selectedAnswers[question.id];
+        const isCorrect = userAnswerIndex === question.correctAnswer;
 
         if (isCorrect) {
           resultsData.score++;
@@ -131,53 +118,58 @@ export default function QuizPage() {
           questionId: question.id,
           question: question.question,
           options: question.options,
-          userAnswer: userAnswer,
+          userAnswer: userAnswerIndex,
           correctAnswer: question.correctAnswer,
           isCorrect: isCorrect,
           explanation: question.explanation || ''
         });
 
-        // Format for backend (without isCorrect - server validates)
+        // Format for backend
         formattedAnswers.push({
           questionIndex: index,
-          selectedAnswer: userAnswer || ''
+          selectedAnswer: userAnswerIndex
         });
       });
 
-      // Submit to backend and save to database
+      // Show results immediately for better UX
+      setResults(resultsData);
+      setShowResults(true);
+
+      // Submit to backend
       try {
-        // Get user ID from auth context (assuming user object has id or uid)
         const userId = user?.id || user?.uid;
         const quizId = quiz?.quizId || quiz?.id;
-
-        // Calculate time taken in seconds
         const timeTakenSeconds = quizStartTime.current
           ? Math.floor((Date.now() - quizStartTime.current) / 1000)
           : null;
 
         if (userId && quizId) {
-          const submittedResult = await llmService.submitQuiz(
+          await llmService.submitQuiz(
             userId,
             quizId,
             formattedAnswers,
             timeTakenSeconds
           );
-          console.log('Quiz submitted to backend:', submittedResult);
-        } else {
-          console.warn('Missing userId or quizId, quiz not submitted to backend');
+          toast.success('Quiz completed and progress saved!');
+        } else if (!userId) {
+          toast.info('Quiz completed! Log in to save your progress.', { duration: 5000 });
         }
       } catch (backendError) {
-        // Don't fail the whole submission if backend save fails
-        // Still show results to user
-        console.error('Error submitting to backend (continuing anyway):', backendError);
+        console.error('Error submitting to backend:', backendError);
+
+        // Handle specific error types if available from the API client
+        if (backendError.code === 'UNAUTHORIZED' || backendError.status === 401) {
+          toast.warning('Session expired. Please log in again to save progress.');
+        } else if (backendError.code === 'NETWORK_ERROR' || !navigator.onLine) {
+          toast.warning('Network error. Check your connection. Results are shown locally.');
+        } else {
+          toast.warning('Quiz submitted, but failed to save to your profile. Please try again later.');
+        }
       }
 
-      setResults(resultsData);
-      setShowResults(true);
-
     } catch (err) {
-      console.error('Error submitting quiz:', err);
-      setError('Failed to submit quiz. Please try again.');
+      console.error('Error processing quiz:', err);
+      toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -185,17 +177,15 @@ export default function QuizPage() {
 
   /**
    * Handle Retake Quiz
-   * 
-   * Resets state and generates a new quiz.
    */
   const handleRetake = async () => {
     try {
       setShowResults(false);
       setResults(null);
+      setSelectedAnswers({});
       setLoading(true);
       setError(null);
 
-      // Clear cache and generate new quiz
       await llmService.clearQuizCache(videoId);
 
       const quizData = await llmService.generateQuiz(
@@ -204,45 +194,54 @@ export default function QuizPage() {
       );
 
       setQuiz(quizData);
-      // Reset start time for new quiz
       quizStartTime.current = Date.now();
+      toast.info('New quiz generated');
     } catch (err) {
       console.error('Error generating new quiz:', err);
       setError('Failed to generate new quiz. Please try again.');
+      toast.error('Failed to regenerate quiz');
     } finally {
       setLoading(false);
     }
   };
 
   /**
-   * Handle Back to Video
-   * 
-   * Returns user to video page.
+   * Derived State
    */
-  const handleBack = () => {
-    navigate(`/video/${videoId}`);
-  };
+  const answeredCount = Object.keys(selectedAnswers).length;
+  const totalQuestions = quiz?.questions?.length || 0;
+  const progressPercentage = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
+  const allAnswered = totalQuestions > 0 && answeredCount === totalQuestions;
 
-  // Loading state
+
+  // Render Loading
   if (loading) {
     return (
-      <div className="quiz-page-container">
-        <div className="quiz-page-loading" role="status" aria-live="polite">
-          <div className="loading-spinner" aria-label="Loading"></div>
+      <div className="quiz-loading-container">
+        <div className="bg-orb bg-orb-1 animate-blob"></div>
+        <div className="bg-orb bg-orb-2 animate-blob animation-delay-2000"></div>
+        <div className="loading-card">
+          <div className="loading-spinner"></div>
           <p>Generating quiz questions...</p>
         </div>
       </div>
     );
   }
 
-  // Error state
+  // Render Error
   if (error) {
     return (
-      <div className="quiz-page-container">
-        <div className="quiz-page-error">
+      <div className="quiz-error-container">
+        <div className="bg-orb bg-orb-1 animate-blob"></div>
+        <div className="bg-orb bg-orb-2 animate-blob animation-delay-2000"></div>
+        <div className="error-card">
           <h2>Unable to Load Quiz</h2>
           <p>{error}</p>
-          <button onClick={handleBack} className="back-button">
+          <button
+            onClick={() => navigate(`/video/${videoId}`)}
+            className="quiz-glass-button"
+            type="button"
+          >
             ← Back to Video
           </button>
         </div>
@@ -250,37 +249,138 @@ export default function QuizPage() {
     );
   }
 
+  // Main Render
   return (
     <div className="quiz-page-container">
+      {/* Animated Background Orbs */}
+      <div className="bg-orb bg-orb-1 animate-blob"></div>
+      <div className="bg-orb bg-orb-2 animate-blob animation-delay-2000"></div>
+      <div className="bg-orb bg-orb-3 animate-blob animation-delay-4000"></div>
+
       {/* Header */}
       <header className="quiz-page-header">
-        <button onClick={handleBack} className="back-button">
-          ← Back to Video
+        <button
+          onClick={() => navigate(`/video/${videoId}`)}
+          className="quiz-glass-button"
+          type="button"
+          aria-label="Back to video"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Video</span>
         </button>
-        <div className="video-title-section">
-          <h1>{video?.title || 'Quiz'}</h1>
-        </div>
-        <div className="user-info">
-          <span className="user-email">{user?.email}</span>
-        </div>
+
+        {user?.email && (
+          <div className="quiz-glass-button" style={{ cursor: 'default' }}>
+            <span className="user-email">{user.email}</span>
+          </div>
+        )}
       </header>
 
       {/* Main Content */}
-      <div className="quiz-page-content">
-        {showResults ? (
-          <QuizResults
-            results={results}
-            onRetake={handleRetake}
-            onBack={handleBack}
-          />
-        ) : (
-          <Quiz
-            quiz={quiz}
-            onSubmit={handleQuizSubmit}
-            loading={submitting}
-          />
-        )}
-      </div>
+      <main className="quiz-page-main">
+        <div className="quiz-content-wrapper">
+          {/* Video Title Bar */}
+          <div className="video-title-card">
+            <h1>{video?.title || 'Video Quiz'}</h1>
+          </div>
+
+          {showResults ? (
+            // Wrapper for results
+            <div className="quiz-card">
+              <QuizResults
+                results={results}
+                onRetake={handleRetake}
+                onBack={() => navigate(`/video/${videoId}`)}
+              />
+            </div>
+          ) : (
+            /* Quiz Card */
+            <div className="quiz-card">
+              {/* Quiz Header */}
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+                    <CheckCircle2 className="w-7 h-7 text-white" />
+                  </div>
+                  <h2 className="text-3xl text-gray-900 font-bold">Quiz Time</h2>
+                </div>
+                <p className="text-gray-600">Test your understanding of the video content</p>
+              </div>
+
+              {/* Progress */}
+              <div className="quiz-progress-section">
+                <div className="quiz-progress-labels">
+                  <span className="text-gray-700">{answeredCount} of {totalQuestions} questions answered</span>
+                  <span className="text-blue-600 font-bold">{Math.round(progressPercentage)}%</span>
+                </div>
+                <div className="progress-track">
+                  <div
+                    className="progress-fill"
+                    style={{ width: `${progressPercentage}%` }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/40 to-white/0 animate-shimmer"></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Questions */}
+              <div className="space-y-8">
+                {quiz?.questions.map((q, qIndex) => (
+                  <div key={q.id} className="quiz-question-card">
+                    {/* Question Number Badge */}
+                    <div className="question-badge">
+                      Question {qIndex + 1}
+                    </div>
+
+                    {/* Question Text */}
+                    <h3 className="question-text">{q.question}</h3>
+
+                    {/* Options */}
+                    <div className="quiz-options-grid">
+                      {q.options.map((option, optionIndex) => {
+                        const isSelected = selectedAnswers[q.id] === optionIndex;
+
+                        return (
+                          <button
+                            key={optionIndex}
+                            onClick={() => handleOptionSelect(q.id, optionIndex)}
+                            className={`quiz-option-button ${isSelected ? 'selected' : ''}`}
+                            type="button"
+                            aria-pressed={isSelected}
+                          >
+                            <div className="option-circle">
+                              {isSelected && <div className="option-dot" />}
+                            </div>
+                            <span className={`font-medium text-base ${isSelected ? 'text-gray-900' : 'text-gray-600'}`}>
+                              {option}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Submit Button */}
+              <div className="quiz-footer">
+                {!allAnswered && (
+                  <p className="text-amber-600 mb-3 text-sm font-medium">Please answer all questions before submitting</p>
+                )}
+                <button
+                  onClick={handleQuizSubmit}
+                  disabled={!allAnswered || submitting}
+                  className="quiz-submit-button"
+                  type="submit"
+                >
+                  {submitting ? 'Submitting...' : 'Submit Quiz'}
+                  {!submitting && <CheckCircle2 className="w-5 h-5 transition-transform" />}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 }

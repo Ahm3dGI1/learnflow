@@ -115,8 +115,6 @@ describe('QuizResults', () => {
       />
     );
 
-    expect(screen.getByText('Question 1')).toBeInTheDocument();
-    expect(screen.getByText('Question 2')).toBeInTheDocument();
     expect(screen.getByText('What is photosynthesis?')).toBeInTheDocument();
     expect(screen.getByText('What is the powerhouse of the cell?')).toBeInTheDocument();
   });
@@ -131,7 +129,7 @@ describe('QuizResults', () => {
     );
 
     expect(screen.getByText(/Back to Video/i)).toBeInTheDocument();
-    expect(screen.getByText(/Retake Quiz/i)).toBeInTheDocument();
+    expect(screen.getByText(/Try Again/i)).toBeInTheDocument();
   });
 
   // ========== PERFORMANCE LEVEL TESTS ==========
@@ -146,7 +144,7 @@ describe('QuizResults', () => {
     );
 
     expect(screen.getByText('Outstanding work!')).toBeInTheDocument();
-    expect(screen.getByText('🌟')).toBeInTheDocument();
+    expect(screen.getByText('🎉')).toBeInTheDocument();
   });
 
   test('shows good performance for 70-89%', () => {
@@ -172,7 +170,7 @@ describe('QuizResults', () => {
     );
 
     expect(screen.getByText('Good effort!')).toBeInTheDocument();
-    expect(screen.getByText('👍')).toBeInTheDocument();
+    expect(screen.getByText('📚')).toBeInTheDocument();
   });
 
   test('shows needs improvement for below 50%', () => {
@@ -199,7 +197,7 @@ describe('QuizResults', () => {
       />
     );
 
-    const correctBadges = screen.getAllByText('✓ Correct');
+    const correctBadges = screen.getAllByText('Correct');
     expect(correctBadges.length).toBeGreaterThan(0);
   });
 
@@ -212,7 +210,7 @@ describe('QuizResults', () => {
       />
     );
 
-    const incorrectBadges = screen.getAllByText('✗ Incorrect');
+    const incorrectBadges = screen.getAllByText('Incorrect');
     expect(incorrectBadges.length).toBeGreaterThan(0);
   });
 
@@ -239,21 +237,8 @@ describe('QuizResults', () => {
       />
     );
 
-    const userAnswerIndicators = screen.getAllByText('Your answer');
+    const userAnswerIndicators = screen.getAllByText('Your Answer');
     expect(userAnswerIndicators.length).toBe(2); // One for each question
-  });
-
-  test('highlights correct answer', () => {
-    render(
-      <QuizResults
-        results={mockResultsExcellent}
-        onRetake={mockOnRetake}
-        onBack={mockOnBack}
-      />
-    );
-
-    const correctAnswerIndicators = screen.getAllByText('Correct answer');
-    expect(correctAnswerIndicators.length).toBe(2); // One for each question
   });
 
   test('displays explanations', () => {
@@ -269,25 +254,7 @@ describe('QuizResults', () => {
     expect(screen.getByText(/Mitochondria produce energy/i)).toBeInTheDocument();
   });
 
-  test('renders option letters (A, B, C, D)', () => {
-    render(
-      <QuizResults
-        results={mockResultsExcellent}
-        onRetake={mockOnRetake}
-        onBack={mockOnBack}
-      />
-    );
 
-    const letterAs = screen.getAllByText('A');
-    const letterBs = screen.getAllByText('B');
-    const letterCs = screen.getAllByText('C');
-    const letterDs = screen.getAllByText('D');
-
-    expect(letterAs.length).toBeGreaterThan(0);
-    expect(letterBs.length).toBeGreaterThan(0);
-    expect(letterCs.length).toBeGreaterThan(0);
-    expect(letterDs.length).toBeGreaterThan(0);
-  });
 
   // ========== INTERACTION TESTS ==========
 
@@ -300,8 +267,10 @@ describe('QuizResults', () => {
       />
     );
 
-    const retakeButton = screen.getByText(/Retake Quiz/i);
-    fireEvent.click(retakeButton);
+    // Look for both buttons, as there are now two "Try Again" buttons (top and bottom)
+    // We can just click the first one found, or query specifically.
+    const retakeButtons = screen.getAllByText(/Try Again/i);
+    fireEvent.click(retakeButtons[0]);
 
     expect(mockOnRetake).toHaveBeenCalledTimes(1);
   });
@@ -426,7 +395,6 @@ describe('QuizResults', () => {
 
     expect(screen.getByText('1 / 1')).toBeInTheDocument();
     expect(screen.getByText('100%')).toBeInTheDocument();
-    expect(screen.getByText('Question 1')).toBeInTheDocument();
     expect(screen.queryByText('Question 2')).not.toBeInTheDocument();
   });
 
@@ -440,85 +408,5 @@ describe('QuizResults', () => {
     );
 
     expect(screen.getByText('Review Your Answers')).toBeInTheDocument();
-  });
-
-  // ========== CSS CLASS TESTS ==========
-
-  test('applies correct CSS class for excellent performance', () => {
-    const { container } = render(
-      <QuizResults
-        results={mockResultsExcellent}
-        onRetake={mockOnRetake}
-        onBack={mockOnBack}
-      />
-    );
-
-    const header = container.querySelector('.results-header');
-    expect(header).toHaveClass('excellent');
-  });
-
-  test('applies correct CSS class for good performance', () => {
-    const { container } = render(
-      <QuizResults
-        results={mockResultsGood}
-        onRetake={mockOnRetake}
-        onBack={mockOnBack}
-      />
-    );
-
-    const header = container.querySelector('.results-header');
-    expect(header).toHaveClass('good');
-  });
-
-  test('applies correct CSS class for fair performance', () => {
-    const { container } = render(
-      <QuizResults
-        results={mockResultsFair}
-        onRetake={mockOnRetake}
-        onBack={mockOnBack}
-      />
-    );
-
-    const header = container.querySelector('.results-header');
-    expect(header).toHaveClass('fair');
-  });
-
-  test('applies correct CSS class for needs improvement', () => {
-    const { container } = render(
-      <QuizResults
-        results={mockResultsPoor}
-        onRetake={mockOnRetake}
-        onBack={mockOnBack}
-      />
-    );
-
-    const header = container.querySelector('.results-header');
-    expect(header).toHaveClass('needs-improvement');
-  });
-
-  test('applies correct class to correct answer cards', () => {
-    const { container } = render(
-      <QuizResults
-        results={mockResultsExcellent}
-        onRetake={mockOnRetake}
-        onBack={mockOnBack}
-      />
-    );
-
-    const correctCards = container.querySelectorAll('.answer-card.correct');
-    expect(correctCards.length).toBeGreaterThan(0);
-  });
-
-  test('applies correct class to incorrect answer cards', () => {
-    const { container } = render(
-      <QuizResults
-        results={mockResultsExcellent}
-        onRetake={mockOnRetake}
-        onBack={mockOnBack}
-      />
-    );
-
-    const incorrectCards = container.querySelectorAll('.answer-card.incorrect');
-    expect(incorrectCards.length).toBeGreaterThan(0);
   });
 });

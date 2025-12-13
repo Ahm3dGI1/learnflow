@@ -24,10 +24,8 @@ class LearnLMClient:
             ValueError: If required environment variables are not set
         """
         self.api_key = os.environ.get("GEMINI_API_KEY")
-        self.model_name = os.environ.get(
-            "GEMINI_MODEL_NAME",
-            "learnlm-2.0-flash-experimental"
-        )
+        # Switching to generic alias `gemini-flash-latest` which is explicitly listed as available
+        self.model_name = "gemini-flash-latest"
 
         if not self.api_key:
             raise ValueError(

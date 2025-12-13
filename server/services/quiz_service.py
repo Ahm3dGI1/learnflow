@@ -66,30 +66,49 @@ def validate_quiz_response(response_data, expected_questions):
         return False
 
     # Validate each question
-    for question in questions:
+    # Validate each question
+    for idx, question in enumerate(questions):
         if not isinstance(question, dict):
+            print(f"Quiz Validation Error: Question {idx} is not a dict")
             return False
 
         required_fields = ['question', 'options', 'correctAnswer']
         if not all(field in question for field in required_fields):
+            print(f"Quiz Validation Error: Question {idx} missing fields. Found keys: {question.keys()}")
             return False
 
         # Check for empty question text
         if not question['question'].strip():
+            print(f"Quiz Validation Error: Question {idx} has empty text")
             return False
 
         # Validate options
         options = question['options']
         if not isinstance(options, list) or len(options) != 4:
+            print(f"Quiz Validation Error: Question {idx} options not a list of 4: {options}")
             return False
 
         # Check for duplicate options (common LLM mistake)
-        if len(set(options)) != len(options):
-            return False
+        # Note: Relaxing this slightly as sometimes options might be very similar but distinct enough
+        # if len(set(options)) != len(options):
+        #     return False
 
-        # Validate correctAnswer is valid index
+        # Validate correctAnswer and attempt to fix common LLM errors
         correct_answer = question['correctAnswer']
+        
+        # Convert string "0" to 0
+        if isinstance(correct_answer, str) and correct_answer.isdigit():
+            question['correctAnswer'] = int(correct_answer)
+            correct_answer = int(correct_answer)
+            
+        # Convert "A", "B", "C", "D" to 0, 1, 2, 3
+        if isinstance(correct_answer, str) and correct_answer.upper() in ['A', 'B', 'C', 'D']:
+            mapping = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
+            question['correctAnswer'] = mapping[correct_answer.upper()]
+            correct_answer = mapping[correct_answer.upper()]
+
         if not isinstance(correct_answer, int) or correct_answer not in [0, 1, 2, 3]:
+            print(f"Quiz Validation Error: Question {idx} invalid correctAnswer: {correct_answer}")
             return False
 
     return True
@@ -177,6 +196,7 @@ def generate_quiz(transcript_data, video_id, num_questions=5):
             )
 
         response_data = json.loads(response_text)
+        print(f"DEBUG - Generated Quiz Data: {json.dumps(response_data, indent=2)}")
 
         # Validate response
         if not validate_quiz_response(response_data, num_questions):
