@@ -1,5 +1,6 @@
 import React from 'react';
 import { Play, Trash2 } from 'lucide-react';
+import './VideoHistoryCard.css';
 
 /**
  * VideoHistoryCard Component
@@ -56,57 +57,60 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
   const completed = progress?.isCompleted ?? roundedPercent >= 100;
 
   return (
-    <div className="group relative flex flex-col md:flex-row bg-white/80 backdrop-blur-md border border-white/60 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+    <div className="video-history-card">
       {/* Thumbnail Section */}
-      <div
-        className="relative w-full md:w-48 h-32 flex-shrink-0 cursor-pointer overflow-hidden"
+      <button
+        className="history-thumbnail-wrapper"
         onClick={() => onSelect(video)}
+        aria-label={`Play ${video.title}`}
+        type="button"
       >
         <img
           {...(thumbnailSrc ? { src: thumbnailSrc } : {})}
-          alt={video.title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          alt=""
+          className="history-thumbnail-img"
         />
-        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center play-overlay">
-          <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center transform scale-90 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-300">
-            <Play className="w-5 h-5 text-blue-600 ml-1" />
+        <div className="play-overlay">
+          <div className="play-icon-circle">
+            <Play className="play-icon" />
           </div>
         </div>
         {completed && (
-          <div className="absolute top-2 right-2 bg-green-500/90 text-white text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1 shadow-sm backdrop-blur-sm">
+          <div className="completed-badge">
             ✓ Completed
           </div>
         )}
 
         {/* Progress Bar (Bottom of Thumbnail) */}
         {progress && !completed && (
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200">
+          <div className="history-progress-track">
             <div
-              className="h-full bg-blue-500 progress-bar-fill"
+              className="history-progress-fill"
               data-testid="progress-bar-fill"
               style={{ width: `${roundedPercent}%` }}
             />
           </div>
         )}
-      </div>
+      </button>
 
       {/* Info Section */}
-      <div className="flex-1 p-4 flex flex-col justify-between">
+      <div className="history-info">
         <div>
-          <h4
-            className="text-lg font-semibold text-gray-900 mb-1 line-clamp-1 cursor-pointer hover:text-blue-600 transition-colors"
+          <button
+            className="history-title"
             onClick={() => onSelect(video)}
+            type="button"
           >
             {video.title}
-          </h4>
-          <p className="text-sm text-gray-500">
+          </button>
+          <p className="history-meta">
             Last viewed {formatDate(lastViewed)}
           </p>
         </div>
 
-        <div className="flex items-center justify-between mt-2">
+        <div className="history-controls">
           {progress && !completed ? (
-            <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+            <span className="percent-badge">
               {roundedPercent}% watched
             </span>
           ) : (
@@ -114,14 +118,15 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
           )}
 
           <button
-            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100"
+            className="delete-history-btn"
             onClick={(e) => {
               e.stopPropagation();
               if (deleteId) onDelete(deleteId);
             }}
             aria-label="Delete from history"
+            type="button"
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="delete-icon" />
           </button>
         </div>
       </div>

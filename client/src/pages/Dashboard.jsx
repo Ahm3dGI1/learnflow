@@ -23,6 +23,7 @@ import { useAuth } from "../auth/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useVideoHistory } from "../hooks/useVideoHistory";
+import { useToast } from "../hooks/useToast";
 import { videoService, progressService } from "../services";
 import InputBar from "../components/InputBar";
 import VideoHistoryCard from "../components/VideoHistoryCard";
@@ -51,6 +52,7 @@ import "./Dashboard.css";
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [videoUrl, setVideoUrl] = useState("");
   const [progressMap, setProgressMap] = useState({});
   const { history, addToHistory, removeFromHistory, clearHistory } = useVideoHistory();
@@ -129,13 +131,13 @@ export default function Dashboard() {
    */
   const handleLoadVideo = async () => {
     if (!videoUrl.trim()) {
-      alert("Please enter a YouTube URL");
+      toast.warning("Please enter a YouTube URL");
       return;
     }
 
     const videoId = extractVideoId(videoUrl);
     if (!videoId) {
-      alert("Invalid YouTube URL. Please try again.");
+      toast.error("Invalid YouTube URL. Please try again.");
       return;
     }
 
@@ -152,7 +154,7 @@ export default function Dashboard() {
       navigate(`/video/${videoId}`);
     } catch (error) {
       console.error("Failed to load video:", error);
-      alert(`Failed to save video to history: ${error.message}`);
+      toast.error(`Failed to save video to history: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -181,6 +183,7 @@ export default function Dashboard() {
   const handleDeleteFromHistory = (videoId) => {
     if (window.confirm('Remove this video from your history?')) {
       removeFromHistory(videoId);
+      toast.success("Video removed from history");
     }
   };
 
@@ -193,6 +196,7 @@ export default function Dashboard() {
   const handleClearAllHistory = () => {
     if (window.confirm('Clear all video history? This cannot be undone.')) {
       clearHistory();
+      toast.success("Watch history cleared");
     }
   };
 
