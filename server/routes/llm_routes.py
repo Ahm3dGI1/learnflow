@@ -4,7 +4,6 @@ Handles endpoints for checkpoint generation, chat, and other AI features.
 """
 
 import json
-import logging
 import traceback
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request, jsonify, Response, g
@@ -22,12 +21,18 @@ from services import (
     generate_session_id
 )
 from utils import checkpoint_cache, quiz_cache, summary_cache
+from utils.logger import get_logger
+from utils.exceptions import (
+    MissingParameterError,
+    ValidationError,
+    CheckpointGenerationError,
+)
 from models import Checkpoint, Quiz, UserQuizAttempt, UserCheckpointCompletion, User, Video
 from middleware.auth import auth_required
 
 
 # Configure logging
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Blueprint for LLM routes
 llm_bp = Blueprint('llm', __name__, url_prefix='/api/llm')
@@ -315,27 +320,32 @@ def generate_checkpoints_route():
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'No data provided'}), 400
+            raise ValidationError("No data provided")
 
         video_id = data.get('videoId')
         transcript_data = data.get('transcript')
 
         # Validation
         if not video_id:
-            return jsonify({'error': 'videoId is required'}), 400
+            raise MissingParameterError('videoId')
 
         if not transcript_data:
-            return jsonify({'error': 'transcript is required'}), 400
+            raise MissingParameterError('transcript')
 
         if not transcript_data.get('snippets'):
-            return jsonify({'error': 'transcript.snippets is required'}), 400
+            raise ValidationError('transcript.snippets is required')
 
         language_code = transcript_data.get('languageCode', 'en')
+        logger.info(
+            "Generating checkpoints",
+            extra={"video_id": video_id, "language": language_code}
+        )
 
         # Check cache first (memory)
         cache_key = f"{video_id}:{language_code}"
         cached_data = checkpoint_cache.get(cache_key)
         if cached_data:
+            logger.info("Checkpoints served from memory cache", extra={"video_id": video_id})
             response = cached_data.copy()
             response['cached'] = True
             response['source'] = 'memory'
@@ -344,6 +354,7 @@ def generate_checkpoints_route():
         # Check database cache
         db_checkpoints = get_cached_checkpoints_from_db(video_id)
         if db_checkpoints:
+            logger.info("Checkpoints served from database", extra={"video_id": video_id})
             # Cache in memory for faster subsequent access
             checkpoint_cache.set(cache_key, db_checkpoints)
             response = db_checkpoints.copy()
@@ -352,6 +363,7 @@ def generate_checkpoints_route():
             return jsonify(response), 200
 
         # Generate checkpoints
+        logger.info("Generating new checkpoints via LLM", extra={"video_id": video_id})
         checkpoints = generate_checkpoints(transcript_data, video_id)
 
         # Save to database and get updated data with IDs
@@ -363,6 +375,14 @@ def generate_checkpoints_route():
         # Cache the result with IDs in memory
         checkpoint_cache.set(cache_key, final_checkpoints)
 
+        logger.info(
+            "Checkpoints generated successfully",
+            extra={
+                "video_id": video_id,
+                "checkpoint_count": len(final_checkpoints.get('checkpoints', []))
+            }
+        )
+
         # Add cached flag
         response = final_checkpoints.copy()
         response['cached'] = False
@@ -373,16 +393,17 @@ def generate_checkpoints_route():
     except ValueError as e:
         # ValueError messages are safe to expose (validation errors only)
         logger.warning(
-            f"Validation error generating checkpoints for video "
-            f"{video_id}: {str(e)}"
+            f"Validation error: {str(e)}",
+            extra={"video_id": video_id if 'video_id' in locals() else None}
         )
-        return jsonify({'error': str(e)}), 400
+        raise ValidationError(str(e))
     except Exception as e:
         logger.error(
-            f"Error generating checkpoints for video {video_id}: {str(e)}",
-            exc_info=True
+            f"Unexpected error generating checkpoints: {str(e)}",
+            exc_info=True,
+            extra={"video_id": video_id if 'video_id' in locals() else None}
         )
-        return jsonify({'error': 'Failed to generate checkpoints'}), 500
+        raise CheckpointGenerationError(str(e))
 
 
 @llm_bp.route('/checkpoints/cache/clear', methods=['POST'])

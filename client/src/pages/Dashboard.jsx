@@ -136,6 +136,7 @@ export default function Dashboard() {
     }
 
     const videoId = extractVideoId(videoUrl);
+<<<<<<< HEAD
     if (!videoId) {
       toast.error("Invalid YouTube URL. Please try again.");
       return;
@@ -153,8 +154,9 @@ export default function Dashboard() {
       // Navigate to video page
       navigate(`/video/${videoId}`);
     } catch (error) {
-      console.error("Failed to load video:", error);
-      toast.error(`Failed to save video to history: ${error.message}`);
+      console.warn("Failed to save video to history, navigating anyway:", error);
+      // Navigate anyway so the user isn't blocked by a backend history error
+      navigate(`/video/${videoId}`);
     } finally {
       setIsLoading(false);
     }
