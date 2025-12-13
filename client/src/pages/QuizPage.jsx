@@ -86,6 +86,9 @@ export default function QuizPage() {
   /**
    * Handle Quiz Submission
    */
+  /**
+   * Handle Quiz Submission
+   */
   const handleQuizSubmit = async () => {
     if (!quiz || !quiz.questions) return;
 
@@ -127,6 +130,10 @@ export default function QuizPage() {
         });
       });
 
+      // Show results immediately for better UX
+      setResults(resultsData);
+      setShowResults(true);
+
       // Submit to backend
       try {
         const userId = user?.id || user?.uid;
@@ -142,19 +149,26 @@ export default function QuizPage() {
             formattedAnswers,
             timeTakenSeconds
           );
+          toast.success('Quiz completed and progress saved!');
+        } else if (!userId) {
+          toast.info('Quiz completed! Log in to save your progress.', { duration: 5000 });
         }
       } catch (backendError) {
         console.error('Error submitting to backend:', backendError);
-        toast.warning('Quiz submitted locally, but failed to save to profile.');
+
+        // Handle specific error types if available from the API client
+        if (backendError.code === 'UNAUTHORIZED' || backendError.status === 401) {
+          toast.warning('Session expired. Please log in again to save progress.');
+        } else if (backendError.code === 'NETWORK_ERROR' || !navigator.onLine) {
+          toast.warning('Network error. Check your connection. Results are shown locally.');
+        } else {
+          toast.warning('Quiz submitted, but failed to save to your profile. Please try again later.');
+        }
       }
 
-      setResults(resultsData);
-      setShowResults(true);
-      toast.success('Quiz completed!');
-
     } catch (err) {
-      console.error('Error submitting quiz:', err);
-      toast.error('Failed to submit quiz. Please try again.');
+      console.error('Error processing quiz:', err);
+      toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setSubmitting(false);
     }
