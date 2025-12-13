@@ -39,8 +39,8 @@ def auth_required(f):
         try:
             claims = verify_id_token(token)
         except Exception as e:
-            # Normalize to 401 for any token verification errors
-            return jsonify({'error': 'Invalid token', 'details': str(e)}), 401
+            # Return detailed error for debugging
+            return jsonify({'error': f'Invalid token: {str(e)}'}), 401
 
         # Attach claims to flask.g for downstream use
         g.firebase_user = claims

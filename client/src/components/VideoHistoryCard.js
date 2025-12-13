@@ -1,14 +1,6 @@
-/**
- * Video History Card Component
- * 
- * Individual card for displaying video history entries with thumbnail,
- * title, timestamp, and delete functionality. Provides relative time
- * formatting (e.g., "5 minutes ago") and clickable areas for video selection.
- * 
- * @module VideoHistoryCard
- */
-
-import "./VideoHistoryCard.css";
+import React from 'react';
+import { Play, Trash2 } from 'lucide-react';
+import './VideoHistoryCard.css';
 
 /**
  * VideoHistoryCard Component
@@ -19,48 +11,23 @@ import "./VideoHistoryCard.css";
  *
  * @param {Object} props - Component props
  * @param {Object} props.video - Video history entry data
- * @param {string} props.video.id - Unique entry ID
  * @param {string} props.video.videoId - YouTube video ID
  * @param {string} props.video.title - Video title
- * @param {string} props.video.thumbnail - Thumbnail image URL
- * @param {string} props.video.lastViewedAt - ISO timestamp of last view
+ * @param {string} props.video.thumbnailUrl - Thumbnail image URL
+ * @param {string} props.video.lastWatchedAt - ISO timestamp of last view
  * @param {Object} [props.progress] - Optional progress data
  * @param {number} props.progress.progressPercentage - Percentage completed (0-100)
  * @param {boolean} props.progress.isCompleted - Whether video is fully watched
  * @param {Function} props.onSelect - Callback when video is selected for playback
  * @param {Function} props.onDelete - Callback when video is deleted from history
  * @returns {React.ReactElement} Video history card with thumbnail and controls
- *
- * @example
- * <VideoHistoryCard
- *   video={{
- *     id: 123,
- *     videoId: 'dQw4w9WgXcQ',
- *     title: 'Example Video',
- *     thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
- *     lastViewedAt: '2024-01-15T10:30:00Z'
- *   }}
- *   progress={{ progressPercentage: 45, isCompleted: false }}
- *   onSelect={handleVideoSelect}
- *   onDelete={handleVideoDelete}
- * />
  */
 export default function VideoHistoryCard({ video, progress, onSelect, onDelete }) {
   /**
    * Format Date to Relative Time
-   * 
-   * Converts an ISO date string to human-readable relative time format:
-   * - Under 1 hour: "X minutes ago"
-   * - Under 24 hours: "X hours ago"
-   * - Under 1 week: "X days ago"
-   * - Over 1 week: Full date using locale format
-   * 
-   * Properly handles singular/plural forms for time units.
-   * 
-   * @param {string} dateString - ISO 8601 date string
-   * @returns {string} Formatted relative or absolute date string
    */
   const formatDate = (dateString) => {
+    if (!dateString) return '';
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now - date;
@@ -79,55 +46,90 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
     }
   };
 
+  // Normalized/fallback values to match test expectations and various prop shapes
+  const thumbnailSrc = video?.thumbnailUrl ?? video?.thumbnail ?? '';
+  const lastViewed = video?.lastViewedAt ?? video?.lastWatchedAt ?? '';
+  const deleteId = video?.id ?? video?.videoId ?? null;
+
+  // Progress normalization and computed values
+  const percent = progress?.progressPercentage ?? progress?.percentage ?? 0;
+  const roundedPercent = Math.round(percent);
+  const completed = progress?.isCompleted ?? roundedPercent >= 100;
+
   return (
     <div className="video-history-card">
-      <div>
-        <div className="video-thumbnail-container" onClick={() => onSelect(video)}>
-          <img
-            src={video.thumbnail}
-            alt={video.title}
-            className="video-thumbnail"
-          />
-          <div className="play-overlay">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="white">
-              <path d="M8 5v14l11-7z"/>
-            </svg>
+      {/* Thumbnail Section */}
+      <button
+        className="history-thumbnail-wrapper"
+        onClick={() => onSelect(video)}
+        aria-label={`Play ${video.title}`}
+        type="button"
+      >
+        <img
+          {...(thumbnailSrc ? { src: thumbnailSrc } : {})}
+          alt={video.title}
+          className="history-thumbnail-img"
+        />
+        <div className="play-overlay">
+          <div className="play-icon-circle">
+            <Play className="play-icon" />
           </div>
-          {progress?.isCompleted && (
-            <div className="completed-badge">✓ Completed</div>
-          )}
         </div>
+        {completed && (
+          <div className="completed-badge">
+            ✓ Completed
+          </div>
+        )}
 
-        {/* Progress Bar */}
-        {progress && !progress.isCompleted && (
-          <div className="progress-bar-container">
+        {/* Progress Bar (Bottom of Thumbnail) */}
+        {progress && !completed && (
+          <div className="history-progress-track">
             <div
-              className="progress-bar-fill"
-              style={{ width: `${progress.progressPercentage}%` }}
+              className="history-progress-fill"
+              data-testid="progress-bar-fill"
+              style={{ width: `${Math.max(0, roundedPercent)}%` }}
             />
           </div>
         )}
-      </div>
-
-      <div className="video-info">
-        <h4 className="video-title" onClick={() => onSelect(video)}>
-          {video.title}
-        </h4>
-        <p className="video-date">Last viewed {formatDate(video.lastViewedAt)}</p>
-        {progress && !progress.isCompleted && (
-          <p className="video-progress">{Math.round(progress.progressPercentage)}% watched</p>
-        )}
-      </div>
-
-      <button
-        className="delete-button"
-        onClick={() => onDelete(video.id)}
-        aria-label="Delete from history"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-        </svg>
       </button>
+
+      {/* Info Section */}
+      <div className="history-info">
+        <div>
+          <button
+            className="history-title"
+            onClick={() => onSelect(video)}
+            type="button"
+          >
+            {video.title}
+          </button>
+          <p className="history-meta">
+            Last viewed {formatDate(lastViewed)}
+          </p>
+        </div>
+
+        <div className="history-controls">
+          {progress && !completed ? (
+            <span className="percent-badge">
+              {roundedPercent}% watched
+            </span>
+          ) : (
+            <span></span>
+          )}
+
+          <button
+            className="delete-history-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (deleteId) onDelete(deleteId);
+            }}
+            aria-label="Delete from history"
+            type="button"
+          >
+            <Trash2 className="delete-icon" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

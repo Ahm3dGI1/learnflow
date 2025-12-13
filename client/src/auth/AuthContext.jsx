@@ -49,18 +49,18 @@ export function AuthProvider({ children }) {
       setUser(u ?? null);
       setLoading(false);
 
-      // Call backend for create/update whenever the user is present
       if (u) {
         try {
-          // No body required - token gets attached via api wrapper
-          await api.post("/api/users", {});
+          // Sync user with backend
+          console.log('[AuthContext] Syncing user with backend...');
+          const response = await api.post("/api/users", {});
+          console.log('[AuthContext] User synced:', response);
         } catch (err) {
-          // Don't block app if backend fails; log for debugging
-          console.error("Failed to sync user with backend:", err);
+          console.error("[AuthContext] Failed to sync user with backend:", err);
         }
       }
     });
-    
+
     // Cleanup subscription on unmount
     return () => unsub();
   }, []);

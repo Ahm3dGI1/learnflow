@@ -10,7 +10,7 @@ describe('VideoHistoryCard', () => {
     id: 123,
     videoId: 'abc123',
     title: 'Learn React Testing',
-    thumbnail: 'https://img.youtube.com/vi/abc123/mqdefault.jpg',
+    thumbnailUrl: 'https://img.youtube.com/vi/abc123/mqdefault.jpg',
     lastViewedAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
   };
 
@@ -45,7 +45,7 @@ describe('VideoHistoryCard', () => {
 
     expect(screen.getByText('Learn React Testing')).toBeInTheDocument();
     expect(screen.getByAltText('Learn React Testing')).toBeInTheDocument();
-    expect(screen.getByAltText('Learn React Testing')).toHaveAttribute('src', mockVideo.thumbnail);
+    expect(screen.getByAltText('Learn React Testing')).toHaveAttribute('src', mockVideo.thumbnailUrl);
   });
 
   test('renders without progress data', () => {
@@ -101,7 +101,7 @@ describe('VideoHistoryCard', () => {
       />
     );
 
-    const progressBar = container.querySelector('.progress-bar-fill');
+    const progressBar = container.querySelector('.history-progress-fill');
     expect(progressBar).toBeInTheDocument();
     expect(progressBar).toHaveStyle({ width: '45%' });
   });
@@ -142,7 +142,7 @@ describe('VideoHistoryCard', () => {
       />
     );
 
-    const progressBar = container.querySelector('.progress-bar-fill');
+    const progressBar = container.querySelector('.history-progress-fill');
     expect(progressBar).not.toBeInTheDocument();
     expect(screen.queryByText(/watched/)).not.toBeInTheDocument();
   });
@@ -369,15 +369,17 @@ describe('VideoHistoryCard', () => {
       />
     );
 
-    const progressBar = container.querySelector('.progress-bar-fill');
-    expect(progressBar).toHaveStyle({ width: '0%' });
+    const progressBar = container.querySelector('.history-progress-fill');
+    expect(progressBar).toBeInTheDocument();
+    // Check that width is explicitly set to 0% in style
+    expect(progressBar.style.width).toBe('0%');
     expect(screen.getByText('0% watched')).toBeInTheDocument();
   });
 
   test('handles missing thumbnail gracefully', () => {
     const videoWithoutThumbnail = {
       ...mockVideo,
-      thumbnail: null,
+      thumbnailUrl: null,
     };
 
     render(

@@ -23,6 +23,7 @@ import { useAuth } from "../auth/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useVideoHistory } from "../hooks/useVideoHistory";
+import { useToast } from "../hooks/useToast";
 import { videoService, progressService } from "../services";
 import InputBar from "../components/InputBar";
 import VideoHistoryCard from "../components/VideoHistoryCard";
@@ -51,6 +52,7 @@ import "./Dashboard.css";
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [videoUrl, setVideoUrl] = useState("");
   const [progressMap, setProgressMap] = useState({});
   const { history, addToHistory, removeFromHistory, clearHistory } = useVideoHistory();
@@ -119,28 +121,44 @@ export default function Dashboard() {
     return null;
   };
 
+  const [isLoading, setIsLoading] = useState(false);
+
   /**
    * Handle Load Video
    *
    * Extracts video ID from input URL and navigates to VideoPage.
    * Also adds video to history for quick access.
    */
-  const handleLoadVideo = () => {
+  const handleLoadVideo = async () => {
+    if (!videoUrl.trim()) {
+      toast.warning("Please enter a YouTube URL");
+      return;
+    }
+
     const videoId = extractVideoId(videoUrl);
-    if (videoId) {
-      // Add to history (non-blocking, handle error silently to prevent crash)
-      addToHistory({
+
+    if (!videoId) {
+      toast.error("Invalid YouTube URL. Please try again.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Add to history first to ensure it exists in our backend
+      await addToHistory({
         videoId,
         embedUrl: `https://www.youtube.com/embed/${videoId}`,
         title: `YouTube Video - ${videoId}`,
-      }).catch(err => {
-        console.warn("Failed to add to history from Dashboard:", err);
       });
 
       // Navigate to video page
       navigate(`/video/${videoId}`);
-    } else if (videoUrl.trim()) {
-      alert("Please enter a valid YouTube URL");
+    } catch (error) {
+      console.warn("Failed to save video to history, navigating anyway:", error);
+      // Navigate anyway so the user isn't blocked by a backend history error
+      navigate(`/video/${videoId}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -162,11 +180,12 @@ export default function Dashboard() {
    * Removes a single video from history after user confirmation.
    * Shows native confirmation dialog to prevent accidental deletion.
    * 
-   * @param {number} id - Unique history entry ID
+   * @param {string} videoId - YouTube video ID
    */
-  const handleDeleteFromHistory = (id) => {
+  const handleDeleteFromHistory = (videoId) => {
     if (window.confirm('Remove this video from your history?')) {
-      removeFromHistory(id);
+      removeFromHistory(videoId);
+      toast.success("Video removed from history");
     }
   };
 
@@ -179,6 +198,7 @@ export default function Dashboard() {
   const handleClearAllHistory = () => {
     if (window.confirm('Clear all video history? This cannot be undone.')) {
       clearHistory();
+      toast.success("Watch history cleared");
     }
   };
 
@@ -206,6 +226,7 @@ export default function Dashboard() {
             videoUrl={videoUrl}
             setVideoUrl={setVideoUrl}
             onSend={handleLoadVideo}
+            isLoading={isLoading}
           />
         </div>
 
@@ -220,7 +241,7 @@ export default function Dashboard() {
             <div className="history-grid">
               {history.map((video) => (
                 <VideoHistoryCard
-                  key={video.id}
+                  key={video.videoId}
                   video={video}
                   progress={progressMap[video.videoId]}
                   onSelect={handleSelectFromHistory}
@@ -230,6 +251,7 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
 
         {history.length === 0 && (
           <div className="empty-state">
