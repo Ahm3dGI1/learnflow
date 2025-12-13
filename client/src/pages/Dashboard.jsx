@@ -136,7 +136,7 @@ export default function Dashboard() {
     }
 
     const videoId = extractVideoId(videoUrl);
-<<<<<<< HEAD
+
     if (!videoId) {
       toast.error("Invalid YouTube URL. Please try again.");
       return;
