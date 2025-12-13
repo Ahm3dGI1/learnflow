@@ -46,9 +46,21 @@ export default function Login() {
       case 'auth/wrong-password':
         return "Incorrect password.";
       case 'auth/too-many-requests':
-        return "Too many failed attempts. Please try again later.";
+        return "Too many failed attempts. Please wait 15 minutes before trying again.";
       case 'auth/invalid-email':
         return "Please enter a valid email address.";
+      case 'auth/network-request-failed':
+        return "Network error. Please check your internet connection.";
+      case 'auth/user-disabled':
+        return "This account has been disabled. Please contact support.";
+      case 'auth/email-already-in-use':
+        return "This email is already registered. Please log in instead.";
+      case 'auth/popup-blocked':
+        return "Popup blocked by browser. Please allow popups for this site.";
+      case 'auth/popup-closed-by-user':
+        return "Sign-in cancelled. The popup was closed.";
+      case 'auth/cancelled-popup-request':
+        return "Operation cancelled. Another popup request is active.";
       default:
         return "Login failed. Please check your credentials.";
     }

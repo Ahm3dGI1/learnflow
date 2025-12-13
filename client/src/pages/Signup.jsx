@@ -36,9 +36,27 @@ export default function Signup() {
   const [err, setErr] = useState("");
 
   /**
+   * Map Firebase error codes to user-friendly messages
+   */
+  function mapAuthError(code) {
+    switch (code) {
+      case 'auth/email-already-in-use':
+        return "This email is already in use. Please log in instead.";
+      case 'auth/invalid-email':
+        return "Please enter a valid email address.";
+      case 'auth/weak-password':
+        return "Password should be at least 6 characters.";
+      case 'auth/network-request-failed':
+        return "Network error. Please check your internet connection.";
+      default:
+        return "Registration failed. Please try again.";
+    }
+  }
+
+  /**
    * Handle Form Submission
    * 
-   * Creates new Firebase user account with email and password. Trims email
+   * Creates new Firebase user account with keys and password. Trims email
    * input, clears previous errors, and redirects to dashboard on success.
    * Displays Firebase error message if registration fails (e.g., email
    * already in use, weak password).
@@ -53,7 +71,7 @@ export default function Signup() {
       await createUserWithEmailAndPassword(auth, email.trim(), password);
       nav("/dashboard");
     } catch (e) {
-      setErr(e.message);
+      setErr(mapAuthError(e.code));
     }
   }
 
