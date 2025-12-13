@@ -22,16 +22,18 @@ export default function ForgotPassword() {
         setMessage("");
         setError("");
 
+        const trimmedEmail = email.trim();
+
         // Basic format validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        if (!emailRegex.test(trimmedEmail)) {
             setError("Please enter a valid email address.");
             return;
         }
 
         try {
             setLoading(true);
-            await sendPasswordResetEmail(auth, email);
+            await sendPasswordResetEmail(auth, trimmedEmail);
             // Always show success message for security (prevents user enumeration)
             setMessage("If an account exists with this email, you will receive password reset instructions shortly.");
         } catch (err) {
@@ -63,8 +65,8 @@ export default function ForgotPassword() {
                         <p>Enter your email to reset your password</p>
                     </div>
 
-                    {error && <div className="error-message">{error}</div>}
-                    {message && <div className="success-message">{message}</div>}
+                    {error && <div className="error-message" role="alert">{error}</div>}
+                    {message && <div className="success-message" role="status">{message}</div>}
 
                     <form onSubmit={handleSubmit} className="auth-form">
                         <div className="form-group">
@@ -74,7 +76,11 @@ export default function ForgotPassword() {
                                 placeholder="Enter your email"
                                 type="email"
                                 value={email}
-                                onChange={e => setEmail(e.target.value)}
+                                onChange={e => {
+                                    setEmail(e.target.value);
+                                    if (error) setError("");
+                                    if (message) setMessage("");
+                                }}
                                 required
                             />
                         </div>
