@@ -19,25 +19,34 @@ export default function ForgotPassword() {
 
     async function handleSubmit(e) {
         e.preventDefault();
+        setMessage("");
+        setError("");
+
+        // Basic format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            setError("Please enter a valid email address.");
+            return;
+        }
 
         try {
-            setMessage("");
-            setError("");
             setLoading(true);
             await sendPasswordResetEmail(auth, email);
-            setMessage("Password reset instructions sent. (Check Spam folder)");
-        } catch (e) {
-            console.error(e.code, e.message);
-
-            // Handle User Enumeration Protection (if enabled, Firebase might not throw, but if it does:)
-            if (e.code === 'auth/user-not-found') {
-                setError("No account found with this email address.");
-            } else if (e.code === 'auth/invalid-email') {
+            // Always show success message for security (prevents user enumeration)
+            setMessage("If an account exists with this email, you will receive password reset instructions shortly.");
+        } catch (err) {
+            // Only handle rate limiting or connectivity issues explicitly
+            // For other auth errors, we still show the generic success message or a generic error
+            if (err.code === 'auth/too-many-requests') {
+                setError("Too many requests. Please try again later.");
+            } else if (err.code === 'auth/network-request-failed') {
+                setError("Network error. Please check your internet connection.");
+            } else if (err.code === 'auth/invalid-email') {
+                // Formatting error from firebase, though our regex should catch most
                 setError("Please enter a valid email address.");
-            } else if (e.code === 'auth/too-many-requests') {
-                setError("Too many attempts. Please try again later.");
             } else {
-                setError("Failed to reset password. Please try again.");
+                // Fallback for other errors - show success to mask existence
+                setMessage("If an account exists with this email, you will receive password reset instructions shortly.");
             }
         } finally {
             setLoading(false);
@@ -54,8 +63,8 @@ export default function ForgotPassword() {
                         <p>Enter your email to reset your password</p>
                     </div>
 
-                    {error && <div className="error-message" style={{ background: '#fee', color: '#c33', borderColor: '#c33' }}>{error}</div>}
-                    {message && <div className="error-message" style={{ background: '#def7ec', color: '#046c4e', borderColor: '#31c48d' }}>{message}</div>}
+                    {error && <div className="error-message">{error}</div>}
+                    {message && <div className="success-message">{message}</div>}
 
                     <form onSubmit={handleSubmit} className="auth-form">
                         <div className="form-group">
