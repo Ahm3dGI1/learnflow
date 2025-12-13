@@ -298,11 +298,11 @@ const llmService = {
    * @param {number} maxLength - Maximum summary length in words (default: 150)
    * @returns {Promise<object>} Video summary
    */
-  generateSummary: async (transcript, maxLength = 150) => {
+  generateSummary: async (transcript, videoId = null, maxLength = 150) => {
     try {
       const body = {
         transcript: transcript,
-        videoId: transcript.videoId,
+        videoId: videoId || transcript.videoId,
         maxLength,
       };
 
