@@ -163,6 +163,15 @@ export default function VideoPage() {
               fetchMetadata: true,
               fetchTranscript: true
             });
+
+            // Log any warnings from the backend
+            if (newVideo.metadataWarning) {
+              console.warn("Metadata fetch warning:", newVideo.metadataWarning);
+            }
+            if (newVideo.transcriptWarning) {
+              console.error("Transcript fetch warning:", newVideo.transcriptWarning);
+            }
+
             setVideo(newVideo);
             setEmbedUrl(`https://www.youtube.com/embed/${videoId}?autoplay=0&enablejsapi=1`);
 

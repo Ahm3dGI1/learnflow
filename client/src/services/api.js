@@ -11,12 +11,14 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
  * Custom error class for API errors
  */
 class ApiError extends Error {
-  constructor(message, status, code, details) {
+  constructor(message, status, code, details, response = null) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
     this.details = details;
+    this.response = response ? { data: response } : null;
+    this.error = message; // For compatibility with errorService
   }
 }
 
@@ -88,7 +90,8 @@ async function request(endpoint, options = {}, requireAuth = true) {
         data.error || data.message || 'Request failed',
         response.status,
         data.code || 'UNKNOWN_ERROR',
-        data.details || null
+        data.details || null,
+        data  // Include full response data
       );
     }
 
