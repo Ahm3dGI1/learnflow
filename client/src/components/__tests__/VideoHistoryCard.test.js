@@ -101,7 +101,7 @@ describe('VideoHistoryCard', () => {
       />
     );
 
-    const progressBar = container.querySelector('.progress-bar-fill');
+    const progressBar = container.querySelector('.history-progress-fill');
     expect(progressBar).toBeInTheDocument();
     expect(progressBar).toHaveStyle({ width: '45%' });
   });
@@ -142,7 +142,7 @@ describe('VideoHistoryCard', () => {
       />
     );
 
-    const progressBar = container.querySelector('.progress-bar-fill');
+    const progressBar = container.querySelector('.history-progress-fill');
     expect(progressBar).not.toBeInTheDocument();
     expect(screen.queryByText(/watched/)).not.toBeInTheDocument();
   });
@@ -369,8 +369,10 @@ describe('VideoHistoryCard', () => {
       />
     );
 
-    const progressBar = container.querySelector('.progress-bar-fill');
-    expect(progressBar).toHaveStyle({ width: '0%' });
+    const progressBar = container.querySelector('.history-progress-fill');
+    expect(progressBar).toBeInTheDocument();
+    // Check that width is explicitly set to 0% in style
+    expect(progressBar.style.width).toBe('0%');
     expect(screen.getByText('0% watched')).toBeInTheDocument();
   });
 

@@ -67,7 +67,7 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
       >
         <img
           {...(thumbnailSrc ? { src: thumbnailSrc } : {})}
-          alt=""
+          alt={video.title}
           className="history-thumbnail-img"
         />
         <div className="play-overlay">
@@ -87,7 +87,7 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
             <div
               className="history-progress-fill"
               data-testid="progress-bar-fill"
-              style={{ width: `${roundedPercent}%` }}
+              style={{ width: `${Math.max(0, roundedPercent)}%` }}
             />
           </div>
         )}
