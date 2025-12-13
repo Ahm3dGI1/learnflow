@@ -26,8 +26,12 @@ import Dashboard from "./pages/Dashboard";
 import VideoPage from "./pages/VideoPage";
 import QuizPage from "./pages/QuizPage";
 import ForgotPassword from "./pages/ForgotPassword";
+import Toast from "./components/Toast";
+import useToast from "./hooks/useToast";
 
 export default function App() {
+  const toast = useToast();
+
   return (
     <AuthProvider>
       <BrowserRouter>
@@ -64,6 +68,8 @@ export default function App() {
             }
           />
         </Routes>
+        {/* Global toast notifications */}
+        <Toast toasts={toast.toasts} onDismiss={toast.dismiss} />
       </BrowserRouter>
     </AuthProvider>
   );

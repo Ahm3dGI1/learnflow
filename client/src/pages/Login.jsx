@@ -8,6 +8,8 @@
  * @module Login
  */
 
+import { mapAuthError } from "../utils/authErrors";
+
 import { useState } from "react";
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "../firebase";
@@ -51,7 +53,7 @@ export default function Login() {
       await signInWithEmailAndPassword(auth, email.trim(), password);
       nav("/dashboard");
     } catch (e) {
-      setErr(e.message);
+      setErr(mapAuthError(e.code));
     }
   }
 
@@ -68,7 +70,7 @@ export default function Login() {
       await signInWithPopup(auth, new GoogleAuthProvider());
       nav("/dashboard");
     } catch (e) {
-      setErr(e.message);
+      setErr(mapAuthError(e.code));
     }
   }
 
@@ -82,7 +84,16 @@ export default function Login() {
             <p>Log in to continue to LearnFlow</p>
           </div>
 
-          {err && <div className="error-message">{err}</div>}
+          {err && (
+            <div className="error-message" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              <span>{err}</span>
+            </div>
+          )}
 
           <form onSubmit={onSubmit} className="auth-form">
             <div className="form-group">
