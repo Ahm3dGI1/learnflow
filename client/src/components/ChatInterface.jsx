@@ -11,8 +11,32 @@ export default function ChatInterface({ videoId, videoTitle }) {
     const messagesEndRef = useRef(null);
 
     useEffect(() => {
-        // Ideally load history here
-    }, [videoId]);
+        let isMounted = true;
+
+        async function fetchHistory() {
+            if (!user || !user.id || !videoId) return;
+
+            try {
+                const history = await llmService.getChatHistory(videoId, user.id);
+                if (isMounted && history.messages) {
+                    // Map backend messages to UI format
+                    const formattedMessages = history.messages.map(msg => ({
+                        role: msg.role,
+                        content: msg.message,
+                        timestamp: msg.timestamp_context
+                    }));
+                    setMessages(formattedMessages);
+                }
+            } catch (err) {
+                console.error("Failed to load chat history:", err);
+                // Graceful degradation - just don't show history
+            }
+        }
+
+        fetchHistory();
+
+        return () => { isMounted = false; };
+    }, [videoId, user]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -24,7 +48,7 @@ export default function ChatInterface({ videoId, videoTitle }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!input.trim() || loading) return;
+        if (!input.trim() || loading || !user) return;
 
         const userMessage = input.trim();
         setInput('');
@@ -36,7 +60,7 @@ export default function ChatInterface({ videoId, videoTitle }) {
             await llmService.sendChatMessageStream(
                 userMessage,
                 {
-                    userId: user.id || 1,
+                    userId: user.id,
                     videoId: videoId,
                     videoContext: { videoId, language: 'en' }
                 },
@@ -167,8 +191,8 @@ export default function ChatInterface({ videoId, videoTitle }) {
                     type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Type your question..."
-                    disabled={loading}
+                    placeholder={user ? "Type your question..." : "Please log in to chat"}
+                    disabled={loading || !user}
                     style={{
                         flex: 1,
                         padding: '12px 16px',
@@ -178,23 +202,24 @@ export default function ChatInterface({ videoId, videoTitle }) {
                         color: 'var(--auth-text-primary)',
                         fontSize: '0.95rem',
                         outline: 'none',
-                        transition: 'all 0.2s'
+                        transition: 'all 0.2s',
+                        cursor: !user ? 'not-allowed' : 'text'
                     }}
-                    onFocus={(e) => e.target.style.background = 'white'}
-                    onBlur={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.6)'}
+                    onFocus={(e) => user && (e.target.style.background = 'white')}
+                    onBlur={(e) => user && (e.target.style.background = 'rgba(255, 255, 255, 0.6)')}
                 />
                 <button
                     type="submit"
-                    disabled={loading || !input.trim()}
+                    disabled={loading || !input.trim() || !user}
                     style={{
                         padding: '0 20px',
                         borderRadius: '12px',
                         background: 'linear-gradient(135deg, var(--auth-primary) 0%, var(--auth-primary-dark) 100%)',
                         color: 'white',
                         border: 'none',
-                        cursor: loading || !input.trim() ? 'default' : 'pointer',
+                        cursor: loading || !input.trim() || !user ? 'default' : 'pointer',
                         fontWeight: '600',
-                        opacity: loading || !input.trim() ? 0.7 : 1,
+                        opacity: loading || !input.trim() || !user ? 0.7 : 1,
                         boxShadow: '0 4px 6px rgba(14, 165, 233, 0.2)'
                     }}
                 >
