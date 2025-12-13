@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+import { useToast } from '../hooks/useToast';
 import QuizResults from '../components/QuizResults';
 import { videoService, llmService } from '../services';
 import './QuizPage.css';
