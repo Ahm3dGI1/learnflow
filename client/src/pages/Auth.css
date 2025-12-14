@@ -449,3 +449,21 @@
     animation: none;
   }
 }
+
+/* Forgot Password Link Container */
+.forgot-password-container {
+  text-align: right;
+  margin-top: 4px;
+}
+
+.forgot-password-link {
+  color: var(--auth-primary);
+  font-size: 0.85rem;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.forgot-password-link:hover {
+  color: var(--auth-primary-dark);
+}
