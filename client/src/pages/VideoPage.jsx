@@ -335,7 +335,7 @@ export default function VideoPage() {
 
     // Reset lastTriggeredCheckpoint if user seeks backward
     if (cps.length > 0) {
-      const lastCheckpoint = checkpoints.find(
+      const lastCheckpoint = cps.find(
         cp => cp.id === lastTriggeredCheckpoint.current
       );
       if (lastCheckpoint && time < lastCheckpoint.timestampSeconds - 5) {
