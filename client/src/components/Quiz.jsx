@@ -166,11 +166,11 @@ export default function Quiz({ quiz, onSubmit, loading = false }) {
                       checked={isSelected}
                       onChange={() => handleAnswerSelect(question.id, optionIndex)}
                       disabled={loading}
-                      className="sr-only"
+                      className="sr-only peer"
                       aria-label={`Option: ${option}`}
                     />
 
-                    <div className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected
+                    <div className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all peer-focus:ring-2 peer-focus:ring-blue-500 peer-focus:ring-offset-2 ${isSelected
                       ? 'border-blue-500 bg-blue-500'
                       : 'border-gray-300 bg-transparent group-hover:border-blue-400'
                       }`}>
