@@ -19,7 +19,7 @@ const llmService = {
    */
   generateCheckpoints: async (transcript, options = {}) => {
     try {
-      const body = {
+            const body = {
         transcript: transcript,
         videoId: transcript.videoId,
         numCheckpoints: options.numCheckpoints || 5,
@@ -348,21 +348,19 @@ const llmService = {
   /**
    * Mark a checkpoint as completed for a user
    * @param {number} checkpointId - Checkpoint ID
-   * @param {number} userId - User ID
-   * @param {boolean} isCorrect - Whether the answer was correct
+   * @param {string} selectedAnswer - The answer selected by the user (e.g., "A", "B", "C", "D")
    * @returns {Promise<object>} Completion record
    * @example
-   * const result = await llmService.markCheckpointComplete(10, 1, true);
+   * const result = await llmService.markCheckpointComplete(10, "B");
    * // Returns: { completionId, checkpointId, isCompleted, attemptCount, completedAt }
    */
-  markCheckpointComplete: async (checkpointId, userId, isCorrect) => {
+  markCheckpointComplete: async (checkpointId, selectedAnswer) => {
     try {
       const body = {
-        userId,
-        isCorrect,
+        selectedAnswer,
       };
 
-      const response = await api.post(`/api/llm/checkpoints/${checkpointId}/complete`, body, {}, false);
+      const response = await api.post(`/api/llm/checkpoints/${checkpointId}/complete`, body, {}, true);
       return response;
     } catch (error) {
       console.error('Error marking checkpoint complete:', error);
@@ -373,15 +371,14 @@ const llmService = {
   /**
    * Get checkpoint completion progress for a user on a video
    * @param {number} videoId - Video ID (database ID, not YouTube ID)
-   * @param {number} userId - User ID
    * @returns {Promise<object>} Progress data
    * @example
-   * const progress = await llmService.getCheckpointProgress(5, 1);
+   * const progress = await llmService.getCheckpointProgress(5);
    * // Returns: { videoId, totalCheckpoints, completedCheckpoints, progressPercentage, completions: [...] }
    */
-  getCheckpointProgress: async (videoId, userId) => {
+  getCheckpointProgress: async (videoId) => {
     try {
-      const response = await api.get(`/api/llm/videos/${videoId}/checkpoint-progress?userId=${userId}`, {}, false);
+      const response = await api.get(`/api/llm/videos/${videoId}/checkpoint-progress`, {}, true);
       return response;
     } catch (error) {
       console.error('Error getting checkpoint progress:', error);

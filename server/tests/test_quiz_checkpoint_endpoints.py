@@ -294,9 +294,9 @@ class TestQuizSubmission:
                     'userId': test_data['user'].id,
                     'quizId': test_data['quiz'].id,
                     'answers': [
-                        {'questionIndex': 0, 'selectedAnswer': 'B', 'isCorrect': True},
-                        {'questionIndex': 1, 'selectedAnswer': 'A', 'isCorrect': True},
-                        {'questionIndex': 2, 'selectedAnswer': 'D', 'isCorrect': False}
+                        {'questionIndex': 0, 'selectedAnswer': 'B'},
+                        {'questionIndex': 1, 'selectedAnswer': 'A'},
+                        {'questionIndex': 2, 'selectedAnswer': 'D'}
                     ],
                     'timeTakenSeconds': 120
                 })
@@ -333,7 +333,7 @@ class TestQuizSubmission:
                     'userId': test_data['user'].id,
                     'quizId': test_data['quiz'].id,
                     'answers': [
-                        {'questionIndex': 0, 'selectedAnswer': 'B', 'isCorrect': True}
+                        {'questionIndex': 0, 'selectedAnswer': 'B'}
                     ],
                     'timeTakenSeconds': 300
                 })
@@ -366,7 +366,7 @@ class TestQuizSubmission:
                     'userId': other_user.id,
                     'quizId': test_data['quiz'].id,
                     'answers': [
-                        {'questionIndex': 0, 'selectedAnswer': 'B', 'isCorrect': True}
+                        {'questionIndex': 0, 'selectedAnswer': 'B'}
                     ]
                 })
 

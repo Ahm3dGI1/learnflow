@@ -1350,17 +1350,19 @@ def mark_checkpoint_complete(checkpoint_id):
     user_id = data['userId']
     selected_answer = data['selectedAnswer']
 
+    # Get authenticated user's Firebase UID from token
+    firebase_uid = g.firebase_user.get('uid')
+
     db = SessionLocal()
     try:
-        # Verify user exists and matches authenticated user
-        user = db.query(User).filter_by(id=user_id).first()
+        # Look up user by Firebase UID
+        user = db.query(User).filter_by(firebase_uid=firebase_uid).first()
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
-        # Check that authenticated user matches the userId in request
-        firebase_uid = g.firebase_user.get('uid')
-        if user.firebase_uid != firebase_uid:
-            return jsonify({'error': 'Unauthorized: Cannot mark checkpoint complete for another user'}), 401
+        # Verify that the authenticated user matches the userId in the request
+        if user.id != user_id:
+            return jsonify({'error': 'Unauthorized: Cannot mark checkpoint for another user'}), 401
 
         # Verify checkpoint exists
         checkpoint = db.query(Checkpoint).filter_by(id=checkpoint_id).first()
@@ -1381,7 +1383,7 @@ def mark_checkpoint_complete(checkpoint_id):
 
         # Check if completion record exists
         completion = db.query(UserCheckpointCompletion).filter_by(
-            user_id=user_id,
+            user_id=user.id,
             checkpoint_id=checkpoint_id
         ).first()
 
@@ -1394,7 +1396,7 @@ def mark_checkpoint_complete(checkpoint_id):
         else:
             # Create new completion record
             completion = UserCheckpointCompletion(
-                user_id=user_id,
+                user_id=user.id,
                 checkpoint_id=checkpoint_id,
                 is_completed=is_correct,
                 completed_at=datetime.now(timezone.utc) if is_correct else None,
@@ -1457,26 +1459,30 @@ def get_checkpoint_progress(video_id):
         404: Video not found
         500: Server error
     """
+    # Get userId from query parameters
     user_id = request.args.get('userId')
     if not user_id:
         return jsonify({'error': 'Missing required parameter: userId'}), 400
 
+    # Validate userId is an integer
     try:
         user_id = int(user_id)
-    except ValueError:
-        return jsonify({'error': 'Invalid userId parameter'}), 400
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Invalid userId: must be an integer'}), 400
+
+    # Get authenticated user's Firebase UID from token
+    firebase_uid = g.firebase_user.get('uid')
 
     db = SessionLocal()
     try:
-        # Verify user exists and matches authenticated user
-        user = db.query(User).filter_by(id=user_id).first()
+        # Look up user by Firebase UID
+        user = db.query(User).filter_by(firebase_uid=firebase_uid).first()
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
-        # Check that authenticated user matches the userId in request
-        firebase_uid = g.firebase_user.get('uid')
-        if user.firebase_uid != firebase_uid:
-            return jsonify({'error': 'Unauthorized: Cannot get progress for another user'}), 401
+        # Verify that the authenticated user matches the userId in the request
+        if user.id != user_id:
+            return jsonify({'error': 'Unauthorized: Cannot view checkpoint progress for another user'}), 401
 
         # Verify video exists
         video = db.query(Video).filter_by(id=video_id).first()
@@ -1498,7 +1504,7 @@ def get_checkpoint_progress(video_id):
 
         # Get completion records for this user
         completions = db.query(UserCheckpointCompletion).filter(
-            UserCheckpointCompletion.user_id == user_id,
+            UserCheckpointCompletion.user_id == user.id,
             UserCheckpointCompletion.checkpoint_id.in_([c.id for c in checkpoints])
         ).all()
 

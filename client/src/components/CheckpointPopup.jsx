@@ -55,7 +55,7 @@ import './CheckpointPopup.css';
  *   onSkip={() => resumeVideo()}
  * />
  */
-export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTutor, onSkip, userId, checkpointId }) {
+export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTutor, onSkip, checkpointId }) {
   const [selectedOption, setSelectedOption] = useState(null);
   const [isCorrect, setIsCorrect] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -114,10 +114,9 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
       setShowFeedback(true);
 
       // Save completion to backend (don't block UI if it fails)
-      if (userId && checkpointId) {
+      if (checkpointId) {
         try {
-          await llmService.markCheckpointComplete(checkpointId, userId, selectedOption);
-          console.log('Checkpoint completion saved:', { checkpointId, userId, selectedAnswer: selectedOption });
+          await llmService.markCheckpointComplete(checkpointId, selectedOption);
         } catch (backendError) {
           console.error('Error saving checkpoint completion (continuing anyway):', backendError);
         }
