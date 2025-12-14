@@ -9,6 +9,7 @@
  */
 
 import { useState } from 'react';
+import PropTypes from 'prop-types';
 import './VideoSummary.css';
 
 /**
@@ -34,8 +35,8 @@ import './VideoSummary.css';
 export default function VideoSummary({ summary, loading, error, wordCount, onGenerate }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
-  // If no summary, no loading, and no error, show the generate button
-  const showGenerateButton = !summary && !loading && !error;
+  // If no summary, no loading, no error, and an onGenerate handler exists, show the generate button
+  const showGenerateButton = !summary && !loading && !error && typeof onGenerate === 'function';
 
   /**
    * Toggle Summary Expansion
@@ -69,6 +70,7 @@ export default function VideoSummary({ summary, loading, error, wordCount, onGen
           <button
             className="generate-summary-button"
             onClick={onGenerate}
+            aria-label="Generate AI summary for this video"
           >
             ✨ Generate Summary
           </button>
@@ -76,6 +78,22 @@ export default function VideoSummary({ summary, loading, error, wordCount, onGen
       </div>
     );
   }
+
+VideoSummary.propTypes = {
+  summary: PropTypes.string,
+  loading: PropTypes.bool,
+  error: PropTypes.string,
+  wordCount: PropTypes.number,
+  onGenerate: PropTypes.func
+};
+
+VideoSummary.defaultProps = {
+  summary: null,
+  loading: false,
+  error: null,
+  wordCount: undefined,
+  onGenerate: undefined
+};
 
   return (
     <div className="video-summary-section">

@@ -125,7 +125,7 @@ export default function VideoPage() {
         // Generate embed URL with enablejsapi for player control
         setEmbedUrl(`https://www.youtube.com/embed/${videoId}?autoplay=0&enablejsapi=1`);
 
-        // Fetch checkpoints if transcript exists
+        // Fetch checkpoints and optionally generate summary if transcript exists
         // Note: Backend caches checkpoints by videoId:languageCode to avoid regeneration
         if (videoData.transcript) {
           try {
@@ -139,7 +139,19 @@ export default function VideoPage() {
             // Continue without checkpoints
           }
 
-          setSummaryLoading(false);
+          // Generate summary for existing videos (previously only generated on create)
+          try {
+            setSummaryLoading(true);
+            setSummaryError(null);
+            const summary = await llmService.generateSummary(videoData.transcript, videoId);
+            setSummaryData(summary);
+          } catch (err) {
+            console.error('Error generating summary:', err);
+            // Don't block page load on summary error
+            setSummaryError('Failed to generate summary');
+          } finally {
+            setSummaryLoading(false);
+          }
         }
       } catch (err) {
         console.error("Error fetching video:", err);
@@ -406,7 +418,7 @@ export default function VideoPage() {
 
           {/* Video Info */}
           <div className="video-info-section">
-            <div className="video-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: '1rem' }}>
+            <div className="video-header-row">
               <h1 className="video-title">{video?.title || "Untitled Video"}</h1>
 
               {/* Quiz Button - Always visible if transcript exists */}
@@ -415,7 +427,6 @@ export default function VideoPage() {
                   className="take-quiz-button"
                   onClick={() => navigate(`/video/${videoId}/quiz`)}
                   aria-label="Take quiz for this video"
-                  style={{ flexShrink: 0, padding: '8px 16px', marginTop: '4px' }}
                 >
                   Take Quiz
                 </button>
@@ -444,7 +455,6 @@ export default function VideoPage() {
                   <button
                     className="show-more-button"
                     onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                    style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', padding: '4px 0', marginTop: '4px' }}
                   >
                     {isDescriptionExpanded ? "Show Less" : "Show More"}
                   </button>
