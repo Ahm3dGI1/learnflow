@@ -145,9 +145,10 @@ export default function QuizPage() {
       setShowResults(true);
 
       // Submit to backend
+      const userId = user?.id || user?.uid;
+      const quizId = quiz?.quizId || quiz?.id;
+      
       try {
-        const userId = user?.id || user?.uid;
-        const quizId = quiz?.quizId || quiz?.id;
         const timeTakenSeconds = quizStartTime.current
           ? Math.floor((Date.now() - quizStartTime.current) / 1000)
           : null;
