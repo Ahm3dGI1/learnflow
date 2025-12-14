@@ -3,6 +3,21 @@ import { useAuth } from '../auth/AuthContext';
 import { llmService } from '../services';
 import '../pages/Auth.css'; // Import auth styles for glass variables
 
+/**
+ * ChatInterface Component
+ * 
+ * Provides a chat interface for users to interact with an AI tutor about specific video content.
+ * Features include:
+ * - Real-time message streaming
+ * - Chat history loading from backend
+ * - Loading states and error handling
+ * - Auto-scrolling to new messages
+ * 
+ * @param {Object} props - Component props
+ * @param {string} props.videoId - ID of the video being discussed
+ * @param {string} props.videoTitle - Title of the video for context
+ * @returns {React.ReactElement} The chat interface
+ */
 export default function ChatInterface({ videoId, videoTitle }) {
     const { user } = useAuth();
     const [messages, setMessages] = useState([]);
@@ -10,6 +25,12 @@ export default function ChatInterface({ videoId, videoTitle }) {
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef(null);
 
+    /**
+     * Load Chat History Effect
+     * 
+     * Fetches previous chat history for this video/user pair on mount.
+     * Prevents state updates if component unmounts during fetch.
+     */
     useEffect(() => {
         let isMounted = true;
 
@@ -38,14 +59,32 @@ export default function ChatInterface({ videoId, videoTitle }) {
         return () => { isMounted = false; };
     }, [videoId, user]);
 
+    /**
+     * Auto-scroll helper
+     * Scrolls the chat container to the bottom smoothly.
+     */
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
+    /**
+     * Scroll Effect
+     * Trigger scroll to bottom whenever messages array changes.
+     */
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
 
+    /**
+     * Handle Message Submission
+     * 
+     * Sends user message to backend and handles streaming response.
+     * 1. Optimistically adds user message to UI
+     * 2. Initiates stream request
+     * 3. Accumulates chunks and updates partial assistant message in real-time
+     * 
+     * @param {Event} e - Form submission event
+     */
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!input.trim() || loading || !user) return;
@@ -57,6 +96,8 @@ export default function ChatInterface({ videoId, videoTitle }) {
 
         try {
             let fullResponse = "";
+            let isFirstChunk = true;
+
             await llmService.sendChatMessageStream(
                 userMessage,
                 {
@@ -68,11 +109,20 @@ export default function ChatInterface({ videoId, videoTitle }) {
                     fullResponse += chunk;
                     setMessages(prev => {
                         const newMessages = [...prev];
+
+                        // If it's the very first chunk, we need to create the assistant message
+                        if (isFirstChunk) {
+                            isFirstChunk = false;
+                            return [...newMessages, { role: 'assistant', content: chunk }];
+                        }
+
+                        // For subsequent chunks, update the last message (which is our streaming assistant message)
                         const lastMsg = newMessages[newMessages.length - 1];
-                        if (lastMsg.role === 'assistant') {
+                        if (lastMsg && lastMsg.role === 'assistant') {
                             lastMsg.content = fullResponse;
                             return newMessages;
                         } else {
+                            // Fallback in case state got out of sync, though unlikely with isFirstChunk flag
                             return [...newMessages, { role: 'assistant', content: chunk }];
                         }
                     });
@@ -80,8 +130,12 @@ export default function ChatInterface({ videoId, videoTitle }) {
             );
         } catch (err) {
             console.error("Chat error:", err);
-            // Fallback for error handling
-            setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I encountered an error. Please try again." }]);
+            // Fallback for error handling with helpful message
+            let errorMessage = "Sorry, I encountered an error";
+            if (err && err.message) errorMessage += `: ${err.message}`;
+            errorMessage += ". Please try again later.";
+
+            setMessages(prev => [...prev, { role: 'assistant', content: errorMessage }]);
         } finally {
             setLoading(false);
         }
