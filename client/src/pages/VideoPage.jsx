@@ -77,7 +77,7 @@ export default function VideoPage() {
   const lastTriggeredCheckpoint = useRef(null);
   const lastProgressSaveTime = useRef(0);
   const hasResumed = useRef(false);
-  // A notebook that always contains the latest value for ore reliable time saving 
+  // Refs that always contain the latest values to prevent unnecessary re-renders of handleTimeUpdate callback
   const videoDataRef = useRef(null);
   const checkpointsRef = useRef([]);
   const completedRef = useRef(new Set());
@@ -225,13 +225,13 @@ export default function VideoPage() {
 
     fetchVideo();
   }, [videoId, user]);
-    // Whenever React updates the real state, keep a silent mirror for the video player logic
-    useEffect(() => { videoDataRef.current = video; }, [video]);
-    useEffect(() => { checkpointsRef.current = checkpoints; }, [checkpoints]);
-    useEffect(() => { completedRef.current = checkpointsCompleted; }, [checkpointsCompleted]);
-    useEffect(() => { currentCheckpointRef.current = currentCheckpoint; }, [currentCheckpoint]);
-    useEffect(() => { videoEndedRef.current = videoEnded; }, [videoEnded]);
-    useEffect(() => { userRef.current = user; }, [user]);
+  // Whenever React updates the real state, keep a silent mirror for the video player logic
+  useEffect(() => { videoDataRef.current = video; }, [video]);
+  useEffect(() => { checkpointsRef.current = checkpoints; }, [checkpoints]);
+  useEffect(() => { completedRef.current = checkpointsCompleted; }, [checkpointsCompleted]);
+  useEffect(() => { currentCheckpointRef.current = currentCheckpoint; }, [currentCheckpoint]);
+  useEffect(() => { videoEndedRef.current = videoEnded; }, [videoEnded]);
+  useEffect(() => { userRef.current = user; }, [user]);
 
   /**
    * Handle Back Navigation
@@ -308,11 +308,9 @@ export default function VideoPage() {
     if (v?.durationSeconds && time >= v.durationSeconds - VIDEO_END_THRESHOLD) {
       if (!videoEndedRef.current) {
         videoEndedRef.current = true;
-        setVideoEnded(true);
       }
     } else if (videoEndedRef.current && v?.durationSeconds && time < v.durationSeconds - VIDEO_END_THRESHOLD) {
       videoEndedRef.current = false;
-      setVideoEnded(false);
     }
 
 
