@@ -155,16 +155,15 @@ export default function QuizPage() {
           ? Math.floor((Date.now() - quizStartTime.current) / 1000)
           : null;
 
-        if (userId && quizId) {
+        if (quizId) {
           const submittedResult = await llmService.submitQuiz(
-            userId,
             quizId,
             formattedAnswers,
             timeTakenSeconds
           );
           console.log('Quiz submitted to backend:', submittedResult);
         } else {
-          console.warn('Missing userId or quizId, quiz not submitted to backend');
+          console.warn('Missing quizId, quiz not submitted to backend');
         }
       } catch (backendError) {
         // Don't fail the whole submission if backend save fails

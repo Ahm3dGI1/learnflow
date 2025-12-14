@@ -1031,12 +1031,12 @@ def submit_quiz():
     Submit quiz answers and calculate score.
 
     Requires authentication via Firebase ID token in Authorization header.
+    User is determined from the auth token (not request body).
     Answer validation is performed server-side against stored quiz questions.
     Do NOT send isCorrect field - it will be calculated server-side.
 
     Request Body:
         {
-            "userId": 1,
             "quizId": 5,
             "answers": [
                 {"questionIndex": 0, "selectedAnswer": "Option B"},
@@ -1058,20 +1058,19 @@ def submit_quiz():
 
     Status Codes:
         200: Success
-        400: Invalid request data (missing userId, quizId, or answers)
-        401: Unauthorized (invalid/missing token or user mismatch)
+        400: Invalid request data (missing quizId or answers)
+        401: Unauthorized (invalid/missing token)
         404: User or quiz not found
         500: Server error (including invalid quiz data)
     """
     data = request.get_json()
 
     # Validate required fields
-    required_fields = ['userId', 'quizId', 'answers']
+    required_fields = ['quizId', 'answers']
     for field in required_fields:
         if field not in data:
             return jsonify({'error': f'Missing required field: {field}'}), 400
 
-    user_id = data['userId']
     quiz_id = data['quizId']
     answers = data['answers']
     time_taken = data.get('timeTakenSeconds')
@@ -1079,17 +1078,15 @@ def submit_quiz():
     if not isinstance(answers, list) or len(answers) == 0:
         return jsonify({'error': 'Answers must be a non-empty array'}), 400
 
+    # Get authenticated user's Firebase UID from token
+    firebase_uid = g.firebase_user.get('uid')
+
     db = SessionLocal()
     try:
-        # Verify user exists and matches authenticated user
-        user = db.query(User).filter_by(id=user_id).first()
+        # Look up user by Firebase UID
+        user = db.query(User).filter_by(firebase_uid=firebase_uid).first()
         if not user:
             return jsonify({'error': 'User not found'}), 404
-
-        # Check that authenticated user matches the userId in request
-        firebase_uid = g.firebase_user.get('uid')
-        if user.firebase_uid != firebase_uid:
-            return jsonify({'error': 'Unauthorized: Cannot submit quiz for another user'}), 401
 
         # Verify quiz exists
         quiz = db.query(Quiz).filter_by(id=quiz_id).first()
@@ -1131,7 +1128,7 @@ def submit_quiz():
 
         # Create quiz attempt record
         attempt = UserQuizAttempt(
-            user_id=user_id,
+            user_id=user.id,
             quiz_id=quiz_id,
             score=score,
             answers=json.dumps(answers),
@@ -1315,11 +1312,11 @@ def mark_checkpoint_complete(checkpoint_id):
     Mark a checkpoint as completed for a user.
 
     Requires authentication via Firebase ID token in Authorization header.
+    User is determined from the auth token (not request body).
     Answer validation is performed server-side against stored checkpoint data.
 
     Request Body:
         {
-            "userId": 1,
             "selectedAnswer": "B"
         }
 
@@ -1334,20 +1331,17 @@ def mark_checkpoint_complete(checkpoint_id):
 
     Status Codes:
         200: Success
-        400: Invalid request data (missing userId or selectedAnswer)
-        401: Unauthorized (invalid/missing token or user mismatch)
+        400: Invalid request data (missing selectedAnswer)
+        401: Unauthorized (invalid/missing token)
         404: User or checkpoint not found
         500: Server error
     """
     data = request.get_json()
 
     # Validate required fields
-    if 'userId' not in data:
-        return jsonify({'error': 'Missing required field: userId'}), 400
     if 'selectedAnswer' not in data:
         return jsonify({'error': 'Missing required field: selectedAnswer'}), 400
 
-    user_id = data['userId']
     selected_answer = data['selectedAnswer']
 
     # Get authenticated user's Firebase UID from token
@@ -1359,10 +1353,6 @@ def mark_checkpoint_complete(checkpoint_id):
         user = db.query(User).filter_by(firebase_uid=firebase_uid).first()
         if not user:
             return jsonify({'error': 'User not found'}), 404
-
-        # Verify that the authenticated user matches the userId in the request
-        if user.id != user_id:
-            return jsonify({'error': 'Unauthorized: Cannot mark checkpoint for another user'}), 401
 
         # Verify checkpoint exists
         checkpoint = db.query(Checkpoint).filter_by(id=checkpoint_id).first()
@@ -1431,9 +1421,7 @@ def get_checkpoint_progress(video_id):
     Get checkpoint completion progress for a user on a specific video.
 
     Requires authentication via Firebase ID token in Authorization header.
-
-    Query Parameters:
-        userId: User ID (required)
+    User is determined from the auth token (no query parameters needed).
 
     Returns:
         {
@@ -1454,22 +1442,10 @@ def get_checkpoint_progress(video_id):
 
     Status Codes:
         200: Success
-        400: Missing userId parameter
-        401: Unauthorized (invalid/missing token or user mismatch)
-        404: Video not found
+        401: Unauthorized (invalid/missing token)
+        404: User or video not found
         500: Server error
     """
-    # Get userId from query parameters
-    user_id = request.args.get('userId')
-    if not user_id:
-        return jsonify({'error': 'Missing required parameter: userId'}), 400
-
-    # Validate userId is an integer
-    try:
-        user_id = int(user_id)
-    except (ValueError, TypeError):
-        return jsonify({'error': 'Invalid userId: must be an integer'}), 400
-
     # Get authenticated user's Firebase UID from token
     firebase_uid = g.firebase_user.get('uid')
 
@@ -1479,10 +1455,6 @@ def get_checkpoint_progress(video_id):
         user = db.query(User).filter_by(firebase_uid=firebase_uid).first()
         if not user:
             return jsonify({'error': 'User not found'}), 404
-
-        # Verify that the authenticated user matches the userId in the request
-        if user.id != user_id:
-            return jsonify({'error': 'Unauthorized: Cannot view checkpoint progress for another user'}), 401
 
         # Verify video exists
         video = db.query(Video).filter_by(id=video_id).first()

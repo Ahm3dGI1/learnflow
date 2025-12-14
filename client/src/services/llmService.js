@@ -19,7 +19,7 @@ const llmService = {
    */
   generateCheckpoints: async (transcript, options = {}) => {
     try {
-            const body = {
+      const body = {
         transcript: transcript,
         videoId: transcript.videoId,
         numCheckpoints: options.numCheckpoints || 5,
@@ -316,28 +316,26 @@ const llmService = {
 
   /**
    * Submit quiz answers and save attempt to database
-   * @param {number} userId - User ID
    * @param {number} quizId - Quiz ID
-   * @param {Array} answers - Array of answer objects with questionIndex, selectedAnswer, isCorrect
+   * @param {Array} answers - Array of answer objects with questionIndex, selectedAnswer
    * @param {number} timeTakenSeconds - Time taken to complete quiz in seconds
    * @returns {Promise<object>} Quiz attempt result with score
    * @example
-   * const result = await llmService.submitQuiz(1, 5, [
-   *   { questionIndex: 0, selectedAnswer: "Option B", isCorrect: true },
-   *   { questionIndex: 1, selectedAnswer: "Option A", isCorrect: false }
+   * const result = await llmService.submitQuiz(5, [
+   *   { questionIndex: 0, selectedAnswer: "Option B" },
+   *   { questionIndex: 1, selectedAnswer: "Option A" }
    * ], 120);
    * // Returns: { attemptId, score, totalQuestions, correctAnswers, submittedAt }
    */
-  submitQuiz: async (userId, quizId, answers, timeTakenSeconds = null) => {
+  submitQuiz: async (quizId, answers, timeTakenSeconds = null) => {
     try {
       const body = {
-        userId,
         quizId,
         answers,
         timeTakenSeconds,
       };
 
-      const response = await api.post('/api/llm/quiz/submit', body, {}, false);
+      const response = await api.post('/api/llm/quiz/submit', body, {}, true);
       return response;
     } catch (error) {
       console.error('Error submitting quiz:', error);

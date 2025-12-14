@@ -550,7 +550,6 @@ export default function VideoPage() {
           onCorrectAnswer={handleCheckpointCorrect}
           onAskTutor={handleAskTutor}
           onSkip={handleSkipCheckpoint}
-          userId={user?.id || user?.uid}
           checkpointId={currentCheckpoint?.id}
           firebaseUid={user?.uid}
           videoId={video?.id}

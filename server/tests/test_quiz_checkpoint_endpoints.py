@@ -275,7 +275,6 @@ class TestQuizSubmission:
     def test_quiz_submission_requires_auth(self, client, test_data):
         """Test that quiz submission requires authentication."""
         response = client.post('/api/llm/quiz/submit', json={
-            'userId': test_data['user'].id,
             'quizId': test_data['quiz'].id,
             'answers': []
         })
@@ -291,7 +290,6 @@ class TestQuizSubmission:
             response = client.post('/api/llm/quiz/submit',
                 headers={'Authorization': 'Bearer faketoken'},
                 json={
-                    'userId': test_data['user'].id,
                     'quizId': test_data['quiz'].id,
                     'answers': [
                         {'questionIndex': 0, 'selectedAnswer': 'B'},
@@ -330,7 +328,6 @@ class TestQuizSubmission:
             response = client.post('/api/llm/quiz/submit',
                 headers={'Authorization': 'Bearer faketoken'},
                 json={
-                    'userId': test_data['user'].id,
                     'quizId': test_data['quiz'].id,
                     'answers': [
                         {'questionIndex': 0, 'selectedAnswer': 'B'}
@@ -346,7 +343,7 @@ class TestQuizSubmission:
         assert abs(time_diff - 300) < 2  # Allow 2 second tolerance
 
     def test_quiz_submission_prevents_user_spoofing(self, client, test_data, session):
-        """Test that users cannot submit quizzes for other users."""
+        """Test that endpoint uses authenticated user from token."""
         # Create another user
         other_user = User(
             firebase_uid='other-firebase-uid',
@@ -358,20 +355,24 @@ class TestQuizSubmission:
 
         claims = {'uid': 'test-firebase-uid', 'email': 'test@example.com', 'name': 'Test User'}
 
-        # Try to submit quiz for other user (authenticated as test-firebase-uid)
+        # Submit quiz - should use authenticated user from token
         with patch(VERIFY_PATCH_PATH, return_value=claims):
             response = client.post('/api/llm/quiz/submit',
                 headers={'Authorization': 'Bearer faketoken'},
                 json={
-                    'userId': other_user.id,
                     'quizId': test_data['quiz'].id,
                     'answers': [
                         {'questionIndex': 0, 'selectedAnswer': 'B'}
                     ]
                 })
 
-        assert response.status_code == 401
-        assert 'Unauthorized' in response.get_json()['error']
+        assert response.status_code == 200
+        data = response.get_json()
+
+        # Verify attempt was created for the authenticated user (test_data['user'])
+        attempt = session.query(UserQuizAttempt).filter_by(id=data['attemptId']).first()
+        assert attempt is not None
+        assert attempt.user_id == test_data['user'].id
 
     def test_quiz_submission_validates_required_fields(self, client, test_data):
         """Test that quiz submission validates required fields."""
@@ -382,7 +383,6 @@ class TestQuizSubmission:
             response = client.post('/api/llm/quiz/submit',
                 headers={'Authorization': 'Bearer faketoken'},
                 json={
-                    'userId': test_data['user'].id,
                     'answers': []
                 })
             assert response.status_code == 400
@@ -391,7 +391,6 @@ class TestQuizSubmission:
             response = client.post('/api/llm/quiz/submit',
                 headers={'Authorization': 'Bearer faketoken'},
                 json={
-                    'userId': test_data['user'].id,
                     'quizId': test_data['quiz'].id
                 })
             assert response.status_code == 400
@@ -400,7 +399,6 @@ class TestQuizSubmission:
             response = client.post('/api/llm/quiz/submit',
                 headers={'Authorization': 'Bearer faketoken'},
                 json={
-                    'userId': test_data['user'].id,
                     'quizId': test_data['quiz'].id,
                     'answers': []
                 })
@@ -496,7 +494,7 @@ class TestCheckpointCompletion:
             assert data['attemptCount'] == 2
 
     def test_checkpoint_completion_prevents_user_spoofing(self, client, test_data, session):
-        """Test that users cannot mark checkpoints complete for other users."""
+        """Test that endpoint uses authenticated user from token."""
         # Create another user
         other_user = User(
             firebase_uid='other-firebase-uid',
@@ -509,19 +507,26 @@ class TestCheckpointCompletion:
         checkpoint_id = test_data['checkpoints'][0].id
         claims = {'uid': 'test-firebase-uid', 'email': 'test@example.com', 'name': 'Test User'}
 
-        # Try to complete checkpoint for other user
+        # Complete checkpoint - should use authenticated user from token
         with patch(VERIFY_PATCH_PATH, return_value=claims):
             response = client.post(
                 f'/api/llm/checkpoints/{checkpoint_id}/complete',
                 headers={'Authorization': 'Bearer faketoken'},
                 json={
-                    'userId': other_user.id,
                     'selectedAnswer': 'B'
                 }
             )
 
-        assert response.status_code == 401
-        assert 'Unauthorized' in response.get_json()['error']
+        # Should succeed using authenticated user
+        assert response.status_code == 200
+
+        # Verify completion was created for the authenticated user (test_data['user'])
+        completion = session.query(UserCheckpointCompletion).filter_by(
+            checkpoint_id=checkpoint_id,
+            user_id=test_data['user'].id
+        ).first()
+        assert completion is not None
+        assert completion.user_id == test_data['user'].id
 
 
 # ========== CHECKPOINT PROGRESS TESTS ==========
@@ -581,8 +586,8 @@ class TestCheckpointProgress:
         assert completions_by_id[test_data['checkpoints'][2].id]['isCompleted'] is False
 
     def test_checkpoint_progress_prevents_user_spoofing(self, client, test_data, session):
-        """Test that users cannot get progress for other users."""
-        # Create another user
+        """Test that endpoint uses authenticated user from token, not query parameters."""
+        # Create another user with completions
         other_user = User(
             firebase_uid='other-firebase-uid',
             email='other@example.com',
@@ -591,33 +596,27 @@ class TestCheckpointProgress:
         session.add(other_user)
         session.commit()
 
+        # Create completion for other_user
+        other_completion = UserCheckpointCompletion(
+            user_id=other_user.id,
+            checkpoint_id=test_data['checkpoints'][0].id,
+            is_completed=True,
+            completed_at=datetime.now(timezone.utc),
+            attempt_count=1
+        )
+        session.add(other_completion)
+        session.commit()
+
         claims = {'uid': 'test-firebase-uid', 'email': 'test@example.com', 'name': 'Test User'}
 
-        # Try to get progress for other user
+        # Get progress - should return authenticated user's progress
         with patch(VERIFY_PATCH_PATH, return_value=claims):
-            response = client.get(
-                f'/api/llm/videos/{test_data["video"].id}/checkpoint-progress?userId={other_user.id}',
-                headers={'Authorization': 'Bearer faketoken'}
-            )
-
-        assert response.status_code == 401
-        assert 'Unauthorized' in response.get_json()['error']
-
-    def test_checkpoint_progress_validates_user_id(self, client, test_data):
-        """Test that checkpoint progress validates userId parameter."""
-        claims = {'uid': 'test-firebase-uid', 'email': 'test@example.com', 'name': 'Test User'}
-
-        with patch(VERIFY_PATCH_PATH, return_value=claims):
-            # Missing userId
             response = client.get(
                 f'/api/llm/videos/{test_data["video"].id}/checkpoint-progress',
                 headers={'Authorization': 'Bearer faketoken'}
             )
-            assert response.status_code == 400
 
-            # Invalid userId
-            response = client.get(
-                f'/api/llm/videos/{test_data["video"].id}/checkpoint-progress?userId=invalid',
-                headers={'Authorization': 'Bearer faketoken'}
-            )
-            assert response.status_code == 400
+        assert response.status_code == 200
+        data = response.get_json()
+        # Should return progress for authenticated user (no completions), not other_user (1 completion)
+        assert data['completedCheckpoints'] == 0

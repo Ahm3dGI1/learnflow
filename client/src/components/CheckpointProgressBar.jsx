@@ -130,8 +130,9 @@ export default function CheckpointProgressBar({
                 onClick={() => handleMarkerClick(checkpoint)}
                 role="button"
                 tabIndex={0}
-                onKeyPress={(e) => {
+                onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
                     handleMarkerClick(checkpoint);
                   }
                 }}
@@ -149,12 +150,7 @@ export default function CheckpointProgressBar({
 
       {/* Optional: Show progress summary */}
       {progressData && progressData.totalCheckpoints > 0 && (
-        <div style={{
-          fontSize: '12px',
-          color: '#666',
-          marginTop: '4px',
-          textAlign: 'center'
-        }}>
+        <div className="progress-summary">
           {progressData.completedCheckpoints} of {progressData.totalCheckpoints} checkpoints completed
           ({Math.round(progressData.progressPercentage)}%)
         </div>
