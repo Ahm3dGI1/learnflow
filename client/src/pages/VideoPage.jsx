@@ -69,6 +69,7 @@ export default function VideoPage() {
   const [currentCheckpoint, setCurrentCheckpoint] = useState(null);
   const [checkpointsCompleted, setCheckpointsCompleted] = useState(new Set());
   const [savedProgress, setSavedProgress] = useState(null);
+  const [videoEnded, setVideoEnded] = useState(false);
   const [summaryData, setSummaryData] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState(null);
@@ -307,6 +308,7 @@ export default function VideoPage() {
     if (v?.durationSeconds && time >= v.durationSeconds - VIDEO_END_THRESHOLD) {
       if (!videoEndedRef.current) {
         videoEndedRef.current = true;
+        setVideoEnded(true);
       }
     } else if (videoEndedRef.current && v?.durationSeconds && time < v.durationSeconds - VIDEO_END_THRESHOLD) {
       videoEndedRef.current = false;
