@@ -31,7 +31,6 @@ import './CheckpointPopup.css';
  * @param {Function} props.onCorrectAnswer - Callback when answer is correct
  * @param {Function} props.onAskTutor - Callback to open AI tutor chat
  * @param {Function} props.onSkip - Callback to skip checkpoint and resume video
- * @param {number} props.userId - User ID for saving completion (optional)
  * @param {number} props.checkpointId - Checkpoint ID for saving completion (optional)
  * @returns {React.ReactElement} Checkpoint popup modal
  *
@@ -55,7 +54,7 @@ import './CheckpointPopup.css';
  *   onSkip={() => resumeVideo()}
  * />
  */
-export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTutor, onSkip, userId, checkpointId }) {
+export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTutor, onSkip, checkpointId }) {
   const [selectedOption, setSelectedOption] = useState(null);
   const [isCorrect, setIsCorrect] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -93,7 +92,7 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
    * Validates user's selected option and shows appropriate feedback.
    * If correct, calls onCorrectAnswer callback to resume video after a delay.
    * If incorrect, shows feedback with correct answer, explanation, and action buttons.
-   * Also saves completion status to backend if userId and checkpointId provided.
+   * Also saves completion status to backend.
    */
   const handleSubmit = async () => {
     if (!selectedOption) {
@@ -114,10 +113,9 @@ export default function CheckpointPopup({ checkpoint, onCorrectAnswer, onAskTuto
       setShowFeedback(true);
 
       // Save completion to backend (don't block UI if it fails)
-      if (userId && checkpointId) {
+      if (checkpointId) {
         try {
-          await llmService.markCheckpointComplete(checkpointId, userId, selectedOption);
-          console.log('Checkpoint completion saved:', { checkpointId, userId, selectedAnswer: selectedOption });
+          await llmService.markCheckpointComplete(checkpointId, selectedOption);
         } catch (backendError) {
           console.error('Error saving checkpoint completion (continuing anyway):', backendError);
         }

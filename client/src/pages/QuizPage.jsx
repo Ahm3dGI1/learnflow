@@ -141,15 +141,18 @@ export default function QuizPage() {
           : null;
 
         if (userId && quizId) {
-          await llmService.submitQuiz(
+          const submittedResult = await llmService.submitQuiz(
             userId,
             quizId,
             formattedAnswers,
             timeTakenSeconds
           );
+          console.log('Quiz submitted to backend:', submittedResult);
           toast.success('Quiz completed and progress saved!');
         } else if (!userId) {
           toast.info('Quiz completed! Log in to save your progress.', { duration: 5000 });
+        } else {
+          console.warn('Missing quizId, quiz not submitted to backend');
         }
       } catch (backendError) {
         console.error('Error submitting to backend:', backendError);
