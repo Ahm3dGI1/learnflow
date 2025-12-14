@@ -87,9 +87,6 @@ export default function QuizPage() {
   /**
    * Handle Quiz Submission
    */
-  /**
-   * Handle Quiz Submission
-   */
   const handleQuizSubmit = async () => {
     if (!quiz || !quiz.questions) return;
 
@@ -127,7 +124,7 @@ export default function QuizPage() {
         // Format for backend
         formattedAnswers.push({
           questionIndex: index,
-          selectedAnswer: userAnswerIndex
+          selectedAnswer: userAnswerIndex !== undefined ? userAnswerIndex : null
         });
       });
 

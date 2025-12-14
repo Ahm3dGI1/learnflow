@@ -925,37 +925,30 @@ def clear_quiz_cache():
                 # Find video by YouTube ID
                 video = get_video_by_youtube_id(video_id, db)
                 if video:
-                    # Delete all quizzes for this video
-                    # Note: cascading deletes should handle UserQuizAttempts if configured, 
-                    # but usually we want to keep attempts even if the quiz definition is "hidden".
-                    # However, strictly speaking, if we delete the Quiz record, attempts linking to it might violate FK constraints 
-                    # unless configured with ON DELETE SET NULL or CASCADE.
-                    # For now, let's assume we want to "hide" or "soft delete" or simply strictly create a NEW quiz 
-                    # that supersedes the old one. 
+                    # Safe approach: Check for existing quiz attempts before deleting
+                    # to avoid foreign key constraint violations
+                    quiz_records = db.query(Quiz).filter_by(video_id=video.id).all()
+                    quiz_ids_to_delete = [q.id for q in quiz_records]
                     
-                    # Simpler approach: `get_cached_quiz_from_db` fetches the *most recent* quiz.
-                    # If we don't delete, we just need to ensure `generate_quiz` is forced.
-                    # But the current logic PREFERS the DB.
+                    # Check if any UserQuizAttempts reference these quizzes
+                    from models import UserQuizAttempt
+                    existing_attempts = db.query(UserQuizAttempt).filter(
+                        UserQuizAttempt.quiz_id.in_(quiz_ids_to_delete)
+                    ).count()
                     
-                    # Let's delete the Quiz records for this video to force regeneration.
-                    # BEWARE: This might break existing UserQuizAttempts if they reference Quiz.id with strict FK.
-                    # If so, we might just want to set a flag or ignore the db cache in the generate route if a flag is passed.
-                    
-                    # SAFEST APPROACH for "Practice More":
-                    # We actually WANT a new quiz. We shouldn't necessarily destroy history.
-                    # But the current `generate_quiz` logic aggressively caches.
-                    
-                    # Modification: We will delete the Quiz records for this video.
-                    # Assuming UserQuizAttempt has ON DELETE CASCADE or similar, OR we just accept we might lose history 
-                    # (which might not be ideal).
-                    
-                    # Better Approach: 
-                    # Just delete the Quiz entries. The user wants NEW questions.
-                    db.query(Quiz).filter_by(video_id=video.id).delete()
-                    db.commit()
-                    db_cleared = True
+                    if existing_attempts > 0:
+                        # Soft delete: Add a deleted/active flag to Quiz model in future
+                        # For now, we'll clear the quiz cache but let the generation 
+                        # service create a new quiz rather than deleting existing ones
+                        logger.info(f"Skipping quiz deletion for video {video.id} due to existing attempts")
+                        db_cleared = False  # Memory cache cleared but DB records preserved
+                    else:
+                        # Safe to delete - no attempts reference these quizzes
+                        db.query(Quiz).filter_by(video_id=video.id).delete()
+                        db.commit()
+                        db_cleared = True
             except Exception as e:
-                print(f"Error clearing quiz DB cache: {e}")
+                logger.error(f"Error clearing quiz DB cache: {e}", exc_info=True)
                 db.rollback()
             finally:
                 db.close()

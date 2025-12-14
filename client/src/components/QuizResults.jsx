@@ -1,4 +1,3 @@
-import React from 'react';
 import { CheckCircle2, XCircle, ArrowLeft, Sparkles, RotateCcw } from 'lucide-react';
 
 /**
@@ -85,8 +84,6 @@ export default function QuizResults({ results, onRetake, onBack }) {
         <h3 className="text-xl font-bold text-gray-900 mb-4 px-2">Review Your Answers</h3>
 
         {answers.map((answer, index) => {
-
-
           return (
             <div
               key={answer.questionId}
