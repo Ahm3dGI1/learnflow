@@ -164,6 +164,15 @@ export default function VideoPage() {
               fetchMetadata: true,
               fetchTranscript: true
             });
+
+            // Log any warnings from the backend
+            if (newVideo.metadataWarning) {
+              console.warn("Metadata fetch warning:", newVideo.metadataWarning);
+            }
+            if (newVideo.transcriptWarning) {
+              console.error("Transcript fetch warning:", newVideo.transcriptWarning);
+            }
+
             setVideo(newVideo);
             setEmbedUrl(`https://www.youtube.com/embed/${videoId}?autoplay=0&enablejsapi=1`);
 
@@ -484,11 +493,12 @@ export default function VideoPage() {
             />
 
             {/* Checkpoint Progress Bar */}
-            {user && video && (
+            {user && video && checkpoints.length > 0 && (
               <CheckpointProgressBar
-                firebaseUid={user.uid}
                 videoId={video.id}
                 videoDuration={video.durationSeconds}
+                checkpoints={checkpoints}
+                checkpointsCompleted={checkpointsCompleted}
                 onCheckpointClick={(timeSeconds) => {
                   if (videoRef.current) {
                     videoRef.current.seekTo(timeSeconds);
@@ -500,7 +510,7 @@ export default function VideoPage() {
             {/* Checkpoints List */}
             {checkpoints.length > 0 && (
               <div className="video-checkpoints">
-                <h3>📍 Learning Checkpoints</h3>
+                <h3>Learning Checkpoints</h3>
                 <p className="checkpoints-subtitle">
                   You'll be asked to answer questions at these points during the video
                 </p>
@@ -508,12 +518,23 @@ export default function VideoPage() {
                   {checkpoints.map((checkpoint) => (
                     <div
                       key={checkpoint.id}
-                      className={`checkpoint-item ${checkpointsCompleted.has(checkpoint.id) ? 'completed' : ''
-                        }`}
+                      className={`checkpoint-item ${checkpointsCompleted.has(checkpoint.id) ? 'completed' : ''}`}
+                      onClick={() => {
+                        if (videoRef.current && checkpoint.timestampSeconds !== undefined) {
+                          videoRef.current.seekTo(checkpoint.timestampSeconds);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if ((e.key === 'Enter' || e.key === ' ') && checkpoint.timestampSeconds !== undefined) {
+                          e.preventDefault();
+                          if (videoRef.current) {
+                            videoRef.current.seekTo(checkpoint.timestampSeconds);
+                          }
+                        }
+                      }}
                     >
-                      <div className="checkpoint-marker">
-                        {checkpointsCompleted.has(checkpoint.id) ? '✅' : '⏱️'}
-                      </div>
                       <div className="checkpoint-info">
                         <div className="checkpoint-time">{checkpoint.timestamp}</div>
                         <div className="checkpoint-item-title">{checkpoint.title}</div>
@@ -539,7 +560,6 @@ export default function VideoPage() {
           onCorrectAnswer={handleCheckpointCorrect}
           onAskTutor={handleAskTutor}
           onSkip={handleSkipCheckpoint}
-          userId={user?.id || user?.uid}
           checkpointId={currentCheckpoint?.id}
           firebaseUid={user?.uid}
           videoId={video?.id}

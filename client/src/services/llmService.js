@@ -316,28 +316,26 @@ const llmService = {
 
   /**
    * Submit quiz answers and save attempt to database
-   * @param {number} userId - User ID
    * @param {number} quizId - Quiz ID
-   * @param {Array} answers - Array of answer objects with questionIndex, selectedAnswer, isCorrect
+   * @param {Array} answers - Array of answer objects with questionIndex, selectedAnswer
    * @param {number} timeTakenSeconds - Time taken to complete quiz in seconds
    * @returns {Promise<object>} Quiz attempt result with score
    * @example
-   * const result = await llmService.submitQuiz(1, 5, [
-   *   { questionIndex: 0, selectedAnswer: "Option B", isCorrect: true },
-   *   { questionIndex: 1, selectedAnswer: "Option A", isCorrect: false }
+   * const result = await llmService.submitQuiz(5, [
+   *   { questionIndex: 0, selectedAnswer: "Option B" },
+   *   { questionIndex: 1, selectedAnswer: "Option A" }
    * ], 120);
    * // Returns: { attemptId, score, totalQuestions, correctAnswers, submittedAt }
    */
-  submitQuiz: async (userId, quizId, answers, timeTakenSeconds = null) => {
+  submitQuiz: async (quizId, answers, timeTakenSeconds = null) => {
     try {
       const body = {
-        userId,
         quizId,
         answers,
         timeTakenSeconds,
       };
 
-      const response = await api.post('/api/llm/quiz/submit', body, {}, false);
+      const response = await api.post('/api/llm/quiz/submit', body, {}, true);
       return response;
     } catch (error) {
       console.error('Error submitting quiz:', error);
@@ -348,21 +346,19 @@ const llmService = {
   /**
    * Mark a checkpoint as completed for a user
    * @param {number} checkpointId - Checkpoint ID
-   * @param {number} userId - User ID
-   * @param {boolean} isCorrect - Whether the answer was correct
+   * @param {string} selectedAnswer - The answer selected by the user (e.g., "A", "B", "C", "D")
    * @returns {Promise<object>} Completion record
    * @example
-   * const result = await llmService.markCheckpointComplete(10, 1, true);
+   * const result = await llmService.markCheckpointComplete(10, "B");
    * // Returns: { completionId, checkpointId, isCompleted, attemptCount, completedAt }
    */
-  markCheckpointComplete: async (checkpointId, userId, isCorrect) => {
+  markCheckpointComplete: async (checkpointId, selectedAnswer) => {
     try {
       const body = {
-        userId,
-        isCorrect,
+        selectedAnswer,
       };
 
-      const response = await api.post(`/api/llm/checkpoints/${checkpointId}/complete`, body, {}, false);
+      const response = await api.post(`/api/llm/checkpoints/${checkpointId}/complete`, body, {}, true);
       return response;
     } catch (error) {
       console.error('Error marking checkpoint complete:', error);
@@ -373,15 +369,14 @@ const llmService = {
   /**
    * Get checkpoint completion progress for a user on a video
    * @param {number} videoId - Video ID (database ID, not YouTube ID)
-   * @param {number} userId - User ID
    * @returns {Promise<object>} Progress data
    * @example
-   * const progress = await llmService.getCheckpointProgress(5, 1);
+   * const progress = await llmService.getCheckpointProgress(5);
    * // Returns: { videoId, totalCheckpoints, completedCheckpoints, progressPercentage, completions: [...] }
    */
-  getCheckpointProgress: async (videoId, userId) => {
+  getCheckpointProgress: async (videoId) => {
     try {
-      const response = await api.get(`/api/llm/videos/${videoId}/checkpoint-progress?userId=${userId}`, {}, false);
+      const response = await api.get(`/api/llm/videos/${videoId}/checkpoint-progress`, {}, true);
       return response;
     } catch (error) {
       console.error('Error getting checkpoint progress:', error);

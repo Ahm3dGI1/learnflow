@@ -65,13 +65,27 @@
 }
 
 @keyframes authOrb1 {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  50% { transform: translate(-40px, 40px) rotate(180deg); }
+
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  50% {
+    transform: translate(-40px, 40px) rotate(180deg);
+  }
 }
 
 @keyframes authOrb2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(50px, -30px) scale(1.1); }
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate(50px, -30px) scale(1.1);
+  }
 }
 
 /* Auth Card - Glassmorphism */
@@ -81,7 +95,7 @@
   -webkit-backdrop-filter: blur(24px);
   border-radius: 24px;
   border: 1px solid var(--auth-glass-border);
-  box-shadow: 
+  box-shadow:
     0 25px 50px -12px rgba(14, 165, 233, 0.15),
     0 8px 24px -8px rgba(0, 0, 0, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.6);
@@ -98,6 +112,7 @@
     opacity: 0;
     transform: translateY(32px) scale(0.96);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -158,7 +173,7 @@
 .form-input:focus {
   border-color: var(--auth-primary);
   background: rgba(255, 255, 255, 0.95);
-  box-shadow: 
+  box-shadow:
     0 0 0 4px rgba(14, 165, 233, 0.12),
     0 4px 12px rgba(14, 165, 233, 0.08);
 }
@@ -181,7 +196,7 @@
   margin-top: 8px;
   position: relative;
   overflow: hidden;
-  box-shadow: 
+  box-shadow:
     0 4px 16px rgba(14, 165, 233, 0.35),
     0 2px 6px rgba(14, 165, 233, 0.2);
 }
@@ -190,13 +205,13 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 50%);
   pointer-events: none;
 }
 
 .auth-button:hover {
   transform: translateY(-3px);
-  box-shadow: 
+  box-shadow:
     0 8px 24px rgba(14, 165, 233, 0.4),
     0 4px 10px rgba(14, 165, 233, 0.25);
 }
@@ -277,10 +292,38 @@
   animation: shakeError 0.4s ease;
 }
 
+/* Success Message */
+.success-message {
+  background: rgba(220, 252, 231, 0.9);
+  color: #14532d;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  border: 1px solid #86efac;
+  margin-bottom: 8px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 @keyframes shakeError {
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-6px); }
-  40%, 80% { transform: translateX(6px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
 }
 
 /* Footer Links */
@@ -367,7 +410,8 @@
 
   .form-input {
     padding: 14px 16px;
-    font-size: 16px; /* Prevents iOS zoom */
+    font-size: 16px;
+    /* Prevents iOS zoom */
   }
 
   .auth-button,
@@ -394,6 +438,7 @@
 
 /* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
+
   .auth-card,
   .auth-container::before,
   .auth-container::after {
@@ -403,4 +448,22 @@
   .error-message {
     animation: none;
   }
+}
+
+/* Forgot Password Link Container */
+.forgot-password-container {
+  text-align: right;
+  margin-top: 4px;
+}
+
+.forgot-password-link {
+  color: var(--auth-primary);
+  font-size: 0.85rem;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.forgot-password-link:hover {
+  color: var(--auth-primary-dark);
 }
