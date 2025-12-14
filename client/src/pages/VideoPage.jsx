@@ -68,8 +68,8 @@ export default function VideoPage() {
   const [checkpoints, setCheckpoints] = useState([]);
   const [currentCheckpoint, setCurrentCheckpoint] = useState(null);
   const [checkpointsCompleted, setCheckpointsCompleted] = useState(new Set());
-  const [videoEnded, setVideoEnded] = useState(false);
   const [savedProgress, setSavedProgress] = useState(null);
+  const [videoEnded, setVideoEnded] = useState(false);
   const [summaryData, setSummaryData] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState(null);
@@ -77,6 +77,14 @@ export default function VideoPage() {
   const lastTriggeredCheckpoint = useRef(null);
   const lastProgressSaveTime = useRef(0);
   const hasResumed = useRef(false);
+  // Refs that always contain the latest values to prevent unnecessary re-renders of handleTimeUpdate callback
+  const videoDataRef = useRef(null);
+  const checkpointsRef = useRef([]);
+  const completedRef = useRef(new Set());
+  const currentCheckpointRef = useRef(null);
+  const videoEndedRef = useRef(false);
+  const userRef = useRef(null);
+
 
   // Checkpoint trigger window in seconds
   const CHECKPOINT_TRIGGER_WINDOW = 1.5;
@@ -217,6 +225,13 @@ export default function VideoPage() {
 
     fetchVideo();
   }, [videoId, user]);
+  // Whenever React updates the real state, keep a silent mirror for the video player logic
+  useEffect(() => { videoDataRef.current = video; }, [video]);
+  useEffect(() => { checkpointsRef.current = checkpoints; }, [checkpoints]);
+  useEffect(() => { completedRef.current = checkpointsCompleted; }, [checkpointsCompleted]);
+  useEffect(() => { currentCheckpointRef.current = currentCheckpoint; }, [currentCheckpoint]);
+  useEffect(() => { videoEndedRef.current = videoEnded; }, [videoEnded]);
+  useEffect(() => { userRef.current = user; }, [user]);
 
   /**
    * Handle Back Navigation
@@ -284,27 +299,32 @@ export default function VideoPage() {
    */
   const handleTimeUpdate = useCallback(async (time) => {
     // Check if video has ended (within VIDEO_END_THRESHOLD seconds of duration)
-    if (video?.durationSeconds && time >= video.durationSeconds - VIDEO_END_THRESHOLD) {
-      setVideoEnded(true);
-    } else if (videoEnded && time < video.durationSeconds - VIDEO_END_THRESHOLD) {
-      // Reset if user seeks backward
-      setVideoEnded(false);
+    const v = videoDataRef.current;
+    const cps = checkpointsRef.current || [];
+    const completed = completedRef.current || new Set();
+    const cpOpen = currentCheckpointRef.current;
+    const u = userRef.current;
+
+    if (v?.durationSeconds && time >= v.durationSeconds - VIDEO_END_THRESHOLD) {
+      if (!videoEndedRef.current) {
+        videoEndedRef.current = true;
+        setVideoEnded(true);
+      }
+    } else if (videoEndedRef.current && v?.durationSeconds && time < v.durationSeconds - VIDEO_END_THRESHOLD) {
+      videoEndedRef.current = false;
     }
 
+
     // Check if we should trigger a checkpoint
-    if (!currentCheckpoint) {
-      for (const checkpoint of checkpoints) {
-        // Check if we're within trigger window after checkpoint time and haven't completed it
+    if (!cpOpen) {
+      for (const checkpoint of cps) {
         if (
           time >= checkpoint.timestampSeconds &&
           time < checkpoint.timestampSeconds + CHECKPOINT_TRIGGER_WINDOW &&
-          !checkpointsCompleted.has(checkpoint.id) &&
+          !completed.has(checkpoint.id) &&
           lastTriggeredCheckpoint.current !== checkpoint.id
         ) {
-          // Pause video and show checkpoint
-          if (videoRef.current) {
-            videoRef.current.pauseVideo();
-          }
+          if (videoRef.current) videoRef.current.pauseVideo();
           setCurrentCheckpoint(checkpoint);
           lastTriggeredCheckpoint.current = checkpoint.id;
           break;
@@ -313,8 +333,8 @@ export default function VideoPage() {
     }
 
     // Reset lastTriggeredCheckpoint if user seeks backward
-    if (checkpoints.length > 0) {
-      const lastCheckpoint = checkpoints.find(
+    if (cps.length > 0) {
+      const lastCheckpoint = cps.find(
         cp => cp.id === lastTriggeredCheckpoint.current
       );
       if (lastCheckpoint && time < lastCheckpoint.timestampSeconds - 5) {
@@ -327,20 +347,20 @@ export default function VideoPage() {
     const timeSinceLastSave = (currentTime - lastProgressSaveTime.current) / 1000;
 
     if (
-      user &&
-      video?.id &&
+      u &&
+      v?.id &&
       time > 0 &&
       timeSinceLastSave >= PROGRESS_UPDATE_INTERVAL
     ) {
       try {
-        await progressService.updateProgress(user.uid, video.id, Math.floor(time));
+        await progressService.updateProgress(u.uid, v.id, Math.floor(time));
         lastProgressSaveTime.current = currentTime;
         console.log(`Progress saved: ${Math.floor(time)}s`);
       } catch (err) {
         console.error("Error saving progress:", err);
       }
     }
-  }, [video, videoEnded, currentCheckpoint, checkpoints, checkpointsCompleted, user]);
+  }, []);
 
   /**
    * Handle Video Player Ready
