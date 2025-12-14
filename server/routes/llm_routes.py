@@ -67,7 +67,7 @@ def get_cached_checkpoints_from_db(video_id):
                 try:
                     return json.loads(video.checkpoints_data)
                 except json.JSONDecodeError as e:
-                    print(f"Error parsing cached checkpoints: {e}")
+                    logger.warning(f"Error parsing cached checkpoints: {e}")
                     return None
             return None
 
@@ -107,8 +107,7 @@ def get_cached_checkpoints_from_db(video_id):
         }
 
     except Exception as e:
-        print(f"Error reading checkpoints from database: {e}")
-        traceback.print_exc()
+        logger.error(f"Error reading checkpoints from database: {e}", exc_info=True)
         return None
     finally:
         db.close()
@@ -141,7 +140,7 @@ def get_cached_quiz_from_db(video_id):
                 try:
                     return json.loads(video.quiz_data)
                 except json.JSONDecodeError as e:
-                    print(f"Error parsing cached quiz: {e}")
+                    logger.warning(f"Error parsing cached quiz: {e}")
                     return None
             return None
 
@@ -162,8 +161,7 @@ def get_cached_quiz_from_db(video_id):
         }
 
     except Exception as e:
-        print(f"Error reading quiz from database: {e}")
-        traceback.print_exc()
+        logger.error(f"Error reading quiz from database: {e}", exc_info=True)
         return None
     finally:
         db.close()
@@ -206,8 +204,7 @@ def save_quiz_to_db(video_id, quiz_data):
         return quiz_data_with_id
 
     except Exception as e:
-        print(f"Error saving quiz to database: {e}")
-        traceback.print_exc()
+        logger.error(f"Error saving quiz to database: {e}", exc_info=True)
         db.rollback()
         return None
     finally:
@@ -270,8 +267,7 @@ def save_checkpoints_to_db(video_id, checkpoints_data):
         return checkpoints_data
 
     except Exception as e:
-        print(f"Error saving checkpoints to database: {e}")
-        traceback.print_exc()
+        logger.error(f"Error saving checkpoints to database: {e}", exc_info=True)
         db.rollback()
         return None
     finally:
@@ -1345,8 +1341,7 @@ def get_quiz_attempts():
         }), 200
     
     except Exception as e:
-        print(f"Error fetching quiz attempts: {e}")
-        traceback.print_exc()
+        logger.error(f"Error reading quiz from database: {e}", exc_info=True)
         return jsonify({'error': 'Failed to fetch quiz attempts'}), 500
     finally:
         db.close()
@@ -1556,8 +1551,7 @@ def get_checkpoint_progress(video_id):
         }), 200
 
     except Exception as e:
-        print(f"Error getting checkpoint progress: {e}")
-        traceback.print_exc()
+        logger.error(f"Error reading checkpoints from database: {e}", exc_info=True)
         return jsonify({'error': 'Failed to get checkpoint progress'}), 500
     finally:
         db.close()

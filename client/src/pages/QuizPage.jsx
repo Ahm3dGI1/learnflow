@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useToast } from '../hooks/useToast';
 import QuizResults from '../components/QuizResults';
 import { videoService, llmService } from '../services';
+import errorService from '../services/errorService';
 import './QuizPage.css';
 
 export default function QuizPage() {
@@ -31,6 +32,17 @@ export default function QuizPage() {
    * Fetch Video and Generate Quiz
    */
   useEffect(() => {
+    // Set up error service toast callback
+    errorService.setToastCallback((message, severity) => {
+      if (severity === 'error' || severity === 'critical') {
+        toast.error(message);
+      } else if (severity === 'warning') {
+        toast.warning(message);
+      } else {
+        toast.info(message);
+      }
+    });
+
     const fetchQuiz = async () => {
       if (!videoId) {
         setError('No video ID provided');
@@ -155,15 +167,27 @@ export default function QuizPage() {
           console.warn('Missing quizId, quiz not submitted to backend');
         }
       } catch (backendError) {
-        console.error('Error submitting to backend:', backendError);
+        // Use the error service for comprehensive error handling
+        const errorInfo = errorService.handleError(backendError, {
+          context: 'submitting quiz results',
+          showToast: false, // We'll handle toast manually for better UX
+          metadata: { 
+            userId: userId, 
+            quizId: quizId, 
+            videoId: videoId,
+            answersCount: formattedAnswers.length 
+          }
+        });
 
-        // Handle specific error types if available from the API client
-        if (backendError.code === 'UNAUTHORIZED' || backendError.status === 401) {
+        // Provide specific user feedback based on error category
+        if (errorInfo.category === 'AUTH') {
           toast.warning('Session expired. Please log in again to save progress.');
-        } else if (backendError.code === 'NETWORK_ERROR' || !navigator.onLine) {
-          toast.warning('Network error. Check your connection. Results are shown locally.');
+        } else if (errorInfo.category === 'NETWORK') {
+          toast.warning('Network error. Quiz results shown locally. Check your connection to sync later.');
+        } else if (errorInfo.status >= 500) {
+          toast.error('Server error. Your results are saved locally but may not sync immediately.');
         } else {
-          toast.warning('Quiz submitted, but failed to save to your profile. Please try again later.');
+          toast.warning(errorInfo.message || 'Quiz completed but failed to save to your profile. Please try again later.');
         }
       }
 
@@ -208,8 +232,16 @@ export default function QuizPage() {
   /**
    * Derived State
    */
-  const answeredCount = Object.keys(selectedAnswers).length;
   const totalQuestions = quiz?.questions?.length || 0;
+  
+  // Validate that all questions have valid answers (not just keys in selectedAnswers)
+  const validAnswers = quiz?.questions?.filter(question => {
+    const userAnswer = selectedAnswers[question.id];
+    return userAnswer !== undefined && userAnswer !== null && 
+           typeof userAnswer === 'number' && userAnswer >= 0 && userAnswer <= 3;
+  }).length || 0;
+  
+  const answeredCount = validAnswers;
   const progressPercentage = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
   const allAnswered = totalQuestions > 0 && answeredCount === totalQuestions;
 
