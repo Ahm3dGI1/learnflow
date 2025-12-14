@@ -454,11 +454,12 @@ export default function VideoPage() {
             />
 
             {/* Checkpoint Progress Bar */}
-            {user && video && (
+            {user && video && checkpoints.length > 0 && (
               <CheckpointProgressBar
-                firebaseUid={user.uid}
                 videoId={video.id}
                 videoDuration={video.durationSeconds}
+                checkpoints={checkpoints}
+                checkpointsCompleted={checkpointsCompleted}
                 onCheckpointClick={(timeSeconds) => {
                   if (videoRef.current) {
                     videoRef.current.seekTo(timeSeconds);
@@ -470,7 +471,7 @@ export default function VideoPage() {
             {/* Checkpoints List */}
             {checkpoints.length > 0 && (
               <div className="video-checkpoints">
-                <h3>📍 Learning Checkpoints</h3>
+                <h3>Learning Checkpoints</h3>
                 <p className="checkpoints-subtitle">
                   You'll be asked to answer questions at these points during the video
                 </p>
@@ -481,10 +482,23 @@ export default function VideoPage() {
                       className={`checkpoint-item ${
                         checkpointsCompleted.has(checkpoint.id) ? 'completed' : ''
                       }`}
+                      onClick={() => {
+                        if (videoRef.current && checkpoint.timestampSeconds !== undefined) {
+                          videoRef.current.seekTo(checkpoint.timestampSeconds);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if ((e.key === 'Enter' || e.key === ' ') && checkpoint.timestampSeconds !== undefined) {
+                          e.preventDefault();
+                          if (videoRef.current) {
+                            videoRef.current.seekTo(checkpoint.timestampSeconds);
+                          }
+                        }
+                      }}
+                      style={{ cursor: 'pointer' }}
                     >
-                      <div className="checkpoint-marker">
-                        {checkpointsCompleted.has(checkpoint.id) ? '✅' : '⏱️'}
-                      </div>
                       <div className="checkpoint-info">
                         <div className="checkpoint-time">{checkpoint.timestamp}</div>
                         <div className="checkpoint-item-title">{checkpoint.title}</div>
@@ -536,7 +550,6 @@ export default function VideoPage() {
           onCorrectAnswer={handleCheckpointCorrect}
           onAskTutor={handleAskTutor}
           onSkip={handleSkipCheckpoint}
-          userId={user?.id || user?.uid}
           checkpointId={currentCheckpoint?.id}
           firebaseUid={user?.uid}
           videoId={video?.id}
