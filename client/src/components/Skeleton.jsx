@@ -43,16 +43,28 @@ export function Skeleton({
   width,
   height,
   className = '',
+  // When used inside a parent container that already provides an ARIA status
+  // (e.g. SkeletonVideoCard), set suppressRole to true to avoid nested
+  // role="status" regions which can be noisy for screen readers.
+  suppressRole = false,
 }) {
   const style = {
     width: width || (variant === 'text' ? '100%' : undefined),
     height: height || (variant === 'text' ? '1em' : undefined),
   };
 
+  const commonProps = {
+    className: `skeleton skeleton-${variant} ${className}`,
+    style,
+  };
+
+  if (suppressRole) {
+    return <div {...commonProps} />;
+  }
+
   return (
     <div
-      className={`skeleton skeleton-${variant} ${className}`}
-      style={style}
+      {...commonProps}
       role="status"
       aria-label="Loading..."
     />
@@ -80,23 +92,23 @@ export function SkeletonVideoCard() {
     <div className="skeleton-video-card" role="status" aria-label="Loading video card...">
       {/* Thumbnail placeholder */}
       <div className="skeleton-thumbnail">
-        <Skeleton variant="rectangular" width="100%" height="100%" />
+        <Skeleton variant="rectangular" width="100%" height="100%" suppressRole />
       </div>
 
       {/* Content placeholder */}
       <div className="skeleton-content">
         {/* Title */}
-        <Skeleton variant="text" width="85%" height="18px" className="skeleton-title" />
+  <Skeleton variant="text" width="85%" height="18px" className="skeleton-title" suppressRole />
 
         {/* Metadata row */}
         <div className="skeleton-meta">
-          <Skeleton variant="text" width="60px" height="14px" />
-          <Skeleton variant="text" width="80px" height="14px" />
+          <Skeleton variant="text" width="60px" height="14px" suppressRole />
+          <Skeleton variant="text" width="80px" height="14px" suppressRole />
         </div>
 
         {/* Progress bar placeholder */}
         <div className="skeleton-progress">
-          <Skeleton variant="rectangular" width="100%" height="6px" />
+          <Skeleton variant="rectangular" width="100%" height="6px" suppressRole />
         </div>
       </div>
     </div>
@@ -114,11 +126,11 @@ export function SkeletonQuizCard() {
   return (
     <div className="skeleton-quiz-card" role="status" aria-label="Loading quiz question...">
       {/* Question number */}
-      <Skeleton variant="text" width="100px" height="14px" className="skeleton-question-num" />
+      <Skeleton variant="text" width="100px" height="14px" className="skeleton-question-num" suppressRole />
 
       {/* Question text */}
-      <Skeleton variant="text" width="90%" height="20px" className="skeleton-question" />
-      <Skeleton variant="text" width="70%" height="20px" />
+      <Skeleton variant="text" width="90%" height="20px" className="skeleton-question" suppressRole />
+      <Skeleton variant="text" width="70%" height="20px" suppressRole />
 
       {/* Options */}
       <div className="skeleton-options">
@@ -129,6 +141,7 @@ export function SkeletonQuizCard() {
             width="100%"
             height="48px"
             className="skeleton-option"
+            suppressRole
           />
         ))}
       </div>
@@ -146,11 +159,11 @@ export function SkeletonQuizCard() {
 export function SkeletonSummary() {
   return (
     <div className="skeleton-summary" role="status" aria-label="Loading summary...">
-      <Skeleton variant="text" width="150px" height="24px" className="skeleton-summary-title" />
-      <Skeleton variant="text" width="100%" height="16px" />
-      <Skeleton variant="text" width="100%" height="16px" />
-      <Skeleton variant="text" width="100%" height="16px" />
-      <Skeleton variant="text" width="75%" height="16px" />
+      <Skeleton variant="text" width="150px" height="24px" className="skeleton-summary-title" suppressRole />
+      <Skeleton variant="text" width="100%" height="16px" suppressRole />
+      <Skeleton variant="text" width="100%" height="16px" suppressRole />
+      <Skeleton variant="text" width="100%" height="16px" suppressRole />
+      <Skeleton variant="text" width="75%" height="16px" suppressRole />
     </div>
   );
 }
