@@ -454,11 +454,13 @@ export default function VideoPage() {
             />
 
             {/* Checkpoint Progress Bar */}
-            {user && video && (
+            {user && video && checkpoints.length > 0 && (
               <CheckpointProgressBar
-                firebaseUid={user.uid}
+                userId={user?.id || user?.uid}
                 videoId={video.id}
                 videoDuration={video.durationSeconds}
+                checkpoints={checkpoints}
+                checkpointsCompleted={checkpointsCompleted}
                 onCheckpointClick={(timeSeconds) => {
                   if (videoRef.current) {
                     videoRef.current.seekTo(timeSeconds);
