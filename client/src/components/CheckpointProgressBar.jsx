@@ -20,7 +20,6 @@ import './CheckpointProgressBar.css';
  * @param {Object} props - Component props
  * @param {number} props.videoId - Video database ID
  * @param {number} props.videoDuration - Video duration in seconds
- * @param {number} props.userId - Database user ID
  * @param {Array} props.checkpoints - Array of checkpoint objects with timestampSeconds, title, id
  * @param {Set} props.checkpointsCompleted - Set of completed checkpoint IDs
  * @param {Function} props.onCheckpointClick - Callback when checkpoint is clicked (receives timeSeconds)
@@ -28,7 +27,6 @@ import './CheckpointProgressBar.css';
  */
 export default function CheckpointProgressBar({
   videoId,
-  userId,
   videoDuration,
   checkpoints = [],
   checkpointsCompleted = new Set(),
@@ -38,13 +36,13 @@ export default function CheckpointProgressBar({
 
   useEffect(() => {
     const fetchCheckpointProgress = async () => {
-      if (!videoId || !userId) {
+      if (!videoId) {
         return;
       }
 
       try {
         // Fetch checkpoint progress from backend
-        const progress = await llmService.getCheckpointProgress(videoId, userId);
+        const progress = await llmService.getCheckpointProgress(videoId);
         setProgressData(progress);
       } catch (err) {
         console.error('Error fetching checkpoint progress:', err);
@@ -53,7 +51,7 @@ export default function CheckpointProgressBar({
     };
 
     fetchCheckpointProgress();
-  }, [videoId, userId]);
+  }, [videoId]);
 
   // Don't render if no checkpoints or invalid video duration
   if (!checkpoints || checkpoints.length === 0 || !videoDuration || videoDuration <= 0) {
