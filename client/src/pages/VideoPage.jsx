@@ -68,7 +68,6 @@ export default function VideoPage() {
   const [checkpoints, setCheckpoints] = useState([]);
   const [currentCheckpoint, setCurrentCheckpoint] = useState(null);
   const [checkpointsCompleted, setCheckpointsCompleted] = useState(new Set());
-  const [videoEnded, setVideoEnded] = useState(false);
   const [savedProgress, setSavedProgress] = useState(null);
   const [summaryData, setSummaryData] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
