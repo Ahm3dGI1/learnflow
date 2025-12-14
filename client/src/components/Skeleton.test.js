@@ -10,38 +10,38 @@ import { Skeleton, SkeletonVideoCard, SkeletonQuizCard, SkeletonSummary } from '
 
 describe('Skeleton Component', () => {
   describe('Base Skeleton', () => {
-    it('renders with default text variant', () => {
+    test('renders with default text variant', () => {
       render(<Skeleton />);
       const skeleton = screen.getByRole('status');
       expect(skeleton).toBeInTheDocument();
       expect(skeleton).toHaveClass('skeleton', 'skeleton-text');
     });
 
-    it('renders with circular variant', () => {
+    test('renders with circular variant', () => {
       render(<Skeleton variant="circular" />);
       const skeleton = screen.getByRole('status');
       expect(skeleton).toHaveClass('skeleton-circular');
     });
 
-    it('renders with rectangular variant', () => {
+    test('renders with rectangular variant', () => {
       render(<Skeleton variant="rectangular" />);
       const skeleton = screen.getByRole('status');
       expect(skeleton).toHaveClass('skeleton-rectangular');
     });
 
-    it('applies custom width and height', () => {
+    test('applies custom width and height', () => {
       render(<Skeleton width="200px" height="50px" />);
       const skeleton = screen.getByRole('status');
       expect(skeleton).toHaveStyle({ width: '200px', height: '50px' });
     });
 
-    it('applies additional className', () => {
+    test('applies additional className', () => {
       render(<Skeleton className="custom-class" />);
       const skeleton = screen.getByRole('status');
       expect(skeleton).toHaveClass('custom-class');
     });
 
-    it('has accessible loading label', () => {
+    test('has accessible loading label', () => {
       render(<Skeleton />);
       const skeleton = screen.getByRole('status');
       expect(skeleton).toHaveAttribute('aria-label', 'Loading...');
@@ -49,14 +49,14 @@ describe('Skeleton Component', () => {
   });
 
   describe('SkeletonVideoCard', () => {
-    it('renders video card skeleton layout', () => {
+    test('renders video card skeleton layout', () => {
       render(<SkeletonVideoCard />);
       const skeleton = screen.getByRole('status');
       expect(skeleton).toBeInTheDocument();
       expect(skeleton).toHaveClass('skeleton-video-card');
     });
 
-    it('has accessible label for video card', () => {
+    test('has accessible label for video card', () => {
       render(<SkeletonVideoCard />);
       const skeleton = screen.getByRole('status');
       expect(skeleton).toHaveAttribute('aria-label', 'Loading video card...');
@@ -64,14 +64,14 @@ describe('Skeleton Component', () => {
   });
 
   describe('SkeletonQuizCard', () => {
-    it('renders quiz card skeleton layout', () => {
+    test('renders quiz card skeleton layout', () => {
       render(<SkeletonQuizCard />);
       const skeleton = screen.getByRole('status');
       expect(skeleton).toBeInTheDocument();
       expect(skeleton).toHaveClass('skeleton-quiz-card');
     });
 
-    it('renders four option placeholders', () => {
+    test('renders four option placeholders', () => {
       const { container } = render(<SkeletonQuizCard />);
       const options = container.querySelectorAll('.skeleton-option');
       expect(options).toHaveLength(4);
@@ -79,7 +79,7 @@ describe('Skeleton Component', () => {
   });
 
   describe('SkeletonSummary', () => {
-    it('renders summary skeleton layout', () => {
+    test('renders summary skeleton layout', () => {
       render(<SkeletonSummary />);
       const skeleton = screen.getByRole('status');
       expect(skeleton).toBeInTheDocument();

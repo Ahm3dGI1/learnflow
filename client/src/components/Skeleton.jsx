@@ -36,6 +36,8 @@ import './Skeleton.css';
  * @param {string} [props.width] - Width of the skeleton (CSS value)
  * @param {string} [props.height] - Height of the skeleton (CSS value)
  * @param {string} [props.className] - Additional CSS classes
+ * @param {string} [props.role='status'] - ARIA role
+ * @param {string} [props.ariaLabel='Loading...'] - ARIA label
  * @returns {React.ReactElement} Skeleton placeholder element
  */
 export function Skeleton({
@@ -43,6 +45,9 @@ export function Skeleton({
   width,
   height,
   className = '',
+  role = 'status',
+  'aria-label': ariaLabel = 'Loading...',
+  ...props
 }) {
   const style = {
     width: width || (variant === 'text' ? '100%' : undefined),
@@ -53,8 +58,9 @@ export function Skeleton({
     <div
       className={`skeleton skeleton-${variant} ${className}`}
       style={style}
-      role="status"
-      aria-label="Loading..."
+      role={role}
+      aria-label={ariaLabel}
+      {...props}
     />
   );
 }
@@ -78,27 +84,30 @@ export function Skeleton({
 export function SkeletonVideoCard() {
   return (
     <div className="skeleton-video-card" role="status" aria-label="Loading video card...">
-      {/* Thumbnail placeholder */}
-      <div className="skeleton-thumbnail">
-        <Skeleton variant="rectangular" width="100%" height="100%" />
+      {/* Thumbnail column with progress bar */}
+      <div className="skeleton-thumbnail-col">
+        <div className="skeleton-thumbnail">
+          <Skeleton variant="rectangular" width="100%" height="100%" role="none" aria-label={null} />
+        </div>
+        <div className="skeleton-progress">
+          <Skeleton variant="rectangular" width="100%" height="100%" role="none" aria-label={null} />
+        </div>
       </div>
 
       {/* Content placeholder */}
       <div className="skeleton-content">
         {/* Title */}
-        <Skeleton variant="text" width="85%" height="18px" className="skeleton-title" />
+        <Skeleton variant="text" width="85%" height="20px" className="skeleton-title" role="none" aria-label={null} />
 
         {/* Metadata row */}
         <div className="skeleton-meta">
-          <Skeleton variant="text" width="60px" height="14px" />
-          <Skeleton variant="text" width="80px" height="14px" />
-        </div>
-
-        {/* Progress bar placeholder */}
-        <div className="skeleton-progress">
-          <Skeleton variant="rectangular" width="100%" height="6px" />
+          <Skeleton variant="text" width="60px" height="14px" role="none" aria-label={null} />
+          <Skeleton variant="text" width="80px" height="14px" role="none" aria-label={null} />
         </div>
       </div>
+
+      {/* Delete button placeholder */}
+      <Skeleton variant="rectangular" width="32px" height="32px" className="skeleton-delete" role="none" aria-label={null} />
     </div>
   );
 }
@@ -114,11 +123,11 @@ export function SkeletonQuizCard() {
   return (
     <div className="skeleton-quiz-card" role="status" aria-label="Loading quiz question...">
       {/* Question number */}
-      <Skeleton variant="text" width="100px" height="14px" className="skeleton-question-num" />
+      <Skeleton variant="text" width="100px" height="14px" className="skeleton-question-num" role="none" aria-label={null} />
 
       {/* Question text */}
-      <Skeleton variant="text" width="90%" height="20px" className="skeleton-question" />
-      <Skeleton variant="text" width="70%" height="20px" />
+      <Skeleton variant="text" width="90%" height="20px" className="skeleton-question" role="none" aria-label={null} />
+      <Skeleton variant="text" width="70%" height="20px" role="none" aria-label={null} />
 
       {/* Options */}
       <div className="skeleton-options">
@@ -129,6 +138,8 @@ export function SkeletonQuizCard() {
             width="100%"
             height="48px"
             className="skeleton-option"
+            role="none"
+            aria-label={null}
           />
         ))}
       </div>
@@ -146,11 +157,11 @@ export function SkeletonQuizCard() {
 export function SkeletonSummary() {
   return (
     <div className="skeleton-summary" role="status" aria-label="Loading summary...">
-      <Skeleton variant="text" width="150px" height="24px" className="skeleton-summary-title" />
-      <Skeleton variant="text" width="100%" height="16px" />
-      <Skeleton variant="text" width="100%" height="16px" />
-      <Skeleton variant="text" width="100%" height="16px" />
-      <Skeleton variant="text" width="75%" height="16px" />
+      <Skeleton variant="text" width="150px" height="24px" className="skeleton-summary-title" role="none" aria-label={null} />
+      <Skeleton variant="text" width="100%" height="16px" role="none" aria-label={null} />
+      <Skeleton variant="text" width="100%" height="16px" role="none" aria-label={null} />
+      <Skeleton variant="text" width="100%" height="16px" role="none" aria-label={null} />
+      <Skeleton variant="text" width="75%" height="16px" role="none" aria-label={null} />
     </div>
   );
 }
