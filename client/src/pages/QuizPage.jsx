@@ -146,8 +146,6 @@ export default function QuizPage() {
 
       // Submit to backend and save to database
       try {
-        // Get user ID from auth context (assuming user object has id or uid)
-        const userId = user?.id || user?.uid;
         const quizId = quiz?.quizId || quiz?.id;
 
         // Calculate time taken in seconds
