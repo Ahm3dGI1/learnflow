@@ -300,6 +300,11 @@ export default function VideoPage() {
   const handleTimeUpdate = useCallback(async (time) => {
     // Check if video has ended (within VIDEO_END_THRESHOLD seconds of duration)
     const v = videoDataRef.current;
+    const cps = checkpointsRef.current || [];
+    const completed = completedRef.current || new Set();
+    const cpOpen = currentCheckpointRef.current;
+    const u = userRef.current;
+
     if (v?.durationSeconds && time >= v.durationSeconds - VIDEO_END_THRESHOLD) {
       if (!videoEndedRef.current) {
         videoEndedRef.current = true;
@@ -312,10 +317,6 @@ export default function VideoPage() {
 
 
     // Check if we should trigger a checkpoint
-    const cps = checkpointsRef.current || [];
-    const completed = completedRef.current || new Set();
-    const cpOpen = currentCheckpointRef.current;
-
     if (!cpOpen) {
       for (const checkpoint of cps) {
         if (
@@ -333,7 +334,7 @@ export default function VideoPage() {
     }
 
     // Reset lastTriggeredCheckpoint if user seeks backward
-    if (checkpoints.length > 0) {
+    if (cps.length > 0) {
       const lastCheckpoint = checkpoints.find(
         cp => cp.id === lastTriggeredCheckpoint.current
       );
@@ -345,8 +346,6 @@ export default function VideoPage() {
     // Save progress every 10 seconds
     const currentTime = Date.now();
     const timeSinceLastSave = (currentTime - lastProgressSaveTime.current) / 1000;
-
-    const u = userRef.current;
 
     if (
       u &&
