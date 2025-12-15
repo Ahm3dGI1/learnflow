@@ -491,19 +491,19 @@ def chat_route():
             return jsonify({'error': 'message is required'}), 400
         if len(message) > 10000:  # Limit message to 10,000 characters
             return jsonify({'error': 'message exceeds maximum length of 10,000 characters'}), 400
-        if not user_id:
-            return jsonify({'error': 'userId is required'}), 400
         if not video_youtube_id:
             return jsonify({'error': 'videoId is required'}), 400
 
-        # Verify user exists and matches authenticated user
-        user = db.query(User).filter_by(id=user_id).first()
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-
+        # Get authenticated user from Firebase token
         firebase_uid = g.firebase_user.get('uid')
-        if user.firebase_uid != firebase_uid:
-            return jsonify({'error': 'Unauthorized: Cannot send message for another user'}), 401
+        if not firebase_uid:
+            return jsonify({'error': 'Unauthorized: Firebase UID not found'}), 401
+        
+        user = db.query(User).filter_by(firebase_uid=firebase_uid).first()
+        if not user:
+            return jsonify({'error': 'User profile not found. Please complete onboarding.'}), 404
+        
+        user_id = user.id
 
         # Get or create video
         video = db.query(Video).filter_by(youtube_video_id=video_youtube_id).first()
@@ -595,19 +595,19 @@ def chat_stream_route():
             return jsonify({'error': 'message is required'}), 400
         if len(message) > 10000:  # Limit message to 10,000 characters
             return jsonify({'error': 'message exceeds maximum length of 10,000 characters'}), 400
-        if not user_id:
-            return jsonify({'error': 'userId is required'}), 400
         if not video_youtube_id:
             return jsonify({'error': 'videoId is required'}), 400
 
-        # Verify user exists and matches authenticated user
-        user = db.query(User).filter_by(id=user_id).first()
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-
+        # Get authenticated user from Firebase token
         firebase_uid = g.firebase_user.get('uid')
-        if user.firebase_uid != firebase_uid:
-            return jsonify({'error': 'Unauthorized: Cannot send message for another user'}), 401
+        if not firebase_uid:
+            return jsonify({'error': 'Unauthorized: Firebase UID not found'}), 401
+        
+        user = db.query(User).filter_by(firebase_uid=firebase_uid).first()
+        if not user:
+            return jsonify({'error': 'User profile not found. Please complete onboarding.'}), 404
+        
+        user_id = user.id
 
         # Get video
         video = db.query(Video).filter_by(youtube_video_id=video_youtube_id).first()
@@ -732,19 +732,19 @@ def get_chat_history_route(video_id):
         limit = request.args.get('limit', type=int, default=50)
 
         # Validation
-        if not user_id:
-            return jsonify({'error': 'userId is required'}), 400
         if limit is not None and (limit <= 0 or limit > 1000):
             return jsonify({'error': 'limit must be between 1 and 1000'}), 400
         
-        # Verify user exists and matches authenticated user
-        user = db.query(User).filter_by(id=user_id).first()
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-        
+        # Get authenticated user from Firebase token
         firebase_uid = g.firebase_user.get('uid')
-        if user.firebase_uid != firebase_uid:
-            return jsonify({'error': 'Unauthorized: Cannot access another user\'s chat history'}), 401
+        if not firebase_uid:
+            return jsonify({'error': 'Unauthorized: Firebase UID not found'}), 401
+        
+        user = db.query(User).filter_by(firebase_uid=firebase_uid).first()
+        if not user:
+            return jsonify({'error': 'User profile not found. Please complete onboarding.'}), 404
+        
+        user_id = user.id
         
         # Get video
         video = db.query(Video).filter_by(youtube_video_id=video_id).first()
@@ -888,6 +888,30 @@ def generate_quiz_route():
         )
         return jsonify({'error': str(e)}), 400
     except Exception as e:
+        error_msg = str(e)
+        
+        # Handle quota exhaustion gracefully
+        if '429' in error_msg or 'RESOURCE_EXHAUSTED' in error_msg or 'quota' in error_msg.lower():
+            logger.warning(
+                f"Gemini API quota exhausted for video {video_id}. Try again later."
+            )
+            # Extract retry delay if available
+            retry_after = None
+            if 'retry in' in error_msg.lower():
+                import re
+                match = re.search(r'retry in ([\d.]+)s', error_msg.lower())
+                if match:
+                    retry_after = float(match.group(1))
+            
+            response = {
+                'error': 'Quiz generation quota exceeded. Please try again later.',
+                'code': 'QUOTA_EXHAUSTED'
+            }
+            if retry_after:
+                response['retryAfterSeconds'] = int(retry_after)
+            
+            return jsonify(response), 429
+        
         logger.error(
             f"Error generating quiz for video {video_id}: {str(e)}",
             exc_info=True
