@@ -2,14 +2,17 @@
  * Video Summary Component Styles
  *
  * Styles for the collapsible summary section shown below video information.
- * Uses design tokens consistent with the rest of LearnFlow UI.
+ * Uses design tokens consistent with the rest of LearnFlow UI (Glassmorphism).
  */
 
 /* Container */
 .video-summary-section {
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: var(--auth-card-bg, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 24px;
+  border: 1px solid var(--auth-glass-border, rgba(255, 255, 255, 0.3));
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
   margin-top: 1.5rem;
   overflow: hidden;
   animation: fadeIn 0.3s ease;
@@ -20,6 +23,7 @@
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -28,22 +32,23 @@
 
 /* Header */
 .video-summary-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 1rem 1.5rem;
+  background: rgba(255, 255, 255, 0.4);
+  padding: 1.25rem 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
   user-select: none;
-  transition: opacity 0.2s ease;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .video-summary-header:hover {
-  opacity: 0.95;
+  background: rgba(255, 255, 255, 0.6);
 }
 
 .video-summary-header:focus {
-  outline: 2px solid #667eea;
+  outline: 2px solid var(--auth-primary, #0ea5e9);
   outline-offset: -2px;
 }
 
@@ -60,18 +65,18 @@
 }
 
 .video-summary-title {
-  color: white;
+  color: var(--auth-text-primary, #0c4a6e);
   font-size: 1.1rem;
   font-weight: 600;
   margin: 0;
 }
 
 .summary-word-count {
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--auth-text-secondary, #475569);
   font-size: 0.85rem;
   font-weight: 500;
-  background-color: rgba(255, 255, 255, 0.2);
-  padding: 0.25rem 0.5rem;
+  background-color: rgba(255, 255, 255, 0.5);
+  padding: 0.25rem 0.6rem;
   border-radius: 12px;
   margin-left: 0.5rem;
 }
@@ -79,7 +84,7 @@
 .summary-toggle-button {
   background: none;
   border: none;
-  color: white;
+  color: var(--auth-primary, #0ea5e9);
   font-size: 1.2rem;
   cursor: pointer;
   padding: 0.5rem;
@@ -95,6 +100,7 @@
 .video-summary-content {
   padding: 1.5rem;
   animation: slideDown 0.3s ease;
+  background: rgba(255, 255, 255, 0.2);
 }
 
 @keyframes slideDown {
@@ -102,6 +108,7 @@
     opacity: 0;
     max-height: 0;
   }
+
   to {
     opacity: 1;
     max-height: 1000px;
@@ -110,7 +117,7 @@
 
 /* Summary Text */
 .summary-text {
-  color: #333;
+  color: var(--auth-text-secondary, #475569);
   font-size: 1rem;
   line-height: 1.7;
 }
@@ -134,7 +141,7 @@
 }
 
 .summary-loading p {
-  color: #666;
+  color: var(--auth-text-muted, #64748b);
   font-size: 0.95rem;
   margin: 0;
 }
@@ -142,8 +149,8 @@
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid #f0f0f0;
-  border-top-color: #667eea;
+  border: 4px solid rgba(255, 255, 255, 0.5);
+  border-top-color: var(--auth-primary, #0ea5e9);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -160,10 +167,10 @@
   align-items: center;
   gap: 0.75rem;
   padding: 1rem;
-  background-color: #fff3cd;
-  border: 1px solid #ffc107;
-  border-radius: 8px;
-  color: #856404;
+  background-color: var(--auth-error-bg, rgba(254, 226, 226, 0.9));
+  border: 1px solid var(--auth-error-border, #fca5a5);
+  border-radius: 12px;
+  color: var(--auth-error-text, #dc2626);
 }
 
 .error-icon {
@@ -179,7 +186,7 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .video-summary-header {
-    padding: 0.875rem 1rem;
+    padding: 1rem 1.25rem;
   }
 
   .video-summary-title {
@@ -192,7 +199,7 @@
   }
 
   .video-summary-content {
-    padding: 1rem;
+    padding: 1.25rem;
   }
 
   .summary-text {
@@ -202,13 +209,62 @@
 
 /* Accessibility */
 @media (prefers-reduced-motion: reduce) {
+
   .video-summary-section,
   .video-summary-content,
   .loading-spinner {
     animation: none;
   }
 
-  .summary-toggle-button:hover {
+  .summary-toggle-button:hover,
+  .generate-summary-button:hover,
+  .retry-summary-button:hover {
     transform: none;
   }
+}
+
+/* Placeholder */
+.video-summary-placeholder {
+  padding: 3rem 2rem;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+}
+
+.video-summary-placeholder h3 {
+  margin-top: 0;
+  color: var(--auth-text-primary, #0c4a6e);
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.video-summary-placeholder p {
+  color: var(--auth-text-secondary, #475569);
+  margin-bottom: 2rem;
+}
+
+/* Generate Button */
+.generate-summary-button,
+.retry-summary-button {
+  background: linear-gradient(135deg, var(--auth-primary, #0ea5e9) 0%, var(--auth-primary-dark, #0284c7) 100%);
+  color: white;
+  border: none;
+  padding: 0.875rem 2rem;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);
+}
+
+.generate-summary-button:hover,
+.retry-summary-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(14, 165, 233, 0.35);
+}
+
+.retry-summary-button {
+  font-size: 0.85rem;
+  padding: 0.5rem 1rem;
+  margin-left: auto;
 }

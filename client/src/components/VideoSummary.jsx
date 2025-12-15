@@ -9,6 +9,7 @@
  */
 
 import { useState } from 'react';
+import PropTypes from 'prop-types';
 import './VideoSummary.css';
 
 /**
@@ -31,13 +32,11 @@ import './VideoSummary.css';
  *   wordCount={150}
  * />
  */
-export default function VideoSummary({ summary, loading, error, wordCount }) {
+export default function VideoSummary({ summary, loading, error, wordCount, onGenerate }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
-  // Don't render if no summary and not loading
-  if (!summary && !loading && !error) {
-    return null;
-  }
+  // If no summary, no loading, no error, and an onGenerate handler exists, show the generate button
+  const showGenerateButton = !summary && !loading && !error && typeof onGenerate === 'function';
 
   /**
    * Toggle Summary Expansion
@@ -61,6 +60,40 @@ export default function VideoSummary({ summary, loading, error, wordCount }) {
       toggleExpansion();
     }
   };
+
+  if (showGenerateButton) {
+    return (
+      <div className="video-summary-section">
+        <div className="video-summary-placeholder">
+          <h3>Video Summary</h3>
+          <p>Get a quick AI-generated overview of this video.</p>
+          <button
+            className="generate-summary-button"
+            onClick={onGenerate}
+            aria-label="Generate AI summary for this video"
+          >
+            ✨ Generate Summary
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+VideoSummary.propTypes = {
+  summary: PropTypes.string,
+  loading: PropTypes.bool,
+  error: PropTypes.string,
+  wordCount: PropTypes.number,
+  onGenerate: PropTypes.func
+};
+
+VideoSummary.defaultProps = {
+  summary: null,
+  loading: false,
+  error: null,
+  wordCount: undefined,
+  onGenerate: undefined
+};
 
   return (
     <div className="video-summary-section">
@@ -100,6 +133,11 @@ export default function VideoSummary({ summary, loading, error, wordCount }) {
             <div className="summary-error" role="alert">
               <span className="error-icon">⚠️</span>
               <p>{error}</p>
+              {onGenerate && (
+                <button className="retry-summary-button" onClick={onGenerate}>
+                  Try Again
+                </button>
+              )}
             </div>
           )}
 
