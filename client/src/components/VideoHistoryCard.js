@@ -7,7 +7,7 @@
  * 
  * @module VideoHistoryCard
  */
-import {useState} from 'react'
+import { useState } from 'react'
 
 import "./VideoHistoryCard.css";
 
