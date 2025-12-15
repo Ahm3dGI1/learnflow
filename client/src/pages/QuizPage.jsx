@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
@@ -81,7 +81,7 @@ export default function QuizPage() {
       } catch (err) {
         console.error('Error fetching quiz:', err);
         let errorMsg = err.message || 'Failed to generate quiz. Please try again.';
-        
+
         // Handle quota exhaustion with user-friendly message
         if (err.status === 429 || err.message?.includes('quota')) {
           errorMsg = 'Quiz generation quota exceeded. Please try again later.';
@@ -89,7 +89,7 @@ export default function QuizPage() {
             errorMsg += ` Retry in ${err.retryAfterSeconds} seconds.`;
           }
         }
-        
+
         setError(errorMsg);
         toast.error(errorMsg);
       } finally {
@@ -161,7 +161,7 @@ export default function QuizPage() {
       // Submit to backend
       const userId = user?.id || user?.uid;
       const quizId = quiz?.quizId || quiz?.id;
-      
+
       try {
         const timeTakenSeconds = quizStartTime.current
           ? Math.floor((Date.now() - quizStartTime.current) / 1000)
@@ -186,11 +186,11 @@ export default function QuizPage() {
         const errorInfo = errorService.handleError(backendError, {
           context: 'submitting quiz results',
           showToast: false, // We'll handle toast manually for better UX
-          metadata: { 
-            userId: userId, 
-            quizId: quizId, 
+          metadata: {
+            userId: userId,
+            quizId: quizId,
             videoId: videoId,
-            answersCount: formattedAnswers.length 
+            answersCount: formattedAnswers.length
           }
         });
 
@@ -248,15 +248,13 @@ export default function QuizPage() {
    * Derived State
    */
   const totalQuestions = quiz?.questions?.length || 0;
-  
+
   // Validate that all questions have valid answers (not just keys in selectedAnswers)
-  const validAnswers = quiz?.questions?.filter(question => {
+  const answeredCount = quiz?.questions?.filter(question => {
     const userAnswer = selectedAnswers[question.id];
-    return userAnswer !== undefined && userAnswer !== null && 
-           typeof userAnswer === 'number' && userAnswer >= 0 && userAnswer <= 3;
+    return userAnswer !== undefined && userAnswer !== null &&
+      typeof userAnswer === 'number' && userAnswer >= 0 && userAnswer <= (question.options.length - 1);
   }).length || 0;
-  
-  const answeredCount = validAnswers;
   const progressPercentage = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
   const allAnswered = totalQuestions > 0 && answeredCount === totalQuestions;
 
@@ -418,7 +416,7 @@ export default function QuizPage() {
                   onClick={handleQuizSubmit}
                   disabled={!allAnswered || submitting}
                   className="quiz-submit-button"
-                  type="submit"
+                  type="button"
                 >
                   {submitting ? 'Submitting...' : 'Submit Quiz'}
                   {!submitting && <CheckCircle2 className="w-5 h-5 transition-transform" />}

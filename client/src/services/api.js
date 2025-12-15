@@ -128,13 +128,9 @@ async function retryRequest(requestFn, maxRetries = 3, delay = 1000) {
     } catch (error) {
       lastError = error;
 
-      // Don't retry on 429 (quota exhausted) - will fail indefinitely until quota resets
-      if (error.status === 429) {
-        throw error;
-      }
-
-      // Don't retry on other client errors (4xx)
-      if (error.status >= 400 && error.status < 500) {
+      // Retry on 429 (Too Many Requests) with exponential backoff
+      // Don't retry on other client errors (4xx, except 429)
+      if (error.status >= 400 && error.status < 500 && error.status !== 429) {
         throw error;
       }
 
