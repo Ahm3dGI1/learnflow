@@ -31,6 +31,16 @@
   transition: transform 0.3s ease;
 }
 
+.video-thumbnail-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9333ea;
+}
+
 .video-thumbnail-container:hover .video-thumbnail {
   transform: scale(1.05);
 }
