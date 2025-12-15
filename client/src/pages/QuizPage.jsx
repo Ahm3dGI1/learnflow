@@ -98,7 +98,7 @@ export default function QuizPage() {
     };
 
     fetchQuiz();
-  }, [videoId]);
+  }, [videoId, toast]);
 
   /**
    * Handle Option Selection
