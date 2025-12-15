@@ -94,8 +94,7 @@ export default function QuizResults({ results, onRetake, onBack }) {
                   <h4 className="quiz-question-text">{answer.question}</h4>
                 </div>
                 <span className={`quiz-status-badge ${answer.isCorrect ? 'correct' : 'incorrect'}`}>
-                  <span aria-hidden="true">{answer.isCorrect ? '✓' : '✗'}</span>
-                  <span>{answer.isCorrect ? 'Correct' : 'Incorrect'}</span>
+                  {answer.isCorrect ? 'Correct' : 'Incorrect'}
                 </span>
               </div>
 
@@ -150,7 +149,7 @@ export default function QuizResults({ results, onRetake, onBack }) {
           onClick={onRetake}
           className="btn-generate-more"
         >
-          Generate More Questions
+          Retake Quiz
         </button>
       </div>
     </div>
