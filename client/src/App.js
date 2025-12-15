@@ -16,7 +16,7 @@
  */
 
 import './App.css';
-import { BrowserRouter, Routes, Route} from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import Home from "./pages/Home";
@@ -25,8 +25,13 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import VideoPage from "./pages/VideoPage";
 import QuizPage from "./pages/QuizPage";
+import ForgotPassword from "./pages/ForgotPassword";
+import Toast from "./components/Toast";
+import useToast from "./hooks/useToast";
 
 export default function App() {
+  const toast = useToast();
+
   return (
     <AuthProvider>
       <BrowserRouter>
@@ -35,6 +40,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
           {/* protected routes */}
           <Route
@@ -62,6 +68,8 @@ export default function App() {
             }
           />
         </Routes>
+        {/* Global toast notifications */}
+        <Toast toasts={toast.toasts} onDismiss={toast.dismiss} />
       </BrowserRouter>
     </AuthProvider>
   );

@@ -1,10 +1,10 @@
 /**
  * Video Player Component
- * 
+ *
  * Displays a YouTube video using an iframe embed with responsive layout.
  * Renders null when no embed URL is provided. Supports YouTube iframe API
  * for playback control and time tracking.
- * 
+ *
  * @module VideoPlayer
  */
 
@@ -13,20 +13,20 @@ import "./VideoPlayer.css";
 
 /**
  * VideoPlayer Component
- * 
+ *
  * Responsive YouTube video player with iframe API integration. Provides
  * playback control methods and time tracking through ref. Uses YouTube
  * iframe API for programmatic control.
- * 
+ *
  * @param {Object} props - Component props
  * @param {string} props.embedUrl - YouTube embed URL with enablejsapi=1
  * @param {Function} props.onTimeUpdate - Callback for current time updates (seconds)
  * @param {Function} props.onReady - Callback when player is ready
  * @returns {React.ReactElement|null} Video player iframe or null if no URL provided
- * 
+ *
  * @example
  * const playerRef = useRef();
- * <VideoPlayer 
+ * <VideoPlayer
  *   ref={playerRef}
  *   embedUrl="https://www.youtube.com/embed/abc?enablejsapi=1"
  *   onTimeUpdate={(time) => console.log(time)}
@@ -34,80 +34,15 @@ import "./VideoPlayer.css";
  * // Later: playerRef.current.pauseVideo()
  */
 const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
-  const iframeRef = useRef(null);
   const playerRef = useRef(null);
   const timeIntervalRef = useRef(null);
   const playerIdRef = useRef(`youtube-player-${Math.random().toString(36).slice(2, 11)}`);
 
   /**
-   * Initialize YouTube iframe API
-   */
-  useEffect(() => {
-    /**
-     * Initialize YouTube Player
-     */
-    const initializePlayer = () => {
-      if (!embedUrl || playerRef.current) return;
-
-      // Extract video ID from embed URL
-      const videoIdMatch = embedUrl.match(/embed\/([^?]+)/);
-      if (!videoIdMatch) return;
-
-      const videoId = videoIdMatch[1];
-
-      // Avoid creating duplicate players
-      if (playerRef.current) {
-        playerRef.current.destroy();
-      }
-
-      playerRef.current = new window.YT.Player(playerIdRef.current, {
-        videoId: videoId,
-        events: {
-          onReady: handlePlayerReady,
-          onStateChange: handleStateChange,
-        },
-      });
-    };
-
-    // Load YouTube iframe API script if not already loaded
-    if (!window.YT) {
-      const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-    }
-
-    // Wait for API to be ready - use callback queue to avoid overwriting
-    if (!window.YT) {
-      const originalCallback = window.onYouTubeIframeAPIReady;
-      window.onYouTubeIframeAPIReady = () => {
-        if (originalCallback) originalCallback();
-        if (iframeRef.current && embedUrl) {
-          initializePlayer();
-        }
-      };
-    }
-
-    // If API already loaded, initialize immediately
-    if (window.YT && window.YT.Player) {
-      initializePlayer();
-    }
-
-    return () => {
-      if (timeIntervalRef.current) {
-        clearInterval(timeIntervalRef.current);
-      }
-      if (playerRef.current) {
-        playerRef.current.destroy();
-      }
-    };
-  }, [embedUrl, handlePlayerReady, handleStateChange]);
-
-  /**
    * Handle Player Ready
    * Wrapped in useCallback to maintain referential stability
    */
-  const handlePlayerReady = useCallback((event) => {
+  const handlePlayerReady = useCallback(() => {
     if (onReady) {
       onReady(playerRef.current);
     }
@@ -127,9 +62,99 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
    * Handle Player State Change
    * Wrapped in useCallback to maintain referential stability
    */
-  const handleStateChange = useCallback((event) => {
+  const handleStateChange = useCallback(() => {
     // Handle state changes if needed
   }, []);
+
+  /**
+   * Initialize YouTube iframe API
+   */
+  useEffect(() => {
+    /**
+     * Initialize YouTube Player
+     */
+    const initializePlayer = () => {
+      if (!embedUrl) return;
+
+      // Extract video ID from embed URL
+      const videoIdMatch = embedUrl.match(/embed\/([^?]+)/);
+      if (!videoIdMatch) return;
+
+      const videoId = videoIdMatch[1];
+
+      // Avoid creating duplicate players
+      if (playerRef.current) {
+        playerRef.current.destroy();
+        playerRef.current = null;
+      }
+
+      // Check if the target element exists
+      const targetElement = document.getElementById(playerIdRef.current);
+      if (!targetElement) {
+        console.error('Target element not found:', playerIdRef.current);
+        return;
+      }
+
+      playerRef.current = new window.YT.Player(playerIdRef.current, {
+        videoId: videoId,
+        playerVars: {
+          autoplay: 0,
+          enablejsapi: 1,
+        },
+        events: {
+          onReady: handlePlayerReady,
+          onStateChange: handleStateChange,
+        },
+      });
+    };
+
+    // Load YouTube iframe API script if not already loaded
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+      // Wait for API to be ready - use callback queue to avoid overwriting
+      const originalCallback = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => {
+        if (originalCallback) originalCallback();
+        initializePlayer();
+      };
+    } else if (window.YT && window.YT.Player) {
+      // If API already loaded, initialize immediately
+      initializePlayer();
+    } else {
+      // YT exists but Player not ready yet, wait for it
+      const checkInterval = setInterval(() => {
+        if (window.YT && window.YT.Player) {
+          clearInterval(checkInterval);
+          initializePlayer();
+        }
+      }, 100);
+
+      // Combined cleanup for this case
+      return () => {
+        clearInterval(checkInterval);
+        if (timeIntervalRef.current) {
+          clearInterval(timeIntervalRef.current);
+        }
+        if (playerRef.current && playerRef.current.destroy) {
+          playerRef.current.destroy();
+        }
+      };
+    }
+
+    // Cleanup for all other cases
+    return () => {
+      if (timeIntervalRef.current) {
+        clearInterval(timeIntervalRef.current);
+      }
+      if (playerRef.current && playerRef.current.destroy) {
+        playerRef.current.destroy();
+      }
+    };
+  }, [embedUrl, handlePlayerReady, handleStateChange]);
 
   /**
    * Expose player control methods to parent via ref
@@ -165,7 +190,7 @@ const VideoPlayer = forwardRef(({ embedUrl, onTimeUpdate, onReady }, ref) => {
     <div className="video-section">
       <div className="video-wrapper">
         <div className="video-container">
-          <div ref={iframeRef} id={playerIdRef.current}></div>
+          <div id={playerIdRef.current}></div>
         </div>
       </div>
     </div>

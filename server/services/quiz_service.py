@@ -6,6 +6,9 @@ Handles business logic for generating quiz questions from video transcripts.
 import json
 from llm import get_client
 from prompts.quiz_prompt import get_quiz_prompt
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def format_transcript_for_quiz(snippets):
@@ -66,33 +69,68 @@ def validate_quiz_response(response_data, expected_questions):
         return False
 
     # Validate each question
-    for question in questions:
+    # Validate each question
+    for idx, question in enumerate(questions):
         if not isinstance(question, dict):
+            logger.debug(f"Quiz Validation Error: Question {idx} is not a dict")
             return False
 
         required_fields = ['question', 'options', 'correctAnswer']
         if not all(field in question for field in required_fields):
+            logger.debug(f"Quiz Validation Error: Question {idx} missing fields. Found keys: {question.keys()}")
             return False
 
         # Check for empty question text
         if not question['question'].strip():
+            logger.debug(f"Quiz Validation Error: Question {idx} has empty text")
             return False
 
         # Validate options
         options = question['options']
         if not isinstance(options, list) or len(options) != 4:
+            logger.debug(f"Quiz Validation Error: Question {idx} options not a list of 4: {options}")
             return False
 
         # Check for duplicate options (common LLM mistake)
         if len(set(options)) != len(options):
+            logger.debug(f"Quiz Validation Error: Question {idx} has duplicate options: {options}")
             return False
 
-        # Validate correctAnswer is valid index
+        # Validate correctAnswer (normalize without mutating input)
         correct_answer = question['correctAnswer']
-        if not isinstance(correct_answer, int) or correct_answer not in [0, 1, 2, 3]:
+        normalized_correct_answer = correct_answer
+        
+        # Convert string "0" to 0
+        if isinstance(correct_answer, str) and correct_answer.isdigit():
+            normalized_correct_answer = int(correct_answer)
+        # Convert "A", "B", "C", "D" to 0, 1, 2, 3
+        elif isinstance(correct_answer, str) and correct_answer.upper() in ['A', 'B', 'C', 'D']:
+            mapping = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
+            normalized_correct_answer = mapping[correct_answer.upper()]
+
+        if not isinstance(normalized_correct_answer, int) or normalized_correct_answer not in [0, 1, 2, 3]:
+            logger.debug(f"Quiz Validation Error: Question {idx} invalid correctAnswer: {correct_answer}")
             return False
 
     return True
+
+
+def normalize_quiz_response(response_data):
+    """
+    Normalize quiz response by fixing common LLM errors.
+    This function transforms the response data after validation.
+    """
+    for question in response_data['questions']:
+        correct_answer = question['correctAnswer']
+        
+        # Convert string "0" to 0
+        if isinstance(correct_answer, str) and correct_answer.isdigit():
+            question['correctAnswer'] = int(correct_answer)
+            
+        # Convert "A", "B", "C", "D" to 0, 1, 2, 3
+        elif isinstance(correct_answer, str) and correct_answer.upper() in ['A', 'B', 'C', 'D']:
+            mapping = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
+            question['correctAnswer'] = mapping[correct_answer.upper()]
 
 
 def generate_quiz(transcript_data, video_id, num_questions=5):
@@ -177,10 +215,14 @@ def generate_quiz(transcript_data, video_id, num_questions=5):
             )
 
         response_data = json.loads(response_text)
+        logger.debug(f"Generated Quiz Data: {json.dumps(response_data, indent=2)}")
 
         # Validate response
         if not validate_quiz_response(response_data, num_questions):
             raise ValueError("Invalid quiz response format from LLM")
+
+        # Normalize response (fix common LLM errors)
+        normalize_quiz_response(response_data)
 
         # Process questions
         questions = []

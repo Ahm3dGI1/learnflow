@@ -103,6 +103,7 @@ class UserVideoProgress(Base):
 
     __table_args__ = (
         UniqueConstraint("user_id", "video_id", name="uq_user_video_progress"),
+        Index("ix_user_video_progress_last_watched_at", "last_watched_at"),
     )
 
     def __repr__(self):
@@ -117,10 +118,11 @@ class Checkpoint(Base):
     id = Column(Integer, primary_key=True)
     video_id = Column(Integer, ForeignKey("videos.id"), nullable=False, index=True)
     time_seconds = Column(Integer, CheckConstraint("time_seconds >= 0"), nullable=False)
-    
+
     title = Column(String(255))                     # e.g., "Introduction to Variables"
     subtopic = Column(Text)                         # e.g., explanation text
     order_index = Column(Integer)                   # sequence 1, 2, 3, ...
+    question_data = Column(Text)                    # JSON: {question, options, correctAnswer, explanation}
     # meta data
     created_at = Column(DateTime, default=datetime.utcnow)
 
