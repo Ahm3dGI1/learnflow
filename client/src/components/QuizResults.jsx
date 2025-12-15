@@ -94,7 +94,8 @@ export default function QuizResults({ results, onRetake, onBack }) {
                   <h4 className="quiz-question-text">{answer.question}</h4>
                 </div>
                 <span className={`quiz-status-badge ${answer.isCorrect ? 'correct' : 'incorrect'}`}>
-                  {answer.isCorrect ? '✓ Correct' : '✗ Incorrect'}
+                  <span aria-hidden="true">{answer.isCorrect ? '✓' : '✗'}</span>
+                  <span>{answer.isCorrect ? 'Correct' : 'Incorrect'}</span>
                 </span>
               </div>
 
