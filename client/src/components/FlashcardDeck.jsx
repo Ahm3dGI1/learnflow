@@ -108,7 +108,7 @@ export default function FlashcardDeck({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, deckComplete, currentCard, isFlipped, totalCards]);
+  }, [currentIndex, deckComplete, currentCard, isFlipped, totalCards, handlePrevious, handleNext, handleResponse]);
 
   /**
    * Handle User Response to Flashcard
