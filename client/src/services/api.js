@@ -11,12 +11,14 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
  * Custom error class for API errors
  */
 class ApiError extends Error {
-  constructor(message, status, code, details) {
+  constructor(message, status, code, details, response = null) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
     this.details = details;
+    this.response = response ? { data: response } : null;
+    this.error = message; // For compatibility with errorService
   }
 }
 
@@ -88,7 +90,8 @@ async function request(endpoint, options = {}, requireAuth = true) {
         data.error || data.message || 'Request failed',
         response.status,
         data.code || 'UNKNOWN_ERROR',
-        data.details || null
+        data.details || null,
+        data  // Include full response data
       );
     }
 
@@ -125,8 +128,13 @@ async function retryRequest(requestFn, maxRetries = 3, delay = 1000) {
     } catch (error) {
       lastError = error;
 
-      // Don't retry on client errors (4xx) except 429 (rate limit)
-      if (error.status >= 400 && error.status < 500 && error.status !== 429) {
+      // Don't retry on 429 (quota exhausted) - will fail indefinitely until quota resets
+      if (error.status === 429) {
+        throw error;
+      }
+
+      // Don't retry on other client errors (4xx)
+      if (error.status >= 400 && error.status < 500) {
         throw error;
       }
 
