@@ -13,7 +13,7 @@
  * @module FlashcardService
  */
 
-import { apiClient } from './api';
+import api from './api';
 import { cacheService } from './cache';
 
 /**
@@ -69,7 +69,7 @@ class FlashcardService {
     } = options;
 
     try {
-      const response = await apiClient.post(`${this.baseUrl}/generate`, {
+      const response = await api.post(`${this.baseUrl}/generate`, {
         userId,
         videoId,
         count,
@@ -115,7 +115,7 @@ class FlashcardService {
     }
 
     try {
-      const response = await apiClient.get(`${this.baseUrl}/video/${videoId}`, {
+      const response = await api.get(`${this.baseUrl}/video/${videoId}`, {
         params: { userId }
       });
 
@@ -151,7 +151,7 @@ class FlashcardService {
       // Calculate spaced repetition values
       const cardData = await this.calculateSpacedRepetition(cardId, difficulty);
 
-      const response = await apiClient.post(`${this.baseUrl}/${cardId}/response`, {
+      const response = await api.post(`${this.baseUrl}/${cardId}/response`, {
         userId,
         difficulty,
         responseTime,
@@ -184,7 +184,7 @@ class FlashcardService {
    */
   async getDueFlashcards(userId, limit = 20) {
     try {
-      const response = await apiClient.get(`${this.baseUrl}/due`, {
+      const response = await api.get(`${this.baseUrl}/due`, {
         params: { userId, limit }
       });
 
@@ -204,7 +204,7 @@ class FlashcardService {
    */
   async getLearningStats(userId, period = 'week') {
     try {
-      const response = await apiClient.get(`${this.baseUrl}/stats`, {
+      const response = await api.get(`${this.baseUrl}/stats`, {
         params: { userId, period }
       });
 
@@ -239,7 +239,7 @@ class FlashcardService {
    */
   async saveStudySession(userId, sessionData) {
     try {
-      const response = await apiClient.post(`${this.baseUrl}/session`, {
+      const response = await api.post(`${this.baseUrl}/session`, {
         userId,
         ...sessionData,
         completedAt: new Date().toISOString()
