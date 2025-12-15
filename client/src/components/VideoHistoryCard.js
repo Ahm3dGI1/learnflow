@@ -7,6 +7,7 @@
  * 
  * @module VideoHistoryCard
  */
+import {useState} from 'react'
 
 import "./VideoHistoryCard.css";
 
@@ -22,7 +23,7 @@ import "./VideoHistoryCard.css";
  * @param {string} props.video.id - Unique entry ID
  * @param {string} props.video.videoId - YouTube video ID
  * @param {string} props.video.title - Video title
- * @param {string} props.video.thumbnail - Thumbnail image URL
+ * @param {string} props.video.thumbnailUrl - Thumbnail image URL
  * @param {string} props.video.lastViewedAt - ISO timestamp of last view
  * @param {Object} [props.progress] - Optional progress data
  * @param {number} props.progress.progressPercentage - Percentage completed (0-100)
@@ -46,6 +47,8 @@ import "./VideoHistoryCard.css";
  * />
  */
 export default function VideoHistoryCard({ video, progress, onSelect, onDelete }) {
+  const [thumbnailFailed, setThumbnailFailed] = useState(false);
+
   /**
    * Format Date to Relative Time
    * 
@@ -79,15 +82,36 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
     }
   };
 
+  const handleThumbnailError = () => {
+    setThumbnailFailed(true);
+  };
+
   return (
     <div className="video-history-card">
       <div>
         <div className="video-thumbnail-container" onClick={() => onSelect(video)}>
-          <img
-            src={video.thumbnail}
-            alt={video.title}
-            className="video-thumbnail"
-          />
+          {!thumbnailFailed && video.thumbnailUrl ? (
+            <img
+              src={video.thumbnailUrl}
+              alt={video.title}
+              className="video-thumbnail"
+              onError={handleThumbnailError}
+            />
+          ) : (
+            <div className="video-thumbnail-placeholder">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" opacity="0.5">
+                <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+              </svg>
+            </div>
+          )}
+          <div className="play-overlay">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="white">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          </div>
+          {progress?.isCompleted && (
+            <div className="completed-badge">✓ Completed</div>
+          )}
           <div className="play-overlay">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="white">
               <path d="M8 5v14l11-7z"/>

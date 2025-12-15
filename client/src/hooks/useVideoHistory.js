@@ -111,7 +111,7 @@ export function useVideoHistory() {
       const updatedEntry = {
         videoId: videoData.videoId,
         title: videoData.title || existingVideo?.title || 'Untitled Video',
-        thumbnailUrl: videoData.thumbnailUrl || existingVideo?.thumbnailUrl || `https://img.youtube.com/vi/${videoData.videoId}/mqdefault.jpg`,
+        thumbnailUrl: videoData.thumbnailUrl || existingVideo?.thumbnailUrl || (videoData.videoId ? `https://img.youtube.com/vi/${videoData.videoId}/mqdefault.jpg` : null),
         lastPositionSeconds: videoData.lastPositionSeconds || 0,
         lastWatchedAt: new Date().toISOString(),
         isCompleted: videoData.isCompleted || false,
