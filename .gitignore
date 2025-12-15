@@ -1,5 +1,4 @@
-# Assignment files - local only, not pushed to GitHub
-assignment-files/
+.DS_Store
 
 # Environment variables - never commit these!
 .env
@@ -12,8 +11,4 @@ server/venv
 
 *.db
 server/secrets/
-.DS_Store
-
-server/secrets
-
-logs
+server/logs
