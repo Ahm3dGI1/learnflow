@@ -21,7 +21,7 @@ import { ArrowLeft, RefreshCw, Zap, Brain, BookOpen, Target } from 'lucide-react
 import { useAuth } from '../auth/AuthContext';
 import useToast from '../hooks/useToast';
 import FlashcardDeck from '../components/FlashcardDeck';
-import { videoService, llmService, flashcardService } from '../services';
+import { videoService, flashcardService } from '../services';
 import { isFeatureEnabled } from '../config/featureFlags';
 import './FlashcardsPage.css';
 
@@ -85,7 +85,8 @@ export default function FlashcardsPage() {
 
     setGenerating(true);
     try {
-      const generatedFlashcards = await llmService.generateFlashcards(
+      // Use flashcardService which has mock fallback if backend is unavailable
+      const generatedFlashcards = await flashcardService.generateFlashcards(
         user.uid, 
         videoId, 
         {

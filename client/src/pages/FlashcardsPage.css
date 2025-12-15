@@ -355,7 +355,7 @@
   justify-content: center;
   width: 4rem;
   height: 4rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
   border-radius: 50%;
   margin-bottom: 1.5rem;
 }
@@ -394,15 +394,15 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
-  background: rgba(102, 126, 234, 0.1);
+  background: rgba(56, 178, 172, 0.1);
   border-radius: 0.5rem;
-  border: 1px solid rgba(102, 126, 234, 0.2);
+  border: 1px solid rgba(56, 178, 172, 0.2);
 }
 
 .feature-icon {
   width: 1.25rem;
   height: 1.25rem;
-  color: #667eea;
+  color: #0284c7;
   flex-shrink: 0;
 }
 
@@ -419,7 +419,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 1rem 2rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
   border: none;
   border-radius: 0.75rem;
   color: white;
@@ -536,7 +536,7 @@
 .stat-value {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #667eea;
+  color: #0284c7;
 }
 
 /* ===== ANIMATIONS ===== */
@@ -699,7 +699,7 @@
   }
   
   .feature {
-    border: 1px solid #667eea;
+    border: 1px solid #0284c7;
   }
   
   .session-summary {
