@@ -29,6 +29,7 @@ from utils.exceptions import (
 )
 from models import Checkpoint, Quiz, UserQuizAttempt, UserCheckpointCompletion, User, Video
 from middleware.auth import auth_required
+from middleware.rate_limit import rate_limit
 
 
 # Configure logging
@@ -275,6 +276,7 @@ def save_checkpoints_to_db(video_id, checkpoints_data):
 
 
 @llm_bp.route('/checkpoints/generate', methods=['POST'])
+@rate_limit(max_requests=5, window_seconds=3600, scope='video')
 def generate_checkpoints_route():
     """
     Generate learning checkpoints from video transcript.
@@ -437,6 +439,7 @@ def health_check():
 
 @llm_bp.route('/chat/send', methods=['POST'])
 @auth_required
+@rate_limit(max_requests=10, window_seconds=60, scope='user')
 def chat_route():
     """
     Send message to AI tutor and get response.
@@ -559,6 +562,7 @@ def chat_route():
 
 @llm_bp.route('/chat/stream', methods=['POST'])
 @auth_required
+@rate_limit(max_requests=10, window_seconds=60, scope='user')
 def chat_stream_route():
     """
     Send message to AI tutor and get streaming response.
@@ -777,6 +781,7 @@ def get_chat_history_route(video_id):
 # ========== QUIZ ROUTES ==========
 
 @llm_bp.route('/quiz/generate', methods=['POST'])
+@rate_limit(max_requests=5, window_seconds=3600, scope='video')
 def generate_quiz_route():
     """
     Generate quiz questions from video transcript.
@@ -986,6 +991,7 @@ def clear_quiz_cache():
 # ========== SUMMARY ROUTES ==========
 
 @llm_bp.route('/summary/generate', methods=['POST'])
+@rate_limit(max_requests=5, window_seconds=3600, scope='video')
 def generate_summary_route():
     """
     Generate video summary from transcript.
