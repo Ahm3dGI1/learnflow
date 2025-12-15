@@ -67,7 +67,7 @@ def get_cached_checkpoints_from_db(video_id):
                 try:
                     return json.loads(video.checkpoints_data)
                 except json.JSONDecodeError as e:
-                    print(f"Error parsing cached checkpoints: {e}")
+                    logger.warning(f"Error parsing cached checkpoints: {e}")
                     return None
             return None
 
@@ -107,8 +107,7 @@ def get_cached_checkpoints_from_db(video_id):
         }
 
     except Exception as e:
-        print(f"Error reading checkpoints from database: {e}")
-        traceback.print_exc()
+        logger.error(f"Error reading checkpoints from database: {e}", exc_info=True)
         return None
     finally:
         db.close()
@@ -141,7 +140,7 @@ def get_cached_quiz_from_db(video_id):
                 try:
                     return json.loads(video.quiz_data)
                 except json.JSONDecodeError as e:
-                    print(f"Error parsing cached quiz: {e}")
+                    logger.warning(f"Error parsing cached quiz: {e}")
                     return None
             return None
 
@@ -162,8 +161,7 @@ def get_cached_quiz_from_db(video_id):
         }
 
     except Exception as e:
-        print(f"Error reading quiz from database: {e}")
-        traceback.print_exc()
+        logger.error(f"Error reading quiz from database: {e}", exc_info=True)
         return None
     finally:
         db.close()
@@ -206,8 +204,7 @@ def save_quiz_to_db(video_id, quiz_data):
         return quiz_data_with_id
 
     except Exception as e:
-        print(f"Error saving quiz to database: {e}")
-        traceback.print_exc()
+        logger.error(f"Error saving quiz to database: {e}", exc_info=True)
         db.rollback()
         return None
     finally:
@@ -270,8 +267,7 @@ def save_checkpoints_to_db(video_id, checkpoints_data):
         return checkpoints_data
 
     except Exception as e:
-        print(f"Error saving checkpoints to database: {e}")
-        traceback.print_exc()
+        logger.error(f"Error saving checkpoints to database: {e}", exc_info=True)
         db.rollback()
         return None
     finally:
@@ -902,16 +898,65 @@ def generate_quiz_route():
 @llm_bp.route('/quiz/cache/clear', methods=['POST'])
 def clear_quiz_cache():
     """
-    Clear the quiz cache (for testing/admin purposes).
+    Clear the quiz cache for a specific video to allow regenerating questions.
+    Clears both memory cache and database records.
+
+    Request Body:
+        {"videoId": "abc123"}
 
     Returns:
-        {"message": "Cache cleared", "clearedItems": 5}
+        {"message": "Cache cleared", "clearedItems": 1}
     """
-    cleared_count = quiz_cache.clear()
-    return jsonify({
-        'message': 'Quiz cache cleared',
-        'clearedItems': cleared_count
-    }), 200
+    try:
+        data = request.get_json() or {}
+        video_id = data.get('videoId')
+        
+        # Clear memory cache (simple clear for now, could be more targeted)
+        cleared_count = quiz_cache.clear()
+        
+        db_cleared = False
+        if video_id:
+            db = SessionLocal()
+            try:
+                # Find video by YouTube ID
+                video = get_video_by_youtube_id(video_id, db)
+                if video:
+                    # Safe approach: Check for existing quiz attempts before deleting
+                    # to avoid foreign key constraint violations
+                    quiz_records = db.query(Quiz).filter_by(video_id=video.id).all()
+                    quiz_ids_to_delete = [q.id for q in quiz_records]
+                    
+                    # Check if any UserQuizAttempts reference these quizzes
+                    from models import UserQuizAttempt
+                    existing_attempts = db.query(UserQuizAttempt).filter(
+                        UserQuizAttempt.quiz_id.in_(quiz_ids_to_delete)
+                    ).count()
+                    
+                    if existing_attempts > 0:
+                        # Soft delete: Add a deleted/active flag to Quiz model in future
+                        # For now, we'll clear the quiz cache but let the generation 
+                        # service create a new quiz rather than deleting existing ones
+                        logger.info(f"Skipping quiz deletion for video {video.id} due to existing attempts")
+                        db_cleared = False  # Memory cache cleared but DB records preserved
+                    else:
+                        # Safe to delete - no attempts reference these quizzes
+                        db.query(Quiz).filter_by(video_id=video.id).delete()
+                        db.commit()
+                        db_cleared = True
+            except Exception as e:
+                logger.error(f"Error clearing quiz DB cache: {e}", exc_info=True)
+                db.rollback()
+            finally:
+                db.close()
+
+        return jsonify({
+            'message': 'Quiz cache cleared',
+            'clearedItems': cleared_count,
+            'dbCleared': db_cleared
+        }), 200
+    except Exception as e:
+        logger.error(f"Error in clear_quiz_cache: {str(e)}")
+        return jsonify({'error': 'Failed to clear cache'}), 500
 
 
 # ========== SUMMARY ROUTES ==========
@@ -1296,8 +1341,7 @@ def get_quiz_attempts():
         }), 200
     
     except Exception as e:
-        print(f"Error fetching quiz attempts: {e}")
-        traceback.print_exc()
+        logger.error(f"Error reading quiz from database: {e}", exc_info=True)
         return jsonify({'error': 'Failed to fetch quiz attempts'}), 500
     finally:
         db.close()
@@ -1507,8 +1551,7 @@ def get_checkpoint_progress(video_id):
         }), 200
 
     except Exception as e:
-        print(f"Error getting checkpoint progress: {e}")
-        traceback.print_exc()
+        logger.error(f"Error reading checkpoints from database: {e}", exc_info=True)
         return jsonify({'error': 'Failed to get checkpoint progress'}), 500
     finally:
         db.close()

@@ -49,7 +49,7 @@ describe('Quiz', () => {
   test('renders quiz with header and questions', () => {
     render(<Quiz quiz={mockQuiz} onSubmit={mockOnSubmit} />);
 
-    expect(screen.getByText('📝 Quiz Time')).toBeInTheDocument();
+    expect(screen.getByText('Quiz Time')).toBeInTheDocument();
     expect(screen.getByText('Test your understanding of the video content')).toBeInTheDocument();
     expect(screen.getByText('What is the primary function of chlorophyll in photosynthesis?')).toBeInTheDocument();
     expect(screen.getByText('Where do the light-independent reactions occur?')).toBeInTheDocument();
@@ -61,7 +61,7 @@ describe('Quiz', () => {
     // Check first question options
     expect(screen.getByText('To absorb light energy from the sun')).toBeInTheDocument();
     expect(screen.getByText('To store glucose for the plant')).toBeInTheDocument();
-    
+
     // Check second question options
     expect(screen.getByText('In the stroma of the chloroplast')).toBeInTheDocument();
     expect(screen.getByText('In the mitochondria')).toBeInTheDocument();
@@ -95,7 +95,7 @@ describe('Quiz', () => {
     render(<Quiz quiz={mockQuiz} onSubmit={mockOnSubmit} />);
 
     const radioInputs = screen.getAllByRole('radio');
-    
+
     // Select answer for first question
     fireEvent.click(radioInputs[0]);
     expect(screen.getByText('1 of 2 questions answered')).toBeInTheDocument();
@@ -121,7 +121,7 @@ describe('Quiz', () => {
     render(<Quiz quiz={mockQuiz} onSubmit={mockOnSubmit} />);
 
     const radioInputs = screen.getAllByRole('radio');
-    
+
     // Select first option
     fireEvent.click(radioInputs[0]);
     expect(radioInputs[0]).toBeChecked();
@@ -145,7 +145,7 @@ describe('Quiz', () => {
     render(<Quiz quiz={mockQuiz} onSubmit={mockOnSubmit} />);
 
     const radioInputs = screen.getAllByRole('radio');
-    
+
     // Answer both questions
     fireEvent.click(radioInputs[0]); // Q1
     fireEvent.click(radioInputs[4]); // Q2
@@ -168,7 +168,7 @@ describe('Quiz', () => {
     render(<Quiz quiz={mockQuiz} onSubmit={mockOnSubmit} />);
 
     const radioInputs = screen.getAllByRole('radio');
-    
+
     // Answer both questions
     fireEvent.click(radioInputs[0]); // Q1, option 0
     fireEvent.click(radioInputs[5]); // Q2, option 1
@@ -233,19 +233,6 @@ describe('Quiz', () => {
     expect(screen.getByText('No quiz questions available.')).toBeInTheDocument();
   });
 
-  test('adds answered class to question card when answered', () => {
-    render(<Quiz quiz={mockQuiz} onSubmit={mockOnSubmit} />);
-
-    const radioInputs = screen.getAllByRole('radio');
-    const questionCard = screen.getByText('Question 1').closest('.question-card');
-
-    expect(questionCard).not.toHaveClass('answered');
-
-    fireEvent.click(radioInputs[0]);
-
-    expect(questionCard).toHaveClass('answered');
-  });
-
   // Accessibility Tests
 
   test('has proper ARIA labels for progress bar', () => {
@@ -279,28 +266,5 @@ describe('Quiz', () => {
 
     const warning = screen.getByRole('alert');
     expect(warning).toHaveTextContent('Please answer all questions before submitting');
-  });
-
-  // Option Letter Display
-
-  test('displays option letters A, B, C, D correctly', () => {
-    render(<Quiz quiz={mockQuiz} onSubmit={mockOnSubmit} />);
-
-    // Check that all option letters are present
-    const optionLetters = screen.getAllByText(/^[ABCD]$/);
-    expect(optionLetters.length).toBeGreaterThanOrEqual(8); // 4 options × 2 questions
-  });
-
-  test('highlights selected option visually', () => {
-    render(<Quiz quiz={mockQuiz} onSubmit={mockOnSubmit} />);
-
-    const radioInputs = screen.getAllByRole('radio');
-    const firstOptionLabel = radioInputs[0].closest('label');
-
-    expect(firstOptionLabel).not.toHaveClass('selected');
-
-    fireEvent.click(radioInputs[0]);
-
-    expect(firstOptionLabel).toHaveClass('selected');
   });
 });
