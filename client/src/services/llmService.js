@@ -409,7 +409,7 @@ const llmService = {
         includeConcepts: options.includeConcepts !== false,
       };
 
-      const response = await api.post('/api/llm/flashcards/generate', body, {}, true);
+      const response = await api.post('/api/llm/flashcards/generate', body, {}, false);
       return response.flashcards || [];
     } catch (error) {
       console.error('Error generating flashcards:', error);

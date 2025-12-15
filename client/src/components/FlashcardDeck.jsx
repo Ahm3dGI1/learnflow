@@ -277,7 +277,7 @@ export default function FlashcardDeck({
         {showProgress && (
           <div className="progress-info">
             <span className="card-counter">
-              {currentIndex + 1} of {totalCards}
+              {currentIndex + 1} / {totalCards}
             </span>
             <div className="accuracy-indicator">
               Accuracy: {getAccuracy().toFixed(1)}%

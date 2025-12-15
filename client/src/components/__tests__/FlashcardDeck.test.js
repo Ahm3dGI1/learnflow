@@ -62,14 +62,7 @@ describe('FlashcardDeck', () => {
         // In DOM, both might be present but flipped via CSS. 
         // We check if the 'flipped' class is applied to the flashcard container.
 
-        // Note: We need to find the flashcard container. 
-        // Based on our code, it has className "flashcard".
-        // We can't easily query by class name with testing-library best practices.
-        // But we know the "Answer" text is there. 
-        // Let's assume the component renders "Answer" text but hides it with CSS?
-        // Actually, our Flashcard renders both sides.
-
-        const flashcard = screen.getByText('Q1').closest('.flashcard');
+        const flashcard = screen.getByTestId('flashcard');
         expect(flashcard).not.toHaveClass('flipped');
 
         // Press Space
@@ -108,8 +101,5 @@ describe('FlashcardDeck', () => {
             isCorrect: false,
             cardId: '1'
         }));
-
-        // Should verify it auto-advanced? 
-        // Auto-advance has a delay, need fake timers.
     });
 });

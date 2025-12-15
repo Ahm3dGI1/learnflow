@@ -203,11 +203,11 @@
 .title-icon {
   width: 1.5rem;
   height: 1.5rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--flashcard-primary);
 }
 
 .video-title {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--flashcard-primary);
   font-size: 0.95rem;
   margin: 0;
   font-weight: 400;
@@ -675,6 +675,10 @@
     to {
       opacity: 1;
     }
+  }
+
+  .session-summary {
+    animation: none;
   }
 }
 

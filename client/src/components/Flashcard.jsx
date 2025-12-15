@@ -104,6 +104,7 @@ export default function Flashcard({
         tabIndex="0"
         role="button"
         aria-pressed={isFlipped}
+        data-testid="flashcard"
       >
         {/* Front Side - Question */}
         <div className="flashcard-side flashcard-front">

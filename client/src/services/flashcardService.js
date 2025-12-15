@@ -14,7 +14,7 @@
  */
 
 import api from './api';
-import { cacheService } from './cache';
+import cacheService from './cache';
 
 /**
  * Flashcard difficulty levels for spaced repetition
@@ -60,7 +60,7 @@ class FlashcardService {
    * @param {boolean} options.includeConcepts - Include concept-based cards
    * @returns {Promise<Array>} Generated flashcards array
    */
-  async generateFlashcards(userId, videoId, options = {}) {
+  generateFlashcards = async (userId, videoId, options = {}) => {
     const {
       count = 10,
       difficulty = 'mixed',
@@ -107,7 +107,7 @@ class FlashcardService {
    * @param {string} userId - User ID for personalized data
    * @returns {Promise<Array>} Existing flashcards for the video
    */
-  async getFlashcards(videoId, userId) {
+  getFlashcards = async (videoId, userId) => {
     // Check cache first
     const cached = this.cache.get(`flashcards_${videoId}`);
     if (cached) {
@@ -146,7 +146,7 @@ class FlashcardService {
    * @param {number} responseTime - Time taken to answer (ms)
    * @returns {Promise<Object>} Updated card data with next review date
    */
-  async recordCardResponse(cardId, userId, difficulty, responseTime) {
+  recordCardResponse = async (cardId, userId, difficulty, responseTime) => {
     try {
       // Calculate spaced repetition values
       const cardData = await this.calculateSpacedRepetition(cardId, difficulty);
@@ -182,7 +182,7 @@ class FlashcardService {
    * @param {number} limit - Maximum number of cards to return
    * @returns {Promise<Array>} Flashcards due for review
    */
-  async getDueFlashcards(userId, limit = 20) {
+  getDueFlashcards = async (userId, limit = 20) => {
     try {
       const response = await api.get(`${this.baseUrl}/due`, {
         params: { userId, limit }
@@ -202,7 +202,7 @@ class FlashcardService {
    * @param {string} period - Time period ('day', 'week', 'month')
    * @returns {Promise<Object>} Learning statistics
    */
-  async getLearningStats(userId, period = 'week') {
+  getLearningStats = async (userId, period = 'week') => {
     try {
       const response = await api.get(`${this.baseUrl}/stats`, {
         params: { userId, period }
@@ -237,7 +237,7 @@ class FlashcardService {
    * @param {Object} sessionData - Session results
    * @returns {Promise<Object>} Saved session data
    */
-  async saveStudySession(userId, sessionData) {
+  saveStudySession = async (userId, sessionData) => {
     try {
       const response = await api.post(`${this.baseUrl}/session`, {
         userId,
@@ -267,7 +267,7 @@ class FlashcardService {
    * @param {string} difficulty - User response difficulty
    * @returns {Promise<Object>} Updated spaced repetition values
    */
-  async calculateSpacedRepetition(cardId, difficulty) {
+  calculateSpacedRepetition = async (cardId, difficulty) => {
     // Get current card data (would come from database in real implementation)
     const currentCard = await this.getCardData(cardId);
     
@@ -320,7 +320,7 @@ class FlashcardService {
    * @param {string} cardId - Flashcard ID
    * @returns {Promise<Object>} Current card data
    */
-  async getCardData(cardId) {
+  getCardData = async (cardId) => {
     // In a real implementation, this would fetch from database
     // For now, return default values
     return {
@@ -337,7 +337,7 @@ class FlashcardService {
    * @returns {string} Unique card identifier
    */
   generateCardId() {
-    return `card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `card_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
   }
 
   /**
@@ -374,28 +374,28 @@ class FlashcardService {
   generateMockFlashcards(videoId, count = 5, difficulty = 'medium') {
     const mockCards = [
       {
-        front: 'What is the main topic of this video?',
-        back: 'The video covers key learning concepts that can be reviewed through flashcards.',
+        question: 'What is the main topic of this video?',
+        answer: 'The video covers key learning concepts that can be reviewed through flashcards.',
         type: 'concept'
       },
       {
-        front: 'Key Term Definition',
-        back: 'Important terms and definitions from the video content.',
+        question: 'Key Term Definition',
+        answer: 'Important terms and definitions from the video content.',
         type: 'definition'
       },
       {
-        front: 'Why is this concept important?',
-        back: 'This concept is important because it forms the foundation for understanding more complex topics.',
+        question: 'Why is this concept important?',
+        answer: 'This concept is important because it forms the foundation for understanding more complex topics.',
         type: 'concept'
       },
       {
-        front: 'How can you apply this knowledge?',
-        back: 'You can apply this knowledge by practicing the concepts and reviewing them regularly.',
+        question: 'How can you apply this knowledge?',
+        answer: 'You can apply this knowledge by practicing the concepts and reviewing them regularly.',
         type: 'application'
       },
       {
-        front: 'Summary Question',
-        back: 'Summarize the key points covered in this learning session.',
+        question: 'Summary Question',
+        answer: 'Summarize the key points covered in this learning session.',
         type: 'summary'
       }
     ];
