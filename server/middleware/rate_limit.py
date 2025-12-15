@@ -6,6 +6,7 @@ to prevent abuse and protect API costs.
 """
 
 import time
+import threading
 from functools import wraps
 from flask import request, jsonify, g
 
@@ -21,10 +22,13 @@ class RateLimiter:
         """Initialize rate limiter with empty request storage."""
         # Storage: {key: [timestamp1, timestamp2, ...]}
         self.requests = {}
+        self.lock = threading.Lock()
     
     def is_allowed(self, key, max_requests, window_seconds):
         """
         Check if request is allowed under rate limit.
+        
+        Thread-safe implementation using lock to prevent race conditions.
         
         Args:
             key (str): Identifier (user_id or video_id)
@@ -34,38 +38,49 @@ class RateLimiter:
         Returns:
             tuple: (allowed: bool, retry_after: int or None)
         """
-        now = time.time()
-        
-        # Get existing requests for this key
-        if key not in self.requests:
-            self.requests[key] = []
-        
-        # Remove old requests outside the time window
-        cutoff = now - window_seconds
-        self.requests[key] = [ts for ts in self.requests[key] if ts > cutoff]
-        
-        # Check if under limit
-        if len(self.requests[key]) < max_requests:
-            # Allow request and record timestamp
-            self.requests[key].append(now)
-            return True, None
-        else:
-            # Rate limit exceeded - calculate retry time
-            oldest_request = min(self.requests[key])
-            retry_after = int(oldest_request + window_seconds - now) + 1
-            return False, retry_after
+        with self.lock:
+            now = time.time()
+            
+            # Get existing requests for this key
+            if key not in self.requests:
+                self.requests[key] = []
+            
+            # Remove old requests outside the time window
+            cutoff = now - window_seconds
+            self.requests[key] = [ts for ts in self.requests[key] if ts > cutoff]
+            
+            # Remove key if no recent requests remain
+            if not self.requests[key]:
+                del self.requests[key]
+                # No recent requests, so allow this one
+                self.requests[key] = [now]
+                return True, None
+            
+            # Check if under limit
+            if len(self.requests[key]) < max_requests:
+                # Allow request and record timestamp
+                self.requests[key].append(now)
+                return True, None
+            else:
+                # Rate limit exceeded - calculate retry time
+                oldest_request = min(self.requests[key])
+                retry_after = int(oldest_request + window_seconds - now) + 1
+                return False, retry_after
     
     def clear(self, key=None):
         """
         Clear rate limit data.
         
+        Thread-safe implementation.
+        
         Args:
-            key (str, optional): Clear specific key, or all if None
+            key (str, optional): Clear specific key. If None, clear all.
         """
-        if key:
-            self.requests.pop(key, None)
-        else:
-            self.requests.clear()
+        with self.lock:
+            if key:
+                self.requests.pop(key, None)
+            else:
+                self.requests.clear()
 
 
 # Global rate limiter instance

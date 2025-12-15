@@ -438,8 +438,8 @@ def health_check():
 # ========== CHAT ROUTES ==========
 
 @llm_bp.route('/chat/send', methods=['POST'])
-@rate_limit(max_requests=10, window_seconds=60, scope='user')
 @auth_required
+@rate_limit(max_requests=10, window_seconds=60, scope='user')
 def chat_route():
     """
     Send message to AI tutor and get response.
@@ -561,8 +561,8 @@ def chat_route():
 
 
 @llm_bp.route('/chat/stream', methods=['POST'])
-@rate_limit(max_requests=10, window_seconds=60, scope='user')
 @auth_required
+@rate_limit(max_requests=10, window_seconds=60, scope='user')
 def chat_stream_route():
     """
     Send message to AI tutor and get streaming response.

@@ -7,8 +7,9 @@ proper request throttling and error responses.
 
 import time
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from middleware.rate_limit import RateLimiter, rate_limit, rate_limiter
+from middleware.auth import auth_required
 from flask import Flask, jsonify, g
 
 
@@ -29,6 +30,7 @@ def app():
     
     # Test endpoint with user-based rate limiting
     @app.route('/test/user')
+    @auth_required
     @rate_limit(max_requests=3, window_seconds=10, scope='user')
     def user_endpoint():
         return jsonify({'status': 'ok'})
@@ -159,50 +161,55 @@ def test_rate_limiter_clear_all(limiter):
 
 # ========== Decorator Tests ==========
 
-def test_decorator_user_scope_requires_auth(client):
+@patch('middleware.auth.verify_id_token')
+def test_decorator_user_scope_requires_auth(mock_verify, client):
     """Test that user-scoped rate limit requires authentication."""
-    # No auth - should return 401
-    response = client.get('/test/user')
+    # Mock verify_id_token to raise error (invalid token)
+    mock_verify.side_effect = Exception('Invalid token')
+    
+    # Should return 401
+    response = client.get('/test/user', headers={'Authorization': 'Bearer invalid'})
     assert response.status_code == 401
     data = response.get_json()
     assert 'error' in data
-    assert 'Authentication required' in data['error']
 
 
-def test_decorator_user_scope_allows_under_limit(client, app):
+@patch('middleware.auth.verify_id_token')
+def test_decorator_user_scope_allows_under_limit(mock_verify, client):
     """Test that user-scoped rate limit allows requests under limit."""
+    # Mock verify_id_token to return user claims
+    mock_verify.return_value = {'uid': 'test_user_123', 'email': 'test@example.com'}
+    
     # Clear rate limiter
     rate_limiter.clear()
     
     # First 3 requests should succeed (limit is 3)
     for i in range(3):
-        with app.app_context():
-            g.firebase_user = {'uid': 'test_user_123'}
-            response = client.get('/test/user')
-            assert response.status_code == 200
+        response = client.get('/test/user', headers={'Authorization': 'Bearer valid_token'})
+        assert response.status_code == 200
 
 
-def test_decorator_user_scope_blocks_over_limit(client, app):
+@patch('middleware.auth.verify_id_token')
+def test_decorator_user_scope_blocks_over_limit(mock_verify, client):
     """Test that user-scoped rate limit blocks requests over limit."""
+    # Mock verify_id_token to return user claims
+    mock_verify.return_value = {'uid': 'test_user_456', 'email': 'test@example.com'}
+    
     # Clear rate limiter
     rate_limiter.clear()
     
     # Use up limit (3 requests)
     for i in range(3):
-        with app.app_context():
-            g.firebase_user = {'uid': 'test_user_456'}
-            response = client.get('/test/user')
-            assert response.status_code == 200
+        response = client.get('/test/user', headers={'Authorization': 'Bearer valid_token'})
+        assert response.status_code == 200
     
     # 4th request should be blocked with 429
-    with app.app_context():
-        g.firebase_user = {'uid': 'test_user_456'}
-        response = client.get('/test/user')
-        assert response.status_code == 429
-        data = response.get_json()
-        assert 'error' in data
-        assert data['error'] == 'Rate limit exceeded'
-        assert 'retryAfter' in data
+    response = client.get('/test/user', headers={'Authorization': 'Bearer valid_token'})
+    assert response.status_code == 429
+    data = response.get_json()
+    assert 'error' in data
+    assert data['error'] == 'Rate limit exceeded'
+    assert 'retryAfter' in data
 
 
 def test_decorator_video_scope_requires_video_id(client):
