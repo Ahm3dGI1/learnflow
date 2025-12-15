@@ -79,33 +79,12 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
     }
   };
 
-  // add near the top inside the component:
-  const thumbnailSrc =
-    // video.thumbnailUrl ||
-    video.thumbnail ||
-    (video.videoId ? `https://img.youtube.com/vi/${video.videoId}/mqdefault.jpg` : "");
-
-  // also add a safe date formatter:
-  const getLastViewedText = () => {
-    const raw =
-      video.lastWatchedAt ||
-      video.lastViewedAt ||
-      video.updatedAt ||
-      video.createdAt ||
-      null;
-    if (!raw) return "—";
-
-    const d = new Date(raw);
-    if (Number.isNaN(d.getTime())) return "—";
-    return d.toLocaleDateString();
-  };
-
   return (
     <div className="video-history-card">
       <div>
         <div className="video-thumbnail-container" onClick={() => onSelect(video)}>
           <img
-            src={thumbnailSrc}
+            src={video.thumbnailUrl}
             alt={video.title}
             className="video-thumbnail"
             onError={(e) => {
@@ -140,7 +119,7 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
         <h4 className="video-title" onClick={() => onSelect(video)}>
           {video.title}
         </h4>
-        <p className="video-date">Last viewed {getLastViewedText()}</p>
+        <p className="video-date">Last viewed {formatDate(video.lastWatchedAt)}</p>
         {progress && !progress.isCompleted && (
           <p className="video-progress">{Math.round(progress.progressPercentage)}% watched</p>
         )}
