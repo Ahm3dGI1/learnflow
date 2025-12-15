@@ -215,7 +215,7 @@ describe('VideoHistoryCard', () => {
     fireEvent.click(deleteButton);
 
     expect(mockOnDelete).toHaveBeenCalledTimes(1);
-    expect(mockOnDelete).toHaveBeenCalledWith(mockVideo.id);
+    expect(mockOnDelete).toHaveBeenCalledWith(mockVideo.videoId);
   });
 
   // ========== DATE FORMATTING TESTS ==========

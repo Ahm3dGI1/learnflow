@@ -16,6 +16,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { useToast } from "../hooks/useToast";
 import VideoPlayer from "../components/VideoPlayer";
 import CheckpointPopup from "../components/CheckpointPopup";
 import VideoSummary from "../components/VideoSummary";
@@ -60,6 +61,7 @@ export default function VideoPage() {
   const { videoId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const toast = useToast();
 
   const [video, setVideo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -158,7 +160,6 @@ export default function VideoPage() {
         // If video doesn't exist in DB, try to create it
         if (err.status === 404) {
           try {
-            console.log("Video not in database, creating entry...");
             const newVideo = await videoService.createVideo(videoId, {
               fetchMetadata: true,
               fetchTranscript: true
@@ -270,8 +271,8 @@ export default function VideoPage() {
    */
   const handleAskTutor = useCallback((checkpoint) => {
     // TODO: Integrate with chat interface
-    alert(`Chat feature coming soon! You can ask about: "${checkpoint.question}"`);
-  }, []);
+    toast.info(`Chat feature coming soon! You can ask about: "${checkpoint.question}"`);
+  }, [toast]);
 
   /**
    * Handle Video Time Update
@@ -335,7 +336,6 @@ export default function VideoPage() {
       try {
         await progressService.updateProgress(user.uid, video.id, Math.floor(time));
         lastProgressSaveTime.current = currentTime;
-        console.log(`Progress saved: ${Math.floor(time)}s`);
       } catch (err) {
         console.error("Error saving progress:", err);
       }
@@ -351,17 +351,13 @@ export default function VideoPage() {
    * @param {Object} player - YouTube player instance
    */
   const handlePlayerReady = useCallback((player) => {
-    console.log('Video player ready');
-
     // Auto-resume from saved position if available
     // Add a small delay to allow YouTube to buffer
     if (savedProgress && !hasResumed.current && videoRef.current) {
       const resumePosition = savedProgress.lastPositionSeconds;
-      console.log(`Will resume from ${resumePosition}s in 1 second...`);
 
       setTimeout(() => {
         if (videoRef.current) {
-          console.log(`Resuming now from ${resumePosition}s`);
           videoRef.current.seekTo(resumePosition);
           hasResumed.current = true;
         }

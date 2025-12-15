@@ -56,7 +56,12 @@ def _initialize_app():
                 f"Firebase service account file not found at: {cred_file}"
             )
     elif cred_json:
-        cred_dict = json.loads(cred_json)
+        try:
+            cred_dict = json.loads(cred_json)
+        except json.JSONDecodeError as e:
+            raise RuntimeError(
+                f"Invalid JSON in FIREBASE_SERVICE_ACCOUNT_JSON: {e}"
+            )
         cred = credentials.Certificate(cred_dict)
     else:
         raise RuntimeError(

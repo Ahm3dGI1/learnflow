@@ -1,0 +1,130 @@
+/* InputBar Styles - Clean and Professional */
+
+.input-bar-container {
+    width: 100%;
+    max-width: 48rem; /* max-w-3xl */
+    margin: 0 auto;
+}
+
+.input-bar-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-bar-wrapper:focus-within .youtube-icon {
+    color: #ef4444; /* red-500 */
+}
+
+/* YouTube Icon */
+.youtube-icon-container {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    padding-left: 1rem;
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+}
+
+.youtube-icon {
+    height: 1.25rem;
+    width: 1.25rem;
+    color: #9ca3af; /* gray-400 */
+    transition: color 0.15s ease-in-out;
+}
+
+.youtube-icon.loading {
+    color: #d1d5db; /* gray-300 */
+}
+
+/* Input Field */
+.input-bar-field {
+    display: block;
+    width: 100%;
+    padding: 1rem 10rem 1rem 3rem; /* py-4 pl-12 pr-40 */
+    background-color: white;
+    border: 1px solid #e5e7eb; /* border-gray-200 */
+    border-radius: 1rem; /* rounded-2xl */
+    color: #111827; /* text-gray-900 */
+    font-size: 1rem; /* text-base */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+    transition: all 0.15s ease-in-out;
+}
+
+.input-bar-field::placeholder {
+    color: #9ca3af; /* placeholder-gray-400 */
+}
+
+.input-bar-field:focus {
+    outline: none;
+    border-color: #3b82f6; /* border-blue-500 */
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); /* focus:ring-4 focus:ring-blue-500/10 */
+}
+
+.input-bar-field:disabled {
+    background-color: #f9fafb; /* disabled:bg-gray-50 */
+    color: #9ca3af; /* disabled:text-gray-400 */
+}
+
+/* Submit Button */
+.input-bar-button {
+    position: absolute;
+    right: 0.5rem; /* right-2 */
+    top: 0.5rem; /* top-2 */
+    bottom: 0.5rem; /* bottom-2 */
+    padding: 0 1.5rem; /* px-6 */
+    font-weight: 600;
+    border-radius: 0.75rem; /* rounded-xl */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+    transition: all 0.15s ease-in-out;
+    transform: scale(1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: none;
+    cursor: pointer;
+}
+
+.input-bar-button:not(:disabled) {
+    background: linear-gradient(to right, #3b82f6, #06b6d4); /* bg-gradient-to-r from-blue-500 to-cyan-500 */
+    color: white;
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2); /* shadow-blue-500/20 */
+}
+
+.input-bar-button:not(:disabled):hover {
+    background: linear-gradient(to right, #2563eb, #0891b2); /* hover:from-blue-600 hover:to-cyan-600 */
+    box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3), 0 4px 6px -2px rgba(59, 130, 246, 0.1); /* hover:shadow-lg hover:shadow-blue-500/30 */
+    transform: scale(1.02); /* hover:scale-[1.02] */
+}
+
+.input-bar-button:not(:disabled):active {
+    transform: scale(0.95); /* active:scale-95 */
+}
+
+.input-bar-button:disabled {
+    background-color: #f3f4f6; /* bg-gray-100 */
+    color: #9ca3af; /* text-gray-400 */
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* Sparkles Icon */
+.sparkles-icon {
+    width: 1rem;
+    height: 1rem;
+}
+
+.sparkles-icon.loading {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}

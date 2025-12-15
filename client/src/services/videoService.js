@@ -250,11 +250,8 @@ const videoService = {
    */
   getVideoHistory: async (firebaseUid, limit = 50) => {
     try {
-      console.log(`[VideoService] Fetching history for ${firebaseUid}`);
       const queryParam = limit !== 50 ? `?limit=${limit}` : '';
       const response = await api.get(`/api/videos/history/${firebaseUid}${queryParam}`);
-
-      console.log('[VideoService] Raw history response:', response);
 
       // Backend returns { data: [...], total: ... }
       // We need to return the array in 'data'
@@ -281,9 +278,7 @@ const videoService = {
    */
   saveToHistory: async (firebaseUid, videoData) => {
     try {
-      console.log('[VideoService] Saving to history:', videoData);
       const response = await api.post(`/api/videos/history/${firebaseUid}`, videoData);
-      console.log('[VideoService] Save response:', response);
 
       // Backend returns { message: "...", data: { ... } }
       if (response && response.data) {

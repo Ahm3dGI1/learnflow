@@ -20,6 +20,7 @@ import { useState } from 'react';
  * validation, and conversion to embed format. Handles multiple URL formats
  * and provides user feedback for invalid URLs.
  * 
+ * @param {Object|null} toast - Optional toast notification object with error method
  * @returns {Object} YouTube embed management interface
  * @property {string} videoUrl - Current video URL input
  * @property {Function} setVideoUrl - Set video URL input value
@@ -28,7 +29,8 @@ import { useState } from 'react';
  * @property {Function} resetVideo - Clear both URLs
  * 
  * @example
- * const { videoUrl, setVideoUrl, embedUrl, handleLoadVideo } = useYouTubeEmbed();
+ * const toast = useToast();
+ * const { videoUrl, setVideoUrl, embedUrl, handleLoadVideo } = useYouTubeEmbed(toast);
  * 
  * <input 
  *   value={videoUrl} 
@@ -37,7 +39,7 @@ import { useState } from 'react';
  * <button onClick={handleLoadVideo}>Load Video</button>
  * {embedUrl && <VideoPlayer embedUrl={embedUrl} />}
  */
-export function useYouTubeEmbed() {
+export function useYouTubeEmbed(toast = null) {
   const [videoUrl, setVideoUrl] = useState('');
   const [embedUrl, setEmbedUrl] = useState('');
 
@@ -79,9 +81,13 @@ export function useYouTubeEmbed() {
     const videoId = extractVideoId(videoUrl);
     if (videoId) {
       setEmbedUrl(`https://www.youtube.com/embed/${videoId}?autoplay=1`);
-      console.log('Loading video:', videoId);
     } else if (videoUrl.trim()) {
-      alert('Please enter a valid YouTube URL');
+      if (toast) {
+        toast.error('Please enter a valid YouTube URL');
+      } else {
+        // Fallback for components without toast access
+        console.warn('Invalid YouTube URL provided:', videoUrl);
+      }
     }
   };
 

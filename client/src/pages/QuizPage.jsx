@@ -162,7 +162,6 @@ export default function QuizPage() {
             formattedAnswers,
             timeTakenSeconds
           );
-          console.log('Quiz submitted to backend:', submittedResult);
         } else {
           console.warn('Missing userId or quizId, quiz not submitted to backend');
         }

@@ -49,7 +49,7 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
   // Normalized/fallback values to match test expectations and various prop shapes
   const thumbnailSrc = video?.thumbnailUrl ?? video?.thumbnail ?? '';
   const lastViewed = video?.lastViewedAt ?? video?.lastWatchedAt ?? '';
-  const deleteId = video?.id ?? video?.videoId ?? null;
+  const deleteId = video?.videoId ?? video?.id ?? null;
 
   // Progress normalization and computed values
   const percent = progress?.progressPercentage ?? progress?.percentage ?? 0;
@@ -66,7 +66,7 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
         type="button"
       >
         <img
-          {...(thumbnailSrc ? { src: thumbnailSrc } : {})}
+          src={thumbnailSrc || ''}
           alt={video.title}
           className="history-thumbnail-img"
         />

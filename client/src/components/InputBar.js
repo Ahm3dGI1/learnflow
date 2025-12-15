@@ -1,5 +1,6 @@
 import React from 'react';
 import { Sparkles, Youtube } from 'lucide-react';
+import './InputBar.css';
 
 /**
  * InputBar Component
@@ -12,6 +13,7 @@ import { Sparkles, Youtube } from 'lucide-react';
  * @param {string} props.videoUrl - Current input value
  * @param {Function} props.setVideoUrl - Callback to update input value
  * @param {Function} props.onSend - Callback to trigger when user submits URL
+ * @param {boolean} props.isLoading - Loading state to disable input and button
  * @returns {React.ReactElement} Input bar with text field and button
  */
 export default function InputBar({ videoUrl, setVideoUrl, onSend, isLoading }) {
@@ -25,14 +27,14 @@ export default function InputBar({ videoUrl, setVideoUrl, onSend, isLoading }) {
     };
 
     return (
-        <div className="w-full max-w-3xl mx-auto">
-            <div className="relative flex items-center group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Youtube className={`h-5 w-5 transition-colors ${isLoading ? 'text-gray-300' : 'text-gray-400 group-focus-within:text-red-500'}`} />
+        <div className="input-bar-container">
+            <div className="input-bar-wrapper">
+                <div className="youtube-icon-container">
+                    <Youtube className={`youtube-icon ${isLoading ? 'loading' : ''}`} />
                 </div>
                 <input
                     type="text"
-                    className="block w-full pl-12 pr-40 py-4 bg-white border border-gray-200 rounded-2xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 shadow-sm transition-all text-base disabled:bg-gray-50 disabled:text-gray-400"
+                    className="input-bar-field"
                     placeholder="Paste your YouTube link here..."
                     value={videoUrl}
                     onChange={(e) => setVideoUrl(e.target.value)}
@@ -43,14 +45,10 @@ export default function InputBar({ videoUrl, setVideoUrl, onSend, isLoading }) {
                 <button
                     onClick={onSend}
                     disabled={isLoading}
-                    className={`absolute right-2 top-2 bottom-2 px-6 font-semibold rounded-xl shadow-md transition-all transform flex items-center gap-2
-                        ${isLoading
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
-                            : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30 hover:scale-[1.02] active:scale-95'
-                        }`}
+                    className="input-bar-button"
                 >
                     <span>{isLoading ? 'Loading...' : 'Load Video'}</span>
-                    <Sparkles className={`w-4 h-4 ${isLoading ? 'animate-pulse' : ''}`} />
+                    <Sparkles className={`sparkles-icon ${isLoading ? 'loading' : ''}`} />
                 </button>
             </div>
         </div>
