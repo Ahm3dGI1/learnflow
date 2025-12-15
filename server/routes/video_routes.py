@@ -8,7 +8,7 @@ for various YouTube API failure modes and returns standardized JSON responses.
 All routes are prefixed with /api/videos.
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 
 from services import (
     fetch_transcript,
@@ -20,7 +20,18 @@ from services import (
     cache_transcript,
     update_video_metadata,
     get_video_with_cache,
-    fetch_youtube_metadata
+    fetch_youtube_metadata,
+    get_user_video_history,
+    save_video_to_history,
+    delete_video_from_history,
+    clear_video_history
+)
+from utils.logger import get_logger
+from utils.exceptions import (
+    APIError,
+    InvalidVideoIdError,
+    MissingParameterError,
+    ValidationError
 )
 from youtube_transcript_api._errors import (
     TranscriptsDisabled,
@@ -29,7 +40,11 @@ from youtube_transcript_api._errors import (
     YouTubeRequestFailed
 )
 from database import SessionLocal
+from middleware.auth import auth_required
+from models import User
 
+# Initialize logger
+logger = get_logger(__name__)
 
 video_bp = Blueprint('video', __name__, url_prefix='/api/videos')
 
@@ -352,7 +367,7 @@ def create_video():
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'No data provided'}), 400
+            raise ValidationError("No data provided")
 
         video_input = data.get('videoId')
         fetch_metadata = data.get('fetchMetadata', False)
@@ -360,18 +375,28 @@ def create_video():
         language_codes = data.get('languageCodes')
 
         if not video_input:
-            return jsonify({'error': 'videoId is required'}), 400
+            raise MissingParameterError('videoId')
 
         # Extract video ID
         try:
             youtube_video_id = extract_video_id(video_input)
         except ValueError as e:
-            return jsonify({'error': str(e)}), 400
+            raise InvalidVideoIdError(str(e))
+
+        logger.info(
+            f"Creating video entry",
+            extra={
+                "video_id": youtube_video_id,
+                "fetch_metadata": fetch_metadata,
+                "fetch_transcript": fetch_transcript_flag
+            }
+        )
 
         # Get or create video
         video = get_or_create_video(youtube_video_id, db)
 
         # Fetch metadata if requested
+        metadata_error = None
         if fetch_metadata:
             try:
                 metadata = fetch_youtube_metadata(youtube_video_id)
@@ -383,35 +408,79 @@ def create_video():
                     duration_seconds=metadata.get('durationSeconds'),
                     db=db
                 )
+                logger.info(f"Metadata fetched successfully", extra={"video_id": youtube_video_id})
             except Exception as e:
                 # Optional: Continue even if metadata fetch fails
                 # Video is still created successfully without metadata
-                pass
+                metadata_error = str(e)
+                logger.warning(
+                    f"Failed to fetch metadata: {e}",
+                    extra={"video_id": youtube_video_id}
+                )
 
         # Fetch and cache transcript if requested
         transcript_data = None
+        transcript_error = None
         if fetch_transcript_flag:
             try:
                 transcript_data = fetch_transcript(youtube_video_id, language_codes)
                 cache_transcript(video.id, transcript_data, db)
+                logger.info(f"Transcript fetched and cached", extra={"video_id": youtube_video_id})
+            except TranscriptsDisabled:
+                transcript_error = "Transcripts are disabled for this video"
+                logger.warning(transcript_error, extra={"video_id": youtube_video_id})
+            except NoTranscriptFound as e:
+                transcript_error = f"No transcript found: {str(e)}"
+                logger.warning(transcript_error, extra={"video_id": youtube_video_id})
+            except VideoUnavailable:
+                transcript_error = "Video is unavailable or does not exist"
+                logger.warning(transcript_error, extra={"video_id": youtube_video_id})
             except Exception as e:
-                # Optional: Continue even if transcript fetch fails
-                # Video is still created successfully without transcript
-                pass
+                # Unexpected error
+                transcript_error = str(e)
+                logger.error(
+                    f"Unexpected error fetching transcript: {e}",
+                    exc_info=True,
+                    extra={"video_id": youtube_video_id}
+                )
 
         # Get updated video data
         video_data = get_video_with_cache(youtube_video_id, db)
         video_data['message'] = 'Video created successfully'
 
+        # Include any warnings about failed fetches
+        if metadata_error:
+            video_data['metadataWarning'] = f'Failed to fetch metadata: {metadata_error}'
+        if transcript_error:
+            video_data['transcriptWarning'] = f'Failed to fetch transcript: {transcript_error}'
+
+        logger.info(
+            f"Video created successfully",
+            extra={
+                "video_id": youtube_video_id,
+                "has_metadata": not metadata_error,
+                "has_transcript": not transcript_error
+            }
+        )
+
         return jsonify(video_data), 201
 
-    except Exception as e:
+    except APIError:
+        # Let APIError exceptions (ValidationError, MissingParameterError, etc.)
+        # propagate to global error handler for consistent error responses
         db.rollback()
-        return jsonify({
-            'error': 'Failed to create video',
-            'details': str(e)
-        }), 500
+        raise
+    except Exception as e:
+        # Unexpected errors
+        db.rollback()
+        logger.error(
+            f"Unexpected error creating video: {str(e)}",
+            exc_info=True,
+            extra={"video_id": youtube_video_id if 'youtube_video_id' in locals() else None}
+        )
+        raise
     finally:
+        # Always close the database session
         db.close()
 
 
@@ -480,6 +549,275 @@ def get_video_metadata(youtube_video_id):
     except Exception as e:
         return jsonify({
             'error': 'Failed to fetch video metadata',
+            'details': str(e)
+        }), 500
+    finally:
+        db.close()
+
+
+@video_bp.route('/history/<firebase_uid>', methods=['GET'])
+@auth_required
+def get_video_history(firebase_uid):
+    """
+    Get video watch history for a user.
+
+    Path Parameters:
+        firebase_uid: User's Firebase UID
+
+    Query Parameters:
+        limit: Maximum number of videos to return (default: 50, max: 100)
+
+    Returns:
+        {
+            "data": [
+                {
+                    "videoId": "abc123",
+                    "title": "Example Video",
+                    "thumbnailUrl": "https://...",
+                    "lastPositionSeconds": 120,
+                    "lastWatchedAt": "2025-01-20T10:30:00Z",
+                    "isCompleted": false,
+                    "watchCount": 3
+                },
+                ...
+            ],
+            "total": 10
+        }
+
+    Status Codes:
+        200: Success
+        401: Unauthorized (invalid or missing token)
+        403: Forbidden (accessing another user's history)
+        404: User not found
+        500: Internal server error
+    """
+    db = SessionLocal()
+    try:
+        # Authorization check: users can only access their own history
+        if g.firebase_user['uid'] != firebase_uid:
+            return jsonify({'error': 'Forbidden: Cannot access another user\'s history'}), 403
+
+        # Get limit parameter
+        try:
+            limit = int(request.args.get('limit', 50))
+            limit = min(max(1, limit), 100)  # Clamp between 1 and 100
+        except ValueError:
+            return jsonify({'error': 'Invalid limit parameter'}), 400
+
+        # Get user from database
+        user = db.query(User).filter(User.firebase_uid == firebase_uid).first()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        # Get video history
+        history_data = get_user_video_history(user.id, db, limit=limit)
+
+        return jsonify({
+            'data': history_data,
+            'total': len(history_data)
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            'error': 'Failed to fetch video history',
+            'details': str(e)
+        }), 500
+    finally:
+        db.close()
+
+
+@video_bp.route('/history/<firebase_uid>', methods=['POST'])
+@auth_required
+def add_to_video_history(firebase_uid):
+    """
+    Add or update a video in user's watch history.
+
+    Path Parameters:
+        firebase_uid: User's Firebase UID
+
+    Request Body:
+        {
+            "videoId": "abc123",
+            "lastPositionSeconds": 120,
+            "isCompleted": false  // Optional
+        }
+
+    Returns:
+        {
+            "message": "Video added to history",
+            "data": {
+                "videoId": "abc123",
+                "lastPositionSeconds": 120,
+                "lastWatchedAt": "2025-01-20T10:30:00Z"
+            }
+        }
+
+    Status Codes:
+        200: Success
+        400: Invalid request (missing fields)
+        401: Unauthorized
+        403: Forbidden
+        404: User not found
+        500: Internal server error
+    """
+    db = SessionLocal()
+    try:
+        # Authorization check
+        if g.firebase_user['uid'] != firebase_uid:
+            return jsonify({'error': 'Forbidden: Cannot modify another user\'s history'}), 403
+
+        # Validate request body
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        video_id = data.get('videoId')
+        last_position_seconds = data.get('lastPositionSeconds')
+
+        if not video_id:
+            return jsonify({'error': 'videoId is required'}), 400
+
+        if last_position_seconds is None:
+            return jsonify({'error': 'lastPositionSeconds is required'}), 400
+
+        try:
+            last_position_seconds = int(last_position_seconds)
+            if last_position_seconds < 0 or last_position_seconds > 86400:
+                return jsonify({'error': 'lastPositionSeconds must be between 0 and 86400'}), 400
+        except (TypeError, ValueError):
+            return jsonify({'error': 'lastPositionSeconds must be a valid integer'}), 400
+
+        is_completed = data.get('isCompleted', False)
+        if not isinstance(is_completed, bool):
+            return jsonify({'error': 'isCompleted must be a boolean'}), 400
+
+        # Get user
+        user = db.query(User).filter(User.firebase_uid == firebase_uid).first()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        # Save to history
+        result = save_video_to_history(
+            user.id,
+            video_id,
+            last_position_seconds,
+            is_completed,
+            db
+        )
+
+        if not result:
+            return jsonify({'error': 'Failed to save video to history'}), 500
+
+        return jsonify({
+            'message': 'Video added to history',
+            'data': result
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            'error': 'Failed to add video to history',
+            'details': str(e)
+        }), 500
+    finally:
+        db.close()
+
+
+@video_bp.route('/history/<firebase_uid>/<video_id>', methods=['DELETE'])
+@auth_required
+def remove_from_video_history(firebase_uid, video_id):
+    """
+    Remove a specific video from user's watch history.
+
+    Path Parameters:
+        firebase_uid: User's Firebase UID
+        video_id: YouTube video ID to remove
+
+    Returns:
+        {
+            "message": "Video removed from history"
+        }
+
+    Status Codes:
+        200: Success
+        401: Unauthorized
+        403: Forbidden
+        404: User not found or video not in history
+        500: Internal server error
+    """
+    db = SessionLocal()
+    try:
+        # Authorization check
+        if g.firebase_user['uid'] != firebase_uid:
+            return jsonify({'error': 'Forbidden: Cannot modify another user\'s history'}), 403
+
+        # Get user
+        user = db.query(User).filter(User.firebase_uid == firebase_uid).first()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        # Delete from history
+        success = delete_video_from_history(user.id, video_id, db)
+
+        if not success:
+            return jsonify({'error': 'Video not found in history'}), 404
+
+        return jsonify({
+            'message': 'Video removed from history'
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            'error': 'Failed to remove video from history',
+            'details': str(e)
+        }), 500
+    finally:
+        db.close()
+
+
+@video_bp.route('/history/<firebase_uid>', methods=['DELETE'])
+@auth_required
+def clear_all_video_history(firebase_uid):
+    """
+    Clear all video watch history for a user.
+
+    Path Parameters:
+        firebase_uid: User's Firebase UID
+
+    Returns:
+        {
+            "message": "Video history cleared",
+            "deletedCount": 5
+        }
+
+    Status Codes:
+        200: Success
+        401: Unauthorized
+        403: Forbidden
+        404: User not found
+        500: Internal server error
+    """
+    db = SessionLocal()
+    try:
+        # Authorization check
+        if g.firebase_user['uid'] != firebase_uid:
+            return jsonify({'error': 'Forbidden: Cannot modify another user\'s history'}), 403
+
+        # Get user
+        user = db.query(User).filter(User.firebase_uid == firebase_uid).first()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        # Clear history
+        deleted_count = clear_video_history(user.id, db)
+
+        return jsonify({
+            'message': 'Video history cleared',
+            'deletedCount': deleted_count
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            'error': 'Failed to clear video history',
             'details': str(e)
         }), 500
     finally:

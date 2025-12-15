@@ -16,13 +16,44 @@ Tests verify:
 Usage:
     python test_db.py
 
-Note: Creates test data in the database. Consider using a separate test
-database or cleaning up after running tests.
+Note: These tests are sequential and share data across test functions.
+They use a module-scoped session to maintain data between tests.
 """
 
-from sqlalchemy.exc import IntegrityError
-
+import pytest
 from database import SessionLocal
+
+
+@pytest.fixture(scope="module")
+def session():
+    """
+    Module-scoped session for test_db.py tests that share data.
+
+    These tests are intentionally sequential and depend on data created
+    in previous tests. After all tests complete, data is cleaned up.
+    """
+    db = SessionLocal()
+    yield db
+
+    # Clean up after all tests in this module
+    from models import (
+        ChatMessage, UserQuizAttempt, UserCheckpointCompletion,
+        UserVideoProgress, Quiz, Checkpoint, Video, User
+    )
+
+    db.query(ChatMessage).delete()
+    db.query(UserQuizAttempt).delete()
+    db.query(UserCheckpointCompletion).delete()
+    db.query(UserVideoProgress).delete()
+    db.query(Quiz).delete()
+    db.query(Checkpoint).delete()
+    db.query(Video).delete()
+    db.query(User).delete()
+    db.commit()
+    db.close()
+
+
+from sqlalchemy.exc import IntegrityError
 from models import (
     User,
     Video,
@@ -122,6 +153,8 @@ def test_negative_progress_rejected(session):
 
 def test_checkpoint_and_completion(session):
     """Create a checkpoint for a video and a completion record for the user."""
+    import json
+
     user = session.query(User).filter_by(firebase_uid="uid-123").one()
     video = session.query(Video).filter_by(youtube_video_id="dQw4w9WgXcQ").one()
 
@@ -131,6 +164,12 @@ def test_checkpoint_and_completion(session):
         title="Intro to Variables",
         subtopic="What variables are",
         order_index=1,
+        question_data=json.dumps({
+            'question': 'What is a variable?',
+            'options': ['A storage location', 'A function', 'A loop', 'A class'],
+            'correctAnswer': 'A storage location',
+            'explanation': 'Variables store data values'
+        })
     )
     session.add(checkpoint)
     session.commit()

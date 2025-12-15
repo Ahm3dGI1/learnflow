@@ -68,24 +68,37 @@ const llmService = {
    * Send a chat message to the AI tutor
    * @param {string} message - User's question
    * @param {object} context - Context for the conversation
-   * @param {string} context.videoId - Current video ID
-   * @param {object} context.transcript - Current video transcript
-   * @param {string} context.sessionId - Chat session ID (optional)
+   * @param {number} context.userId - Current user ID
+   * @param {string} context.videoId - Current video ID (YouTube ID)
+   * @param {object} context.videoContext - Video context including transcript snippet
+   * @param {string} context.sessionId - Chat session ID (optional, auto-generated if not provided)
+   * @param {string} context.timestamp - Current video timestamp (optional)
    * @returns {Promise<object>} AI response
    * @example
-   * const response = await llmService.sendChatMessage('Explain this concept', { videoId: 'abc123', transcript });
+   * const response = await llmService.sendChatMessage('Explain this concept', {
+   *   userId: 1,
+   *   videoId: 'abc123',
+   *   videoContext: { videoId: 'abc123', transcriptSnippet: 'text', language: 'en' },
+   *   timestamp: '05:30'
+   * });
    * // Returns: { response: 'Here is the explanation...', sessionId, timestamp }
    */
   sendChatMessage: async (message, context = {}) => {
     try {
       const body = {
-        message,
+        userId: context.userId,
         videoId: context.videoId,
-        transcript: context.transcript,
+        message,
+        videoContext: context.videoContext || {
+          videoId: context.videoId,
+          transcriptSnippet: '',
+          language: 'en'
+        },
         sessionId: context.sessionId || null,
+        timestamp: context.timestamp || null,
       };
 
-      const response = await api.post('/api/llm/chat/send', body, {}, false);
+      const response = await api.post('/api/llm/chat/send', body, {}, true);
       return response;
     } catch (error) {
       console.error('Error sending chat message:', error);
@@ -97,12 +110,17 @@ const llmService = {
    * Send a chat message with streaming response
    * @param {string} message - User's question
    * @param {object} context - Context for the conversation
+   * @param {number} context.userId - Current user ID
+   * @param {string} context.videoId - Current video ID (YouTube ID)
+   * @param {object} context.videoContext - Video context including transcript snippet
+   * @param {string} context.sessionId - Chat session ID (optional)
+   * @param {string} context.timestamp - Current video timestamp (optional)
    * @param {Function} onChunk - Callback for each chunk of response
    * @returns {Promise<string>} Full response text
    * @example
    * const fullResponse = await llmService.sendChatMessageStream(
    *   'Explain this concept',
-   *   { videoId: 'abc123', transcript },
+   *   { userId: 1, videoId: 'abc123', videoContext: {...} },
    *   (chunk) => console.log('Received:', chunk)
    * );
    */
@@ -112,10 +130,16 @@ const llmService = {
       const url = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/llm/chat/stream`;
 
       const body = JSON.stringify({
-        message,
+        userId: context.userId,
         videoId: context.videoId,
-        transcript: context.transcript,
+        message,
+        videoContext: context.videoContext || {
+          videoId: context.videoId,
+          transcriptSnippet: '',
+          language: 'en'
+        },
         sessionId: context.sessionId || null,
+        timestamp: context.timestamp || null,
       });
 
       const response = await fetch(url, {
@@ -156,31 +180,25 @@ const llmService = {
   },
 
   /**
-   * Get chat history for a session
-   * @param {string} sessionId - Chat session ID
-   * @returns {Promise<object>} Chat history
+   * Get chat history for a video
+   * @param {string} videoId - YouTube video ID
+   * @param {number} userId - User ID
+   * @param {number} limit - Maximum number of messages to retrieve (optional)
+   * @returns {Promise<object>} Chat history with messages array
+   * @example
+   * const history = await llmService.getChatHistory('abc123', 1, 50);
+   * // Returns: { videoId: 'abc123', messages: [...], totalMessages: 10 }
    */
-  getChatHistory: async (sessionId) => {
+  getChatHistory: async (videoId, userId, limit = null) => {
     try {
-      const response = await api.get(`/api/llm/chat/history/${sessionId}`, {}, true);
+      const queryParams = new URLSearchParams({ userId: userId.toString() });
+      if (limit) {
+        queryParams.append('limit', limit.toString());
+      }
+      const response = await api.get(`/api/llm/chat/history/${videoId}?${queryParams.toString()}`, {}, true);
       return response;
     } catch (error) {
       console.error('Error fetching chat history:', error);
-      throw error;
-    }
-  },
-
-  /**
-   * Clear chat history for a session
-   * @param {string} sessionId - Chat session ID
-   * @returns {Promise<object>} Deletion confirmation
-   */
-  clearChatHistory: async (sessionId) => {
-    try {
-      const response = await api.delete(`/api/llm/chat/history/${sessionId}`, {}, true);
-      return response;
-    } catch (error) {
-      console.error('Error clearing chat history:', error);
       throw error;
     }
   },
@@ -245,28 +263,6 @@ const llmService = {
   },
 
   /**
-   * Submit quiz answers and get results
-   * @param {string} quizId - Quiz ID
-   * @param {array} answers - Array of user's answers
-   * @returns {Promise<object>} Quiz results with score
-   * @example
-   * const results = await llmService.submitQuiz('quiz123', [
-   *   { questionId: 1, selectedAnswer: 'B' },
-   *   { questionId: 2, selectedAnswer: 'A' }
-   * ]);
-   * // Returns: { attemptId, score, totalQuestions, correctAnswers, answers: [...] }
-   */
-  submitQuiz: async (quizId, answers) => {
-    try {
-      const response = await api.post(`/api/quizzes/${quizId}/submit`, { answers }, {}, true);
-      return response;
-    } catch (error) {
-      console.error('Error submitting quiz:', error);
-      throw error;
-    }
-  },
-
-  /**
    * Get user's quiz attempts for a video
    * @param {string} videoId - YouTube video ID
    * @returns {Promise<object>} List of quiz attempts
@@ -302,11 +298,11 @@ const llmService = {
    * @param {number} maxLength - Maximum summary length in words (default: 150)
    * @returns {Promise<object>} Video summary
    */
-  generateSummary: async (transcript, maxLength = 150) => {
+  generateSummary: async (transcript, videoId = null, maxLength = 150) => {
     try {
       const body = {
         transcript: transcript,
-        videoId: transcript.videoId,
+        videoId: videoId || transcript.videoId,
         maxLength,
       };
 
@@ -314,6 +310,76 @@ const llmService = {
       return response;
     } catch (error) {
       console.error('Error generating summary:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Submit quiz answers and save attempt to database
+   * @param {number} quizId - Quiz ID
+   * @param {Array} answers - Array of answer objects with questionIndex, selectedAnswer
+   * @param {number} timeTakenSeconds - Time taken to complete quiz in seconds
+   * @returns {Promise<object>} Quiz attempt result with score
+   * @example
+   * const result = await llmService.submitQuiz(5, [
+   *   { questionIndex: 0, selectedAnswer: "Option B" },
+   *   { questionIndex: 1, selectedAnswer: "Option A" }
+   * ], 120);
+   * // Returns: { attemptId, score, totalQuestions, correctAnswers, submittedAt }
+   */
+  submitQuiz: async (quizId, answers, timeTakenSeconds = null) => {
+    try {
+      const body = {
+        quizId,
+        answers,
+        timeTakenSeconds,
+      };
+
+      const response = await api.post('/api/llm/quiz/submit', body, {}, true);
+      return response;
+    } catch (error) {
+      console.error('Error submitting quiz:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Mark a checkpoint as completed for a user
+   * @param {number} checkpointId - Checkpoint ID
+   * @param {string} selectedAnswer - The answer selected by the user (e.g., "A", "B", "C", "D")
+   * @returns {Promise<object>} Completion record
+   * @example
+   * const result = await llmService.markCheckpointComplete(10, "B");
+   * // Returns: { completionId, checkpointId, isCompleted, attemptCount, completedAt }
+   */
+  markCheckpointComplete: async (checkpointId, selectedAnswer) => {
+    try {
+      const body = {
+        selectedAnswer,
+      };
+
+      const response = await api.post(`/api/llm/checkpoints/${checkpointId}/complete`, body, {}, true);
+      return response;
+    } catch (error) {
+      console.error('Error marking checkpoint complete:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get checkpoint completion progress for a user on a video
+   * @param {number} videoId - Video ID (database ID, not YouTube ID)
+   * @returns {Promise<object>} Progress data
+   * @example
+   * const progress = await llmService.getCheckpointProgress(5);
+   * // Returns: { videoId, totalCheckpoints, completedCheckpoints, progressPercentage, completions: [...] }
+   */
+  getCheckpointProgress: async (videoId) => {
+    try {
+      const response = await api.get(`/api/llm/videos/${videoId}/checkpoint-progress`, {}, true);
+      return response;
+    } catch (error) {
+      console.error('Error getting checkpoint progress:', error);
       throw error;
     }
   },

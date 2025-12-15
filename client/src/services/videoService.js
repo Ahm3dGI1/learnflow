@@ -165,66 +165,16 @@ const videoService = {
   },
 
   /**
-   * Save or update user's video progress
-   * @param {string} videoId - YouTube video ID
-   * @param {number} currentPosition - Current playback position in seconds
-   * @param {boolean} isCompleted - Whether the video is completed
-   * @returns {Promise<object>} Updated progress data
-   */
-  saveProgress: async (videoId, currentPosition, isCompleted = false) => {
-    try {
-      const response = await api.post(
-        `/api/videos/${videoId}/progress`,
-        {
-          currentPosition,
-          isCompleted,
-        },
-        {},
-        true // Requires authentication
-      );
-      return response;
-    } catch (error) {
-      console.error('Error saving video progress:', error);
-      throw error;
-    }
-  },
-
-  /**
-   * Get user's video watch history
-   * @returns {Promise<object>} List of watched videos with progress
-   */
-  getHistory: async () => {
-    try {
-      const response = await api.get('/api/user/videos/history', {}, true);
-      return response;
-    } catch (error) {
-      console.error('Error fetching video history:', error);
-      throw error;
-    }
-  },
-
-  /**
-   * Delete a video from user's history
-   * @param {string} videoId - YouTube video ID
-   * @returns {Promise<object>} Deletion confirmation
-   */
-  deleteFromHistory: async (videoId) => {
-    try {
-      const response = await api.delete(`/api/user/videos/${videoId}/history`, {}, true);
-      return response;
-    } catch (error) {
-      console.error('Error deleting video from history:', error);
-      throw error;
-    }
-  },
-
-  /**
    * Get video thumbnail URL
    * @param {string} videoId - YouTube video ID
    * @param {string} quality - Thumbnail quality ('default', 'medium', 'high', 'maxres')
    * @returns {string} Thumbnail URL
    */
   getThumbnailUrl: (videoId, quality = 'medium') => {
+    if (!videoId || typeof videoId !== 'string' || videoId.trim() === '') {
+      return null;
+    }
+
     const qualityMap = {
       default: 'default',
       medium: 'mqdefault',
@@ -233,6 +183,7 @@ const videoService = {
     };
 
     const qualityString = qualityMap[quality] || qualityMap.medium;
+    // Use HTTPS for thumbnails; some browsers block HTTP mixed content
     return `https://img.youtube.com/vi/${videoId}/${qualityString}.jpg`;
   },
 
@@ -294,6 +245,82 @@ const videoService = {
         start: snippet.start,
         timestamp: videoService.formatTimestamp(snippet.start),
       }));
+  },
+
+  /**
+   * Get user's video watch history from server
+   * @param {string} firebaseUid - Firebase user ID
+   * @param {number} limit - Maximum number of videos to return (default: 50, max: 100)
+   * @returns {Promise<array>} Array of video history entries
+   * @example
+   * const history = await videoService.getVideoHistory(user.uid, 50);
+   * // Returns: [{ videoId, title, thumbnailUrl, lastPositionSeconds, lastWatchedAt, isCompleted, watchCount }, ...]
+   */
+  getVideoHistory: async (firebaseUid, limit = 50) => {
+    try {
+      const queryParam = limit !== 50 ? `?limit=${limit}` : '';
+      const response = await api.get(`/api/videos/history/${firebaseUid}${queryParam}`);
+      return response.data || [];
+    } catch (error) {
+      console.error('Error fetching video history:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Add or update a video in user's watch history
+   * @param {string} firebaseUid - Firebase user ID
+   * @param {object} videoData - Video data to save
+   * @param {string} videoData.videoId - YouTube video ID
+   * @param {number} videoData.lastPositionSeconds - Current playback position
+   * @param {boolean} [videoData.isCompleted=false] - Whether video is fully watched
+   * @returns {Promise<object>} Saved video data
+   * @example
+   * await videoService.saveToHistory(user.uid, { videoId: 'abc123', lastPositionSeconds: 120, isCompleted: false });
+   */
+  saveToHistory: async (firebaseUid, videoData) => {
+    try {
+      const response = await api.post(`/api/videos/history/${firebaseUid}`, videoData);
+      return response.data;
+    } catch (error) {
+      console.error('Error saving video to history:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Remove a video from user's watch history
+   * @param {string} firebaseUid - Firebase user ID
+   * @param {string} videoId - YouTube video ID to remove
+   * @returns {Promise<void>}
+   * @example
+   * await videoService.deleteFromHistory(user.uid, 'abc123');
+   */
+  deleteFromHistory: async (firebaseUid, videoId) => {
+    try {
+      await api.delete(`/api/videos/history/${firebaseUid}/${videoId}`);
+    } catch (error) {
+      console.error('Error deleting video from history:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Clear all video watch history for a user
+   * @param {string} firebaseUid - Firebase user ID
+   * @returns {Promise<object>} Object with deletedCount
+   * @example
+   * const result = await videoService.clearVideoHistory(user.uid);
+   * // Returns: { message: 'Video history cleared', deletedCount: 5 }
+   */
+  clearVideoHistory: async (firebaseUid) => {
+    try {
+      const response = await api.delete(`/api/videos/history/${firebaseUid}`);
+      return response;
+    } catch (error) {
+      console.error('Error clearing video history:', error);
+      throw error;
+    }
   },
 };
 

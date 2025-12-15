@@ -52,11 +52,20 @@ Respond with ONLY valid JSON in this exact structure:
       "timestamp": "MM:SS",
       "title": "Short Title Here",
       "subtopic": "Brief one-sentence description of what this section covers.",
-      "question": "A question to verify understanding of this checkpoint's content.",
-      "answer": "The correct answer to the question."
+      "question": "A multiple-choice question to verify understanding of this checkpoint's content.",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctAnswer": "Option B",
+      "explanation": "Brief explanation of why this is the correct answer."
     }}
   ]
 }}
+
+MCQ Guidelines:
+- Create 4 plausible options (A, B, C, D)
+- Make distractors (wrong answers) reasonable but clearly incorrect to someone who understood the content
+- Ensure only one option is definitively correct
+- Keep options concise (1-10 words each)
+- Provide a brief explanation (1-2 sentences) for the correct answer
 
 Example for a photosynthesis video:
 {{
@@ -66,21 +75,42 @@ Example for a photosynthesis video:
       "title": "Photosynthesis Definition",
       "subtopic": "Understanding what photosynthesis is and why plants need it.",
       "question": "What is the primary purpose of photosynthesis in plants?",
-      "answer": "To convert light energy into chemical energy stored in glucose"
+      "options": [
+        "To absorb water from the soil",
+        "To convert light energy into chemical energy",
+        "To release oxygen into the atmosphere",
+        "To reproduce and grow new cells"
+      ],
+      "correctAnswer": "To convert light energy into chemical energy",
+      "explanation": "Photosynthesis converts light energy into chemical energy stored in glucose, which plants use for growth and metabolism."
     }},
     {{
       "timestamp": "05:40",
       "title": "Light-Dependent Reactions",
       "subtopic": "How chlorophyll captures light energy in the thylakoid membrane.",
-      "question": "Where do the light-dependent reactions occur?",
-      "answer": "In the thylakoid membrane"
+      "question": "Where do the light-dependent reactions of photosynthesis occur?",
+      "options": [
+        "In the cell nucleus",
+        "In the thylakoid membrane",
+        "In the cytoplasm",
+        "In the mitochondria"
+      ],
+      "correctAnswer": "In the thylakoid membrane",
+      "explanation": "Light-dependent reactions occur in the thylakoid membrane where chlorophyll captures light energy."
     }},
     {{
       "timestamp": "08:20",
       "title": "Calvin Cycle Process",
       "subtopic": "Converting carbon dioxide into glucose using ATP and NADPH.",
-      "question": "What molecule is produced as the end product of the Calvin Cycle?",
-      "answer": "Glucose"
+      "question": "What is the final product of the Calvin Cycle?",
+      "options": [
+        "Oxygen gas",
+        "Carbon dioxide",
+        "Glucose",
+        "Water"
+      ],
+      "correctAnswer": "Glucose",
+      "explanation": "The Calvin Cycle uses ATP and NADPH to convert CO2 into glucose, the main energy storage molecule."
     }}
   ]
 }}

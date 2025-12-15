@@ -14,9 +14,17 @@ input and return structured data for JSON serialization.
 """
 
 from .checkpoint_service import generate_checkpoints
-from .chat_service import generate_chat_response, generate_chat_response_stream
+from .chat_service import (
+    generate_chat_response,
+    generate_chat_response_stream,
+    save_chat_message,
+    get_chat_history,
+    generate_session_id
+)
 from .quiz_service import generate_quiz
+from .summary_service import generate_summary
 from .user_service import get_or_create_user, get_user_by_firebase_uid
+from .progress_service import update_progress, mark_complete, get_user_progress, get_video_progress
 from .transcript_service import (
     fetch_transcript,
     extract_video_id,
@@ -33,14 +41,22 @@ from .video_service import (
     cache_summary,
     update_video_metadata,
     get_video_with_cache,
-    fetch_youtube_metadata
+    fetch_youtube_metadata,
+    get_user_video_history,
+    save_video_to_history,
+    delete_video_from_history,
+    clear_video_history
 )
 
 __all__ = [
     'generate_checkpoints',
     'generate_chat_response',
     'generate_chat_response_stream',
+    'save_chat_message',
+    'get_chat_history',
+    'generate_session_id',
     'generate_quiz',
+    'generate_summary',
     'fetch_transcript',
     'extract_video_id',
     'get_available_transcripts',
@@ -55,6 +71,14 @@ __all__ = [
     'update_video_metadata',
     'get_video_with_cache',
     'fetch_youtube_metadata',
-    'get_or_create_user', 
-    'get_user_by_firebase_uid'
+    'get_user_video_history',
+    'save_video_to_history',
+    'delete_video_from_history',
+    'clear_video_history',
+    'get_or_create_user',
+    'get_user_by_firebase_uid',
+    'update_progress',
+    'mark_complete',
+    'get_user_progress',
+    'get_video_progress'
 ]
