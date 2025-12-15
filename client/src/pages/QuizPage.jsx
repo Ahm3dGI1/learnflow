@@ -154,7 +154,7 @@ export default function QuizPage() {
           : null;
 
         if (userId && quizId) {
-          const submittedResult = await llmService.submitQuiz(
+          await llmService.submitQuiz(
             userId,
             quizId,
             formattedAnswers,
