@@ -1,58 +1,115 @@
 /**
  * FlashcardsPage Styles
  * 
- * Comprehensive styling for the flashcards learning page, including
- * generation interface, loading states, and session progress display.
+ * Glassmorphism design consistent with VideoPage aesthetic.
+ * Light blue minimalist theme with glass effects and backdrop filters.
  * 
  * Features:
- * - Responsive layout design
- * - Interactive generation interface
+ * - Consistent glassmorphism design
+ * - Interactive generation interface  
  * - Loading and error states
  * - Session progress visualization
  * - Smooth animations and transitions
  */
 
+/* CSS Custom Properties - Matching VideoPage */
+:root {
+  --flashcard-primary: #0ea5e9;
+  --flashcard-primary-light: #38bdf8;
+  --flashcard-primary-dark: #0284c7;
+  --flashcard-glass-bg: rgba(255, 255, 255, 0.25);
+  --flashcard-glass-border: rgba(255, 255, 255, 0.35);
+  --flashcard-card-bg: rgba(255, 255, 255, 0.85);
+  --flashcard-text-primary: #0c4a6e;
+  --flashcard-text-secondary: #475569;
+  --flashcard-text-muted: #64748b;
+  --flashcard-success: #10b981;
+  --flashcard-success-bg: rgba(16, 185, 129, 0.1);
+}
+
 /* ===== PAGE LAYOUT ===== */
 
 .flashcards-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 30%, #7dd3fc 60%, #38bdf8 100%);
+  background-attachment: fixed;
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+
+/* Background decoration - Matching VideoPage */
+.flashcards-page::before {
+  content: '';
+  position: fixed;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.2) 0%, transparent 70%);
+  top: -150px;
+  right: -100px;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* ===== DISABLED STATE ===== */
 
 .flashcards-disabled {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 30%, #7dd3fc 60%, #38bdf8 100%);
+  background-attachment: fixed;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 2rem;
+  position: relative;
+}
+
+.flashcards-disabled::before {
+  content: '';
+  position: fixed;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.2) 0%, transparent 70%);
+  top: -150px;
+  right: -100px;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .disabled-message {
   text-align: center;
-  color: white;
+  background: var(--flashcard-card-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--flashcard-glass-border);
+  border-radius: 1rem;
+  padding: 2rem;
+  color: var(--flashcard-text-primary);
   max-width: 500px;
+  box-shadow: 0 4px 24px rgba(14, 165, 233, 0.08);
+  position: relative;
+  z-index: 10;
 }
 
 .disabled-message svg {
   margin-bottom: 1rem;
   opacity: 0.7;
+  color: var(--flashcard-primary);
 }
 
 .disabled-message h2 {
   font-size: 1.5rem;
   margin-bottom: 1rem;
   font-weight: 600;
+  color: var(--flashcard-text-primary);
 }
 
 .disabled-message p {
   font-size: 1rem;
   margin-bottom: 2rem;
-  opacity: 0.8;
+  color: var(--flashcard-text-secondary);
   line-height: 1.5;
 }
 
@@ -61,34 +118,39 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: var(--flashcard-glass-bg);
+  border: 1px solid var(--flashcard-glass-border);
   border-radius: 0.5rem;
-  color: white;
+  color: var(--flashcard-text-primary);
   text-decoration: none;
   font-weight: 500;
   transition: all 0.2s ease;
   cursor: pointer;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .disabled-message .back-button:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.4);
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
 }
 
-/* ===== HEADER ===== */
+/* ===== HEADER - Glassmorphism ===== */
 
 .flashcards-header {
-  padding: 1.5rem 2rem;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 1rem 2rem;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
   display: flex;
   align-items: center;
   gap: 1.5rem;
   position: sticky;
   top: 0;
   z-index: 100;
+  box-shadow: 0 4px 24px rgba(14, 165, 233, 0.08);
 }
 
 .back-btn {
@@ -96,10 +158,12 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: var(--flashcard-glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--flashcard-glass-border);
   border-radius: 0.5rem;
-  color: white;
+  color: var(--flashcard-text-primary);
   font-size: 0.9rem;
   font-weight: 500;
   text-decoration: none;
@@ -108,8 +172,9 @@
 }
 
 .back-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.4);
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
 }
 
 .back-btn:active {
@@ -131,7 +196,7 @@
   gap: 0.75rem;
   font-size: 1.8rem;
   font-weight: 700;
-  color: white;
+  color: var(--flashcard-text-primary);
   margin: 0 0 0.25rem 0;
 }
 
@@ -171,25 +236,36 @@
 
 .loading-content {
   text-align: center;
-  color: white;
+  background: var(--flashcard-card-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--flashcard-glass-border);
+  border-radius: 1rem;
+  padding: 2rem;
+  color: var(--flashcard-text-primary);
+  box-shadow: 0 4px 24px rgba(14, 165, 233, 0.08);
+  position: relative;
+  z-index: 10;
 }
 
 .loading-icon {
   width: 3rem;
   height: 3rem;
   margin-bottom: 1.5rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--flashcard-primary);
+  opacity: 0.8;
 }
 
 .loading-content h2 {
   font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
+  color: var(--flashcard-text-primary);
 }
 
 .loading-content p {
   font-size: 1rem;
-  opacity: 0.8;
+  color: var(--flashcard-text-secondary);
   margin: 0;
 }
 
@@ -202,13 +278,23 @@
 
 .error-content {
   text-align: center;
-  color: white;
+  background: var(--flashcard-card-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--flashcard-glass-border);
+  border-radius: 1rem;
+  padding: 2rem;
+  color: var(--flashcard-text-primary);
   max-width: 500px;
+  box-shadow: 0 4px 24px rgba(14, 165, 233, 0.08);
+  position: relative;
+  z-index: 10;
 }
 
 .error-icon {
   font-size: 3rem;
   margin-bottom: 1.5rem;
+  color: #ef4444;
 }
 
 .error-content h2 {
