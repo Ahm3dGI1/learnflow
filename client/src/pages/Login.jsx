@@ -118,6 +118,11 @@ export default function Login() {
                 onChange={e => setPassword(e.target.value)}
                 required
               />
+              <div className="forgot-password-container">
+                <Link to="/forgot-password" className="forgot-password-link">
+                  Forgot Password?
+                </Link>
+              </div>
             </div>
 
             <button type="submit" className="auth-button">
