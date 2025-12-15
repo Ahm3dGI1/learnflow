@@ -29,10 +29,9 @@ export default function QuizPage() {
   const quizStartTime = useRef(null);
 
   /**
-   * Fetch Video and Generate Quiz
+   * Set up error service toast callback (once on mount)
    */
   useEffect(() => {
-    // Set up error service toast callback
     errorService.setToastCallback((message, severity) => {
       if (severity === 'error' || severity === 'critical') {
         toast.error(message);
@@ -42,7 +41,12 @@ export default function QuizPage() {
         toast.info(message);
       }
     });
+  }, [toast]);
 
+  /**
+   * Fetch Video and Generate Quiz
+   */
+  useEffect(() => {
     const fetchQuiz = async () => {
       if (!videoId) {
         setError('No video ID provided');
@@ -76,8 +80,18 @@ export default function QuizPage() {
         quizStartTime.current = Date.now();
       } catch (err) {
         console.error('Error fetching quiz:', err);
-        setError(err.message || 'Failed to generate quiz. Please try again.');
-        toast.error('Failed to load quiz');
+        let errorMsg = err.message || 'Failed to generate quiz. Please try again.';
+        
+        // Handle quota exhaustion with user-friendly message
+        if (err.status === 429 || err.message?.includes('quota')) {
+          errorMsg = 'Quiz generation quota exceeded. Please try again later.';
+          if (err.retryAfterSeconds) {
+            errorMsg += ` Retry in ${err.retryAfterSeconds} seconds.`;
+          }
+        }
+        
+        setError(errorMsg);
+        toast.error(errorMsg);
       } finally {
         setLoading(false);
       }
