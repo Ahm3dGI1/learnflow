@@ -79,14 +79,26 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
     }
   };
 
+  // add near the top inside the component:
+  const thumbnailSrc =
+    video.thumbnailUrl ||
+    video.thumbnail ||
+    (video.videoId ? `https://img.youtube.com/vi/${video.videoId}/mqdefault.jpg` : "");
+
   return (
     <div className="video-history-card">
       <div>
         <div className="video-thumbnail-container" onClick={() => onSelect(video)}>
           <img
-            src={video.thumbnail}
+            src={thumbnailSrc}
             alt={video.title}
             className="video-thumbnail"
+            onError={(e) => {
+              // fallback if mqdefault fails
+              if (video.videoId) {
+                e.currentTarget.src = `https://img.youtube.com/vi/${video.videoId}/hqdefault.jpg`;
+              }
+            }}
           />
           <div className="play-overlay">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="white">
