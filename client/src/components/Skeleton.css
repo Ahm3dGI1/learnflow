@@ -111,10 +111,11 @@
 /* ========== Quiz Card Skeleton ========== */
 
 .skeleton-quiz-card {
-  padding: 24px;
-  background: #f9f9f9;
-  border-radius: 12px;
-  border: 1px solid #eee;
+  padding: 32px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .skeleton-question-num {
@@ -139,10 +140,11 @@
 /* ========== Summary Skeleton ========== */
 
 .skeleton-summary {
-  padding: 20px;
-  background: #f9f9f9;
-  border-radius: 12px;
-  border: 1px solid #eee;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  margin-top: 24px;
 }
 
 .skeleton-summary-title {
