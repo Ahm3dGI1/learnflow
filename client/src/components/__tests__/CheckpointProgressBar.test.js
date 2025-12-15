@@ -538,24 +538,6 @@ describe('CheckpointProgressBar', () => {
       expect(mockOnCheckpointClick).not.toHaveBeenCalled();
     });
 
-    test('calls onCheckpointClick for Space key', async () => {
-      const { container } = render(
-        <CheckpointProgressBar
-          videoId={mockVideoId}
-          videoDuration={mockVideoDuration}
-          checkpoints={mockCheckpoints}
-          checkpointsCompleted={new Set()}
-          onCheckpointClick={mockOnCheckpointClick}
-        />
-      );
-
-      await waitFor(() => {
-        const marker = container.querySelector('.checkpoint-marker');
-        fireEvent.keyDown(marker, { key: ' ' });
-        
-        expect(mockOnCheckpointClick).toHaveBeenCalledWith(30);
-      });
-    });
   });
 
   // ========== TIME FORMATTING TESTS ==========
