@@ -14,7 +14,7 @@
  * <FlashcardDeck flashcards={flashcards} onComplete={handleComplete} />
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -72,48 +72,37 @@ export default function FlashcardDeck({
   }, [currentIndex]);
 
   /**
-   * Keyboard Shortcuts
+   * Navigate to Next Card
    */
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (deckComplete || !currentCard) return;
-
-      switch (e.code) {
-        case 'Space':
-          e.preventDefault();
-          setIsFlipped(prev => !prev);
-          break;
-        case 'ArrowLeft':
-          e.preventDefault();
-          if (currentIndex > 0) handlePrevious();
-          break;
-        case 'ArrowRight':
-          e.preventDefault();
-          // Only allow next if not expecting a response? 
-          // Or just allow navigation. Let's allow navigation.
-          if (currentIndex < totalCards - 1) handleNext();
-          break;
-        case 'Digit1':
-        case 'Numpad1':
-          if (isFlipped) handleResponse(currentCard.id, false);
-          break;
-        case 'Digit2':
-        case 'Numpad2':
-          if (isFlipped) handleResponse(currentCard.id, true);
-          break;
-        default:
-          break;
+  const handleNext = useCallback(() => {
+    if (currentIndex < totalCards - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      // Deck completed
+      setDeckComplete(true);
+      if (onComplete) {
+        onComplete({
+          responses,
+          stats: sessionStats,
+          duration: Date.now() - sessionStats.startTime
+        });
       }
-    };
+    }
+  }, [currentIndex, totalCards, onComplete, responses, sessionStats]);
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, deckComplete, currentCard, isFlipped, totalCards, handlePrevious, handleNext, handleResponse]);
+  /**
+   * Navigate to Previous Card
+   */
+  const handlePrevious = useCallback(() => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
+  }, [currentIndex]);
 
   /**
    * Handle User Response to Flashcard
    */
-  const handleResponse = (cardId, isCorrect) => {
+  const handleResponse = useCallback((cardId, isCorrect) => {
     const newResponses = {
       ...responses,
       [cardId]: isCorrect
@@ -143,35 +132,44 @@ export default function FlashcardDeck({
     timeoutRef.current = setTimeout(() => {
       handleNext();
     }, 1500);
-  };
+  }, [responses, sessionStats, onProgress, currentIndex, totalCards, handleNext]);
 
   /**
-   * Navigate to Next Card
+   * Keyboard Shortcuts
    */
-  const handleNext = () => {
-    if (currentIndex < totalCards - 1) {
-      setCurrentIndex(currentIndex + 1);
-    } else {
-      // Deck completed
-      setDeckComplete(true);
-      if (onComplete) {
-        onComplete({
-          responses,
-          stats: sessionStats,
-          duration: Date.now() - sessionStats.startTime
-        });
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (deckComplete || !currentCard) return;
+
+      switch (e.code) {
+        case 'Space':
+          e.preventDefault();
+          setIsFlipped(prev => !prev);
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          if (currentIndex > 0) handlePrevious();
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          if (currentIndex < totalCards - 1) handleNext();
+          break;
+        case 'Digit1':
+        case 'Numpad1':
+          if (isFlipped) handleResponse(currentCard.id, false);
+          break;
+        case 'Digit2':
+        case 'Numpad2':
+          if (isFlipped) handleResponse(currentCard.id, true);
+          break;
+        default:
+          break;
       }
-    }
-  };
+    };
 
-  /**
-   * Navigate to Previous Card
-   */
-  const handlePrevious = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    }
-  };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentIndex, deckComplete, currentCard, isFlipped, totalCards, handlePrevious, handleNext, handleResponse]);
 
   /**
    * Reset Deck
