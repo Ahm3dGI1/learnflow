@@ -6,7 +6,7 @@
  */
 
 import { render, screen } from '@testing-library/react';
-import { Skeleton, SkeletonVideoCard, SkeletonQuizCard, SkeletonSummary } from './Skeleton';
+import { Skeleton, SkeletonVideoCard, SkeletonQuizCard, SkeletonSummary } from '../Skeleton';
 
 describe('Skeleton Component', () => {
   describe('Base Skeleton', () => {
