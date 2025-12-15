@@ -49,6 +49,11 @@ import "./VideoHistoryCard.css";
 export default function VideoHistoryCard({ video, progress, onSelect, onDelete }) {
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
 
+  const thumbnailSrc =
+    video.thumbnailUrl ||
+    video.thumbnail ||
+    (video.videoId ? `https://img.youtube.com/vi/${video.videoId}/mqdefault.jpg` : null);
+
   /**
    * Format Date to Relative Time
    * 
@@ -90,9 +95,9 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
     <div className="video-history-card">
       <div>
         <div className="video-thumbnail-container" onClick={() => onSelect(video)}>
-          {!thumbnailFailed && video.thumbnailUrl ? (
+          {!thumbnailFailed && thumbnailSrc ? (
             <img
-              src={video.thumbnailUrl}
+              src={thumbnailSrc}
               alt={video.title}
               className="video-thumbnail"
               onError={handleThumbnailError}
@@ -103,14 +108,6 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
                 <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
               </svg>
             </div>
-          )}
-          <div className="play-overlay">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="white">
-              <path d="M8 5v14l11-7z"/>
-            </svg>
-          </div>
-          {progress?.isCompleted && (
-            <div className="completed-badge">✓ Completed</div>
           )}
           <div className="play-overlay">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="white">
