@@ -14,12 +14,12 @@
  * <FlashcardDeck flashcards={flashcards} onComplete={handleComplete} />
  */
 
-import React, { useState, useEffect } from 'react';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  RotateCcw, 
-  Target, 
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw,
+  Target,
   Trophy,
   Clock,
   Brain
@@ -38,12 +38,12 @@ import './FlashcardDeck.css';
  * @param {boolean} props.showProgress - Whether to show progress indicators
  * @returns {React.ReactElement} Flashcard deck with navigation and progress
  */
-export default function FlashcardDeck({ 
-  flashcards = [], 
+export default function FlashcardDeck({
+  flashcards = [],
   onComplete,
   onProgress,
   title = "Flashcard Deck",
-  showProgress = true 
+  showProgress = true
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [responses, setResponses] = useState({});
@@ -55,8 +55,60 @@ export default function FlashcardDeck({
   });
   const [deckComplete, setDeckComplete] = useState(false);
 
+  const [isFlipped, setIsFlipped] = useState(false);
+  const timeoutRef = React.useRef(null);
+
   const currentCard = flashcards[currentIndex];
   const totalCards = flashcards.length;
+
+  /**
+   * Reset flip state and timer when card changes
+   */
+  useEffect(() => {
+    setIsFlipped(false);
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [currentIndex]);
+
+  /**
+   * Keyboard Shortcuts
+   */
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (deckComplete || !currentCard) return;
+
+      switch (e.code) {
+        case 'Space':
+          e.preventDefault();
+          setIsFlipped(prev => !prev);
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          if (currentIndex > 0) handlePrevious();
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          // Only allow next if not expecting a response? 
+          // Or just allow navigation. Let's allow navigation.
+          if (currentIndex < totalCards - 1) handleNext();
+          break;
+        case 'Digit1':
+        case 'Numpad1':
+          if (isFlipped) handleResponse(currentCard.id, false);
+          break;
+        case 'Digit2':
+        case 'Numpad2':
+          if (isFlipped) handleResponse(currentCard.id, true);
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentIndex, deckComplete, currentCard, isFlipped, totalCards]);
 
   /**
    * Handle User Response to Flashcard
@@ -88,7 +140,7 @@ export default function FlashcardDeck({
     }
 
     // Auto-advance after a short delay
-    setTimeout(() => {
+    timeoutRef.current = setTimeout(() => {
       handleNext();
     }, 1500);
   };
@@ -147,8 +199,8 @@ export default function FlashcardDeck({
    * Calculate Accuracy Percentage
    */
   const getAccuracy = () => {
-    return sessionStats.total > 0 
-      ? (sessionStats.correct / sessionStats.total) * 100 
+    return sessionStats.total > 0
+      ? (sessionStats.correct / sessionStats.total) * 100
       : 0;
   };
 
@@ -179,34 +231,34 @@ export default function FlashcardDeck({
   if (deckComplete) {
     const duration = Date.now() - sessionStats.startTime;
     const accuracy = getAccuracy();
-    
+
     return (
       <div className="flashcard-deck completion-screen">
         <div className="completion-content">
           <Trophy className="completion-icon" />
           <h2>Deck Complete! 🎉</h2>
-          
+
           <div className="completion-stats">
             <div className="stat-item">
               <Target className="stat-icon" />
               <span className="stat-label">Accuracy</span>
               <span className="stat-value">{accuracy.toFixed(1)}%</span>
             </div>
-            
+
             <div className="stat-item">
               <Clock className="stat-icon" />
               <span className="stat-label">Duration</span>
               <span className="stat-value">{formatDuration(duration)}</span>
             </div>
-            
+
             <div className="stat-item">
               <Brain className="stat-icon" />
               <span className="stat-label">Cards Reviewed</span>
               <span className="stat-value">{sessionStats.total}</span>
             </div>
           </div>
-          
-          <button 
+
+          <button
             className="reset-btn"
             onClick={handleReset}
           >
@@ -223,7 +275,7 @@ export default function FlashcardDeck({
       {/* Header */}
       <div className="deck-header">
         <h2 className="deck-title">{title}</h2>
-        
+
         {showProgress && (
           <div className="progress-info">
             <span className="card-counter">
@@ -232,6 +284,10 @@ export default function FlashcardDeck({
             <div className="accuracy-indicator">
               Accuracy: {getAccuracy().toFixed(1)}%
             </div>
+            <div className="keyboard-hints">
+              <span className="hint-item"><span className="key-badge">Space</span> Flip</span>
+              <span className="hint-item"><span className="key-badge">1</span> / <span className="key-badge">2</span> Rate</span>
+            </div>
           </div>
         )}
       </div>
@@ -239,7 +295,7 @@ export default function FlashcardDeck({
       {/* Progress Bar */}
       {showProgress && (
         <div className="progress-bar">
-          <div 
+          <div
             className="progress-fill"
             style={{ width: `${getProgress()}%` }}
           />
@@ -251,7 +307,10 @@ export default function FlashcardDeck({
         <Flashcard
           flashcard={currentCard}
           onResponse={handleResponse}
-          showAnswer={false}
+          isFlipped={isFlipped}
+          onFlip={() => setIsFlipped(!isFlipped)}
+          cardNumber={currentIndex + 1}
+          totalCards={totalCards}
         />
       </div>
 
@@ -266,7 +325,7 @@ export default function FlashcardDeck({
           <ChevronLeft className="nav-icon" />
           Previous
         </button>
-        
+
         <div className="nav-info">
           <span className="response-indicator">
             {responses[currentCard?.id] !== undefined && (
@@ -276,7 +335,7 @@ export default function FlashcardDeck({
             )}
           </span>
         </div>
-        
+
         <button
           className="nav-btn next-btn"
           onClick={handleNext}

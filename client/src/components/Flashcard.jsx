@@ -32,12 +32,15 @@ import './Flashcard.css';
  * @param {boolean} props.showAnswer - Whether to show answer initially
  * @returns {React.ReactElement} Interactive flashcard component
  */
-export default function Flashcard({ 
-  flashcard, 
-  onResponse, 
-  showAnswer = false 
+export default function Flashcard({
+  flashcard,
+  onResponse,
+  isFlipped = false,
+  onFlip,
+  cardNumber,
+  totalCards
 }) {
-  const [isFlipped, setIsFlipped] = useState(showAnswer);
+  // Animation state handles "locked" state during transition
   const [isAnimating, setIsAnimating] = useState(false);
 
   /**
@@ -45,12 +48,22 @@ export default function Flashcard({
    */
   const handleFlip = () => {
     if (isAnimating) return;
-    
+
     setIsAnimating(true);
-    setIsFlipped(!isFlipped);
-    
+    onFlip && onFlip();
+
     // Reset animation state after animation completes
     setTimeout(() => setIsAnimating(false), 300);
+  };
+
+  /**
+   * Handle Key Press for Accessibility
+   */
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleFlip();
+    }
   };
 
   /**
@@ -67,7 +80,7 @@ export default function Flashcard({
   const getDifficultyColor = () => {
     switch (flashcard.difficulty) {
       case 'easy': return 'difficulty-easy';
-      case 'medium': return 'difficulty-medium'; 
+      case 'medium': return 'difficulty-medium';
       case 'hard': return 'difficulty-hard';
       default: return 'difficulty-medium';
     }
@@ -84,9 +97,13 @@ export default function Flashcard({
       </div>
 
       {/* Main Flashcard */}
-      <div 
+      <div
         className={`flashcard ${isFlipped ? 'flipped' : ''} ${isAnimating ? 'animating' : ''}`}
         onClick={handleFlip}
+        onKeyDown={handleKeyDown}
+        tabIndex="0"
+        role="button"
+        aria-pressed={isFlipped}
       >
         {/* Front Side - Question */}
         <div className="flashcard-side flashcard-front">
@@ -109,7 +126,7 @@ export default function Flashcard({
             <div className="flashcard-text">
               {flashcard.answer}
             </div>
-            
+
             {/* Response Buttons */}
             <div className="response-buttons">
               <button
@@ -123,7 +140,7 @@ export default function Flashcard({
                 <CheckCircle className="response-icon" />
                 <span>Got it right!</span>
               </button>
-              
+
               <button
                 className="response-btn incorrect-btn"
                 onClick={(e) => {
@@ -139,10 +156,12 @@ export default function Flashcard({
           </div>
         </div>
       </div>
-      
+
       {/* Card Info */}
       <div className="flashcard-info">
-        <span className="card-number">Card #{flashcard.id}</span>
+        <span className="card-number">
+          Card {cardNumber || 1} {totalCards ? `/ ${totalCards}` : ''}
+        </span>
         <span className="flip-instruction">
           {isFlipped ? 'How did you do?' : 'Think, then click to check'}
         </span>
