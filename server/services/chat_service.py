@@ -13,6 +13,43 @@ from models import ChatMessage
 from database import SessionLocal
 
 
+# Limit transcript length placed into system message to protect token usage
+TRANSCRIPT_MAX_CHARS = 12000
+
+
+def build_system_instruction(video_context):
+    """
+    Combine the base system instructions with optional video transcript context.
+
+    Args:
+        video_context (dict): Context containing fullTranscript or transcriptSnippet.
+
+    Returns:
+        str: System instruction string passed to the LLM.
+    """
+    transcript = video_context.get('fullTranscript') or video_context.get('transcriptSnippet') or ''
+    if isinstance(transcript, list):
+        transcript = ' '.join([str(t) for t in transcript])
+
+    transcript_text = str(transcript).strip()
+    if not transcript_text:
+        return system_instructions
+
+    truncated = transcript_text[:TRANSCRIPT_MAX_CHARS]
+    if len(transcript_text) > TRANSCRIPT_MAX_CHARS:
+        truncated += "\n[Transcript truncated for length]"
+
+    language_hint = video_context.get('language')
+    language_line = f"Language: {language_hint}" if language_hint else ""
+
+    return f"""{system_instructions}
+
+Video Transcript Context
+{language_line}
+{truncated}
+"""
+
+
 def generate_chat_response(message, video_context, timestamp=None):
     """
     Generate AI tutor response to student message.
@@ -55,13 +92,16 @@ def generate_chat_response(message, video_context, timestamp=None):
         timestamp=timestamp
     )
 
+    # Build system instruction including transcript when available
+    system_instruction = build_system_instruction(video_context)
+
     # Get LLM client and generate response
     client = get_client()
 
     try:
         response_text = client.generate_content(
             prompt=prompt,
-            system_instruction=system_instructions,
+            system_instruction=system_instruction,
             temperature=0.8  # Slightly higher for more conversational tone
         )
 
@@ -105,13 +145,15 @@ def generate_chat_response_stream(message, video_context, timestamp=None):
         timestamp=timestamp
     )
 
+    system_instruction = build_system_instruction(video_context)
+
     # Get LLM client and stream response
     client = get_client()
 
     try:
         for chunk in client.generate_content_stream(
             prompt=prompt,
-            system_instruction=system_instructions,
+            system_instruction=system_instruction,
             temperature=0.8
         ):
             yield chunk

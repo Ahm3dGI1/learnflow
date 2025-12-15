@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../auth/AuthContext';
-import { llmService } from '../services';
+import { llmService, videoService } from '../services';
 import '../pages/Auth.css'; // Import auth styles for glass variables
 import './ChatInterface.css';
 
@@ -24,7 +24,11 @@ export default function ChatInterface({ videoId, videoTitle }) {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
+    const [transcriptText, setTranscriptText] = useState(null);
+    const [transcriptLanguage, setTranscriptLanguage] = useState('en');
     const messagesEndRef = useRef(null);
+
+    const TRANSCRIPT_CHAR_LIMIT = 12000; // Protect request size
 
     /**
      * Load Chat History Effect
@@ -62,6 +66,43 @@ export default function ChatInterface({ videoId, videoTitle }) {
     }, [videoId, user]);
 
     /**
+     * Load transcript for the current video so it can be sent in the system message.
+     * We trim the transcript to keep request sizes reasonable.
+     */
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadTranscript = async () => {
+            if (!videoId) return;
+
+            try {
+                const data = await videoService.fetchTranscript(videoId);
+                if (!isMounted) return;
+
+                const fullText = videoService.formatTranscriptText(data?.snippets || []);
+                const trimmedText = fullText
+                    ? fullText.slice(0, TRANSCRIPT_CHAR_LIMIT)
+                    : null;
+
+                setTranscriptText(trimmedText || null);
+                setTranscriptLanguage(data?.languageCode || data?.language || 'en');
+            } catch (err) {
+                console.error('Failed to load transcript for chat context:', err);
+                if (isMounted) {
+                    setTranscriptText(null);
+                    setTranscriptLanguage('en');
+                }
+            }
+        };
+
+        loadTranscript();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [videoId]);
+
+    /**
      * Auto-scroll helper
      * Scrolls the chat container to the bottom smoothly.
      */
@@ -89,13 +130,21 @@ export default function ChatInterface({ videoId, videoTitle }) {
      */
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const userId = user?.id ?? user?.uid;
-        if (!input.trim() || loading || !userId) return;
+        if (!input.trim() || loading) return;
 
         const userMessage = input.trim();
         setInput('');
         setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
         setLoading(true);
+
+        const videoContext = {
+            videoId: videoId,
+            videoTitle,
+            language: transcriptLanguage || 'en',
+            fullTranscript: transcriptText || undefined,
+            // Keep transcriptSnippet for compatibility even if empty
+            transcriptSnippet: ''
+        };
 
         try {
             let fullResponse = "";
@@ -105,9 +154,8 @@ export default function ChatInterface({ videoId, videoTitle }) {
             await llmService.sendChatMessageStream(
                 userMessage,
                 {
-                    userId: userId,
                     videoId: videoId,
-                    videoContext: { videoId, language: 'en' }
+                    videoContext
                 },
                 (chunk) => {
                     fullResponse += chunk;
