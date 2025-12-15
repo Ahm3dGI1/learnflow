@@ -3,159 +3,156 @@
  * 
  * Displays quiz results showing score, correct/incorrect answers,
  * and explanations for each question.
- * 
- * @component
- * @example
- * const results = {
- *   score: 8,
- *   totalQuestions: 10,
- *   answers: [
- *     {
- *       questionId: 1,
- *       question: "What is photosynthesis?",
- *       options: ["A", "B", "C", "D"],
- *       userAnswer: 0,
- *       correctAnswer: 0,
- *       isCorrect: true,
- *       explanation: "..."
- *     }
- *   ]
- * };
- * <QuizResults results={results} onRetake={handleRetake} onBack={handleBack} />
  */
-
 import './QuizResults.css';
 
-/**
- * QuizResults Component
- * 
- * @param {Object} props - Component props
- * @param {Object} props.results - Quiz results data
- * @param {number} props.results.score - Number of correct answers
- * @param {number} props.results.totalQuestions - Total number of questions
- * @param {Array} props.results.answers - Array of answer details
- * @param {Function} props.onRetake - Callback to retake the quiz
- * @param {Function} props.onBack - Callback to go back to video
- * @returns {React.ReactElement} QuizResults component
- */
 export default function QuizResults({ results, onRetake, onBack }) {
   if (!results || !results.answers) {
     return (
-      <div className="quiz-results-container">
-        <div className="results-empty">
-          <p>No results available.</p>
-        </div>
+      <div className="no-results">
+        <p className="no-results-text">No results available.</p>
+        <button
+          onClick={onBack}
+          className="btn-go-back"
+        >
+          Go Back
+        </button>
       </div>
     );
   }
 
   const { score, totalQuestions, answers } = results;
   const percentage = Math.round((score / totalQuestions) * 100);
-  
+
   // Determine performance level
-  let performanceLevel = 'needs-improvement';
   let performanceMessage = 'Keep practicing!';
-  let performanceEmoji = '📚';
-  
+  let performanceClass = 'keep-practicing';
+
   if (percentage >= 90) {
-    performanceLevel = 'excellent';
     performanceMessage = 'Outstanding work!';
-    performanceEmoji = '🌟';
+    performanceClass = 'excellent';
   } else if (percentage >= 70) {
-    performanceLevel = 'good';
     performanceMessage = 'Great job!';
-    performanceEmoji = '🎉';
+    performanceClass = 'great';
   } else if (percentage >= 50) {
-    performanceLevel = 'fair';
     performanceMessage = 'Good effort!';
-    performanceEmoji = '👍';
+    performanceClass = 'good';
   }
 
   return (
     <div className="quiz-results-container">
-      {/* Score Summary */}
-      <div className={`results-header ${performanceLevel}`}>
-        <div className="score-emoji">{performanceEmoji}</div>
-        <h2>Quiz Complete!</h2>
-        <div className="score-display">
-          <div className="score-number">
-            {score} / {totalQuestions}
-          </div>
-          <div className="score-percentage">{percentage}%</div>
+      {/* Score Header */}
+      <div className="quiz-header">
+        <div className={`quiz-emoji-badge ${percentage >= 70 ? 'success' : 'default'}`}>
+          <span>{percentage >= 70 ? '🎉' : '📚'}</span>
         </div>
-        <p className="performance-message">{performanceMessage}</p>
+        <h2 className="quiz-complete-title">Quiz Complete!</h2>
+        <p className={`quiz-performance-message ${performanceClass}`}>{performanceMessage}</p>
+
+        <div className="quiz-stats">
+          <div className="quiz-stat-card">
+            <span className="quiz-stat-label">Score</span>
+            <span className="quiz-stat-value">{score} / {totalQuestions}</span>
+          </div>
+          <div className="quiz-stat-card">
+            <span className="quiz-stat-label">Accuracy</span>
+            <span className={`quiz-stat-value accuracy ${performanceClass}`}>{percentage}%</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Buttons (Top) */}
+      <div className="quiz-actions">
+        <button
+          onClick={onBack}
+          className="btn-back"
+        >
+          ← Back to Video
+        </button>
+        <button
+          onClick={onRetake}
+          className="btn-try-again"
+        >
+          ↻ Try Again
+        </button>
       </div>
 
       {/* Detailed Results */}
-      <div className="results-details">
-        <h3>Review Your Answers</h3>
-        
-        <div className="answers-list">
-          {answers.map((answer, index) => {
-            const optionLetters = ['A', 'B', 'C', 'D'];
-            
-            return (
-              <div 
-                key={answer.questionId} 
-                className={`answer-card ${answer.isCorrect ? 'correct' : 'incorrect'}`}
-              >
-                <div className="answer-header">
-                  <span className="question-number">Question {index + 1}</span>
-                  <span className={`answer-badge ${answer.isCorrect ? 'correct' : 'incorrect'}`}>
-                    {answer.isCorrect ? '✓ Correct' : '✗ Incorrect'}
-                  </span>
+      <div className="quiz-results-section">
+        <h3 className="quiz-results-title">Review Your Answers</h3>
+
+        {answers.map((answer, index) => {
+          return (
+            <div
+              key={answer.questionId}
+              className={`quiz-question-card ${answer.isCorrect ? 'correct' : 'incorrect'}`}
+            >
+              {/* Question Header */}
+              <div className="quiz-question-header">
+                <div>
+                  <span className="quiz-question-number">{index + 1}</span>
+                  <h4 className="quiz-question-text">{answer.question}</h4>
                 </div>
-
-                <h4 className="answer-question">{answer.question}</h4>
-
-                <div className="answer-options">
-                  {answer.options.map((option, optionIndex) => {
-                    const isUserAnswer = answer.userAnswer === optionIndex;
-                    const isCorrectAnswer = answer.correctAnswer === optionIndex;
-                    
-                    let optionClass = 'answer-option';
-                    if (isCorrectAnswer) {
-                      optionClass += ' correct-answer';
-                    }
-                    if (isUserAnswer && !isCorrectAnswer) {
-                      optionClass += ' wrong-answer';
-                    }
-                    
-                    return (
-                      <div key={optionIndex} className={optionClass}>
-                        <span className="option-letter">{optionLetters[optionIndex]}</span>
-                        <span className="option-text">{option}</span>
-                        {isUserAnswer && (
-                          <span className="option-indicator">Your answer</span>
-                        )}
-                        {isCorrectAnswer && (
-                          <span className="option-indicator correct">Correct answer</span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {answer.explanation && (
-                  <div className="answer-explanation">
-                    <strong>Explanation:</strong> {answer.explanation}
-                  </div>
-                )}
+                <span className={`quiz-status-badge ${answer.isCorrect ? 'correct' : 'incorrect'}`}>
+                  {answer.isCorrect ? 'Correct' : 'Incorrect'}
+                </span>
               </div>
-            );
-          })}
-        </div>
+
+              {/* Options */}
+              <div className="quiz-options">
+                {answer.options.map((option, optionIndex) => {
+                  const isUserAnswer = answer.userAnswer === optionIndex;
+                  const isCorrectAnswer = answer.correctAnswer === optionIndex;
+
+                  let optionClass = 'default';
+                  let textClass = 'default';
+
+                  if (isCorrectAnswer) {
+                    optionClass = 'correct';
+                    textClass = 'correct';
+                  } else if (isUserAnswer && !isCorrectAnswer) {
+                    optionClass = 'incorrect';
+                    textClass = 'incorrect';
+                  }
+
+                  return (
+                    <div key={optionIndex} className={`quiz-option ${optionClass}`}>
+                      {/* Status Indicator Circle */}
+                      <div className={`quiz-option-indicator ${isCorrectAnswer ? 'correct' : isUserAnswer ? 'incorrect' : 'neutral'}`} />
+
+                      <div className="quiz-option-text">
+                        <span className={textClass}>{option}</span>
+                      </div>
+                      {isUserAnswer && (
+                        <span className="quiz-option-label">Your Answer</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Explanation */}
+              {answer.explanation && (
+                <div className="quiz-explanation">
+                  <span className="quiz-explanation-label">Explanation:</span>
+                  <span className="quiz-explanation-text">{answer.explanation}</span>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      {/* Action Buttons */}
-      <div className="results-actions">
-        <button className="back-button" onClick={onBack}>
-          ← Back to Video
-        </button>
-        <button className="retake-button" onClick={onRetake}>
-          🔄 Retake Quiz
+      {/* Bottom Action (Duplicate for convenience) */}
+      <div className="quiz-bottom-action">
+        <button
+          onClick={onRetake}
+          className="btn-generate-more"
+        >
+          Retake Quiz
         </button>
       </div>
     </div>
   );
 }
+

@@ -171,6 +171,10 @@ const videoService = {
    * @returns {string} Thumbnail URL
    */
   getThumbnailUrl: (videoId, quality = 'medium') => {
+    if (!videoId || typeof videoId !== 'string' || videoId.trim() === '') {
+      return null;
+    }
+
     const qualityMap = {
       default: 'default',
       medium: 'mqdefault',
@@ -179,6 +183,7 @@ const videoService = {
     };
 
     const qualityString = qualityMap[quality] || qualityMap.medium;
+    // Use HTTPS for thumbnails; some browsers block HTTP mixed content
     return `https://img.youtube.com/vi/${videoId}/${qualityString}.jpg`;
   },
 

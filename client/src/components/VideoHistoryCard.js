@@ -7,6 +7,7 @@
  * 
  * @module VideoHistoryCard
  */
+import { useState } from 'react'
 
 import "./VideoHistoryCard.css";
 
@@ -22,7 +23,7 @@ import "./VideoHistoryCard.css";
  * @param {string} props.video.id - Unique entry ID
  * @param {string} props.video.videoId - YouTube video ID
  * @param {string} props.video.title - Video title
- * @param {string} props.video.thumbnail - Thumbnail image URL
+ * @param {string} props.video.thumbnailUrl - Thumbnail image URL
  * @param {string} props.video.lastViewedAt - ISO timestamp of last view
  * @param {Object} [props.progress] - Optional progress data
  * @param {number} props.progress.progressPercentage - Percentage completed (0-100)
@@ -46,6 +47,13 @@ import "./VideoHistoryCard.css";
  * />
  */
 export default function VideoHistoryCard({ video, progress, onSelect, onDelete }) {
+  const [thumbnailFailed, setThumbnailFailed] = useState(false);
+
+  const thumbnailSrc =
+    video.thumbnailUrl ||
+    video.thumbnail ||
+    (video.videoId ? `https://img.youtube.com/vi/${video.videoId}/mqdefault.jpg` : null);
+
   /**
    * Format Date to Relative Time
    * 
@@ -77,6 +85,10 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
     } else {
       return date.toLocaleDateString();
     }
+  };
+
+  const handleThumbnailError = () => {
+    setThumbnailFailed(true);
   };
 
   return (

@@ -190,9 +190,16 @@ class TestChatSendEndpoint:
 
         assert response.status_code == 401
 
-    def test_send_chat_wrong_user(self, client, test_data, session):
-        """Test authenticated user trying to send message as another user."""
-        # Generate unique identifier for this test
+    @patch('routes.llm_routes.generate_chat_response')
+    def test_send_chat_ignores_body_user_and_uses_auth(self, mock_generate, client, test_data, session):
+        """Server should ignore userId in body and use authenticated Firebase UID."""
+        # Mock LLM response
+        mock_generate.return_value = {
+            'response': 'This is the AI response',
+            'videoId': test_data['video'].youtube_video_id,
+            'timestamp': None
+        }
+
         unique_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
 
         claims = {
@@ -201,11 +208,11 @@ class TestChatSendEndpoint:
             'name': 'Different User'
         }
 
-        # Create different user
+        # Create user matching the authenticated Firebase UID
         other_user = User(
-            firebase_uid=f'different-firebase-uid-{unique_id}',
-            email=f'different-{unique_id}@example.com',
-            display_name='Different User'
+            firebase_uid=claims['uid'],
+            email=claims['email'],
+            display_name=claims['name']
         )
         session.add(other_user)
         session.commit()
@@ -215,15 +222,20 @@ class TestChatSendEndpoint:
                 '/api/llm/chat/send',
                 headers={'Authorization': 'Bearer faketoken'},
                 json={
-                    'userId': test_data['user'].id,  # Trying to send as different user
+                    'userId': test_data['user'].id,  # Should be ignored
                     'videoId': test_data['video'].youtube_video_id,
                     'message': 'Test message'
                 }
             )
 
-        assert response.status_code == 401
+        assert response.status_code == 200
         data = response.get_json()
-        assert 'Unauthorized' in data['error']
+        assert 'response' in data
+        assert 'sessionId' in data
+
+        # Ensure message stored under authenticated user
+        messages = session.query(ChatMessage).filter_by(user_id=other_user.id).all()
+        assert any(msg.message == 'Test message' for msg in messages)
 
     def test_send_chat_video_not_found(self, client, test_data):
         """Test send chat with non-existent video."""
@@ -284,7 +296,7 @@ class TestChatHistoryEndpoint:
         assert data['messages'][2]['message'] == 'Can you explain it in simpler terms?'
 
     def test_get_history_no_userId(self, client, test_data):
-        """Test get history without userId parameter."""
+        """Server should use authenticated user when userId is omitted."""
         claims = {
             'uid': test_data['user'].firebase_uid,
             'email': test_data['user'].email,
@@ -297,9 +309,10 @@ class TestChatHistoryEndpoint:
                 headers={'Authorization': 'Bearer faketoken'}
             )
 
-        assert response.status_code == 400
+        assert response.status_code == 200
         data = response.get_json()
-        assert 'userId is required' in data['error']
+        assert 'messages' in data
+        assert len(data['messages']) == 3
 
     def test_get_history_unauthorized(self, client, test_data):
         """Test get history without authentication."""
@@ -310,8 +323,7 @@ class TestChatHistoryEndpoint:
         assert response.status_code == 401
 
     def test_get_history_wrong_user(self, client, test_data, session):
-        """Test authenticated user trying to access another user's history."""
-        # Generate unique ID for different user
+        """Authenticated user should see only their own history; body userId is ignored."""
         unique_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
         different_firebase_uid = f'different-firebase-{unique_id}'
         different_email = f'different-{unique_id}@example.com'
@@ -337,9 +349,9 @@ class TestChatHistoryEndpoint:
                 headers={'Authorization': 'Bearer faketoken'}
             )
 
-        assert response.status_code == 401
+        assert response.status_code == 200
         data = response.get_json()
-        assert 'Unauthorized' in data['error']
+        assert data['messages'] == []
 
     def test_get_history_video_not_found(self, client, test_data):
         """Test get history for non-existent video."""

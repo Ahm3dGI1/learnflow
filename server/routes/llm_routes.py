@@ -67,7 +67,7 @@ def get_cached_checkpoints_from_db(video_id):
                 try:
                     return json.loads(video.checkpoints_data)
                 except json.JSONDecodeError as e:
-                    print(f"Error parsing cached checkpoints: {e}")
+                    logger.warning(f"Error parsing cached checkpoints: {e}")
                     return None
             return None
 
@@ -107,8 +107,7 @@ def get_cached_checkpoints_from_db(video_id):
         }
 
     except Exception as e:
-        print(f"Error reading checkpoints from database: {e}")
-        traceback.print_exc()
+        logger.error(f"Error reading checkpoints from database: {e}", exc_info=True)
         return None
     finally:
         db.close()
@@ -141,7 +140,7 @@ def get_cached_quiz_from_db(video_id):
                 try:
                     return json.loads(video.quiz_data)
                 except json.JSONDecodeError as e:
-                    print(f"Error parsing cached quiz: {e}")
+                    logger.warning(f"Error parsing cached quiz: {e}")
                     return None
             return None
 
@@ -162,8 +161,7 @@ def get_cached_quiz_from_db(video_id):
         }
 
     except Exception as e:
-        print(f"Error reading quiz from database: {e}")
-        traceback.print_exc()
+        logger.error(f"Error reading quiz from database: {e}", exc_info=True)
         return None
     finally:
         db.close()
@@ -206,8 +204,7 @@ def save_quiz_to_db(video_id, quiz_data):
         return quiz_data_with_id
 
     except Exception as e:
-        print(f"Error saving quiz to database: {e}")
-        traceback.print_exc()
+        logger.error(f"Error saving quiz to database: {e}", exc_info=True)
         db.rollback()
         return None
     finally:
@@ -270,8 +267,7 @@ def save_checkpoints_to_db(video_id, checkpoints_data):
         return checkpoints_data
 
     except Exception as e:
-        print(f"Error saving checkpoints to database: {e}")
-        traceback.print_exc()
+        logger.error(f"Error saving checkpoints to database: {e}", exc_info=True)
         db.rollback()
         return None
     finally:
@@ -495,19 +491,19 @@ def chat_route():
             return jsonify({'error': 'message is required'}), 400
         if len(message) > 10000:  # Limit message to 10,000 characters
             return jsonify({'error': 'message exceeds maximum length of 10,000 characters'}), 400
-        if not user_id:
-            return jsonify({'error': 'userId is required'}), 400
         if not video_youtube_id:
             return jsonify({'error': 'videoId is required'}), 400
 
-        # Verify user exists and matches authenticated user
-        user = db.query(User).filter_by(id=user_id).first()
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-
+        # Get authenticated user from Firebase token
         firebase_uid = g.firebase_user.get('uid')
-        if user.firebase_uid != firebase_uid:
-            return jsonify({'error': 'Unauthorized: Cannot send message for another user'}), 401
+        if not firebase_uid:
+            return jsonify({'error': 'Unauthorized: Firebase UID not found'}), 401
+        
+        user = db.query(User).filter_by(firebase_uid=firebase_uid).first()
+        if not user:
+            return jsonify({'error': 'User profile not found. Please complete onboarding.'}), 404
+        
+        user_id = user.id
 
         # Get or create video
         video = db.query(Video).filter_by(youtube_video_id=video_youtube_id).first()
@@ -599,19 +595,19 @@ def chat_stream_route():
             return jsonify({'error': 'message is required'}), 400
         if len(message) > 10000:  # Limit message to 10,000 characters
             return jsonify({'error': 'message exceeds maximum length of 10,000 characters'}), 400
-        if not user_id:
-            return jsonify({'error': 'userId is required'}), 400
         if not video_youtube_id:
             return jsonify({'error': 'videoId is required'}), 400
 
-        # Verify user exists and matches authenticated user
-        user = db.query(User).filter_by(id=user_id).first()
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-
+        # Get authenticated user from Firebase token
         firebase_uid = g.firebase_user.get('uid')
-        if user.firebase_uid != firebase_uid:
-            return jsonify({'error': 'Unauthorized: Cannot send message for another user'}), 401
+        if not firebase_uid:
+            return jsonify({'error': 'Unauthorized: Firebase UID not found'}), 401
+        
+        user = db.query(User).filter_by(firebase_uid=firebase_uid).first()
+        if not user:
+            return jsonify({'error': 'User profile not found. Please complete onboarding.'}), 404
+        
+        user_id = user.id
 
         # Get video
         video = db.query(Video).filter_by(youtube_video_id=video_youtube_id).first()
@@ -736,19 +732,19 @@ def get_chat_history_route(video_id):
         limit = request.args.get('limit', type=int, default=50)
 
         # Validation
-        if not user_id:
-            return jsonify({'error': 'userId is required'}), 400
         if limit is not None and (limit <= 0 or limit > 1000):
             return jsonify({'error': 'limit must be between 1 and 1000'}), 400
         
-        # Verify user exists and matches authenticated user
-        user = db.query(User).filter_by(id=user_id).first()
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-        
+        # Get authenticated user from Firebase token
         firebase_uid = g.firebase_user.get('uid')
-        if user.firebase_uid != firebase_uid:
-            return jsonify({'error': 'Unauthorized: Cannot access another user\'s chat history'}), 401
+        if not firebase_uid:
+            return jsonify({'error': 'Unauthorized: Firebase UID not found'}), 401
+        
+        user = db.query(User).filter_by(firebase_uid=firebase_uid).first()
+        if not user:
+            return jsonify({'error': 'User profile not found. Please complete onboarding.'}), 404
+        
+        user_id = user.id
         
         # Get video
         video = db.query(Video).filter_by(youtube_video_id=video_id).first()
@@ -892,6 +888,30 @@ def generate_quiz_route():
         )
         return jsonify({'error': str(e)}), 400
     except Exception as e:
+        error_msg = str(e)
+        
+        # Handle quota exhaustion gracefully
+        if '429' in error_msg or 'RESOURCE_EXHAUSTED' in error_msg or 'quota' in error_msg.lower():
+            logger.warning(
+                f"Gemini API quota exhausted for video {video_id}. Try again later."
+            )
+            # Extract retry delay if available
+            retry_after = None
+            if 'retry in' in error_msg.lower():
+                import re
+                match = re.search(r'retry in ([\d.]+)s', error_msg.lower())
+                if match:
+                    retry_after = float(match.group(1))
+            
+            response = {
+                'error': 'Quiz generation quota exceeded. Please try again later.',
+                'code': 'QUOTA_EXHAUSTED'
+            }
+            if retry_after:
+                response['retryAfterSeconds'] = int(retry_after)
+            
+            return jsonify(response), 429
+        
         logger.error(
             f"Error generating quiz for video {video_id}: {str(e)}",
             exc_info=True
@@ -902,16 +922,65 @@ def generate_quiz_route():
 @llm_bp.route('/quiz/cache/clear', methods=['POST'])
 def clear_quiz_cache():
     """
-    Clear the quiz cache (for testing/admin purposes).
+    Clear the quiz cache for a specific video to allow regenerating questions.
+    Clears both memory cache and database records.
+
+    Request Body:
+        {"videoId": "abc123"}
 
     Returns:
-        {"message": "Cache cleared", "clearedItems": 5}
+        {"message": "Cache cleared", "clearedItems": 1}
     """
-    cleared_count = quiz_cache.clear()
-    return jsonify({
-        'message': 'Quiz cache cleared',
-        'clearedItems': cleared_count
-    }), 200
+    try:
+        data = request.get_json() or {}
+        video_id = data.get('videoId')
+        
+        # Clear memory cache (simple clear for now, could be more targeted)
+        cleared_count = quiz_cache.clear()
+        
+        db_cleared = False
+        if video_id:
+            db = SessionLocal()
+            try:
+                # Find video by YouTube ID
+                video = get_video_by_youtube_id(video_id, db)
+                if video:
+                    # Safe approach: Check for existing quiz attempts before deleting
+                    # to avoid foreign key constraint violations
+                    quiz_records = db.query(Quiz).filter_by(video_id=video.id).all()
+                    quiz_ids_to_delete = [q.id for q in quiz_records]
+                    
+                    # Check if any UserQuizAttempts reference these quizzes
+                    from models import UserQuizAttempt
+                    existing_attempts = db.query(UserQuizAttempt).filter(
+                        UserQuizAttempt.quiz_id.in_(quiz_ids_to_delete)
+                    ).count()
+                    
+                    if existing_attempts > 0:
+                        # Soft delete: Add a deleted/active flag to Quiz model in future
+                        # For now, we'll clear the quiz cache but let the generation 
+                        # service create a new quiz rather than deleting existing ones
+                        logger.info(f"Skipping quiz deletion for video {video.id} due to existing attempts")
+                        db_cleared = False  # Memory cache cleared but DB records preserved
+                    else:
+                        # Safe to delete - no attempts reference these quizzes
+                        db.query(Quiz).filter_by(video_id=video.id).delete()
+                        db.commit()
+                        db_cleared = True
+            except Exception as e:
+                logger.error(f"Error clearing quiz DB cache: {e}", exc_info=True)
+                db.rollback()
+            finally:
+                db.close()
+
+        return jsonify({
+            'message': 'Quiz cache cleared',
+            'clearedItems': cleared_count,
+            'dbCleared': db_cleared
+        }), 200
+    except Exception as e:
+        logger.error(f"Error in clear_quiz_cache: {str(e)}")
+        return jsonify({'error': 'Failed to clear cache'}), 500
 
 
 # ========== SUMMARY ROUTES ==========
@@ -1296,8 +1365,7 @@ def get_quiz_attempts():
         }), 200
     
     except Exception as e:
-        print(f"Error fetching quiz attempts: {e}")
-        traceback.print_exc()
+        logger.error(f"Error reading quiz from database: {e}", exc_info=True)
         return jsonify({'error': 'Failed to fetch quiz attempts'}), 500
     finally:
         db.close()
@@ -1507,8 +1575,7 @@ def get_checkpoint_progress(video_id):
         }), 200
 
     except Exception as e:
-        print(f"Error getting checkpoint progress: {e}")
-        traceback.print_exc()
+        logger.error(f"Error reading checkpoints from database: {e}", exc_info=True)
         return jsonify({'error': 'Failed to get checkpoint progress'}), 500
     finally:
         db.close()
