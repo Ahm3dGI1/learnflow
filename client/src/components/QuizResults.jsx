@@ -1,19 +1,19 @@
-import { CheckCircle2, XCircle, ArrowLeft, Sparkles, RotateCcw } from 'lucide-react';
-
 /**
  * QuizResults Component
  * 
  * Displays quiz results showing score, correct/incorrect answers,
- * and explanations for each question using Tailwind CSS.
+ * and explanations for each question.
  */
+import './QuizResults.css';
+
 export default function QuizResults({ results, onRetake, onBack }) {
   if (!results || !results.answers) {
     return (
-      <div className="text-center py-10">
-        <p className="text-gray-600">No results available.</p>
+      <div className="no-results">
+        <p className="no-results-text">No results available.</p>
         <button
           onClick={onBack}
-          className="mt-4 px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          className="btn-go-back"
         >
           Go Back
         </button>
@@ -26,123 +26,106 @@ export default function QuizResults({ results, onRetake, onBack }) {
 
   // Determine performance level
   let performanceMessage = 'Keep practicing!';
-  let performanceColor = 'text-blue-600';
+  let performanceClass = 'keep-practicing';
 
   if (percentage >= 90) {
     performanceMessage = 'Outstanding work!';
-    performanceColor = 'text-green-600';
+    performanceClass = 'excellent';
   } else if (percentage >= 70) {
     performanceMessage = 'Great job!';
-    performanceColor = 'text-teal-600';
+    performanceClass = 'great';
   } else if (percentage >= 50) {
     performanceMessage = 'Good effort!';
-    performanceColor = 'text-amber-600';
+    performanceClass = 'good';
   }
 
   return (
-    <div className="w-full">
+    <div className="quiz-results-container">
       {/* Score Header */}
-      <div className="text-center mb-10">
-        <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-4 shadow-lg ${percentage >= 70 ? 'bg-green-100' : 'bg-blue-100'}`}>
-          <span className="text-3xl">{percentage >= 70 ? '🎉' : '📚'}</span>
+      <div className="quiz-header">
+        <div className={`quiz-emoji-badge ${percentage >= 70 ? 'success' : 'default'}`}>
+          <span>{percentage >= 70 ? '🎉' : '📚'}</span>
         </div>
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Quiz Complete!</h2>
-        <p className={`text-xl font-medium ${performanceColor} mb-6`}>{performanceMessage}</p>
+        <h2 className="quiz-complete-title">Quiz Complete!</h2>
+        <p className={`quiz-performance-message ${performanceClass}`}>{performanceMessage}</p>
 
-        <div className="flex justify-center gap-4">
-          <div className="px-6 py-3 bg-white/60 rounded-2xl border border-white/60 shadow-sm backdrop-blur-sm">
-            <span className="block text-sm text-gray-500 uppercase tracking-wide font-semibold">Score</span>
-            <span className="text-2xl font-bold text-gray-900">{score} / {totalQuestions}</span>
+        <div className="quiz-stats">
+          <div className="quiz-stat-card">
+            <span className="quiz-stat-label">Score</span>
+            <span className="quiz-stat-value">{score} / {totalQuestions}</span>
           </div>
-          <div className="px-6 py-3 bg-white/60 rounded-2xl border border-white/60 shadow-sm backdrop-blur-sm">
-            <span className="block text-sm text-gray-500 uppercase tracking-wide font-semibold">Accuracy</span>
-            <span className={`text-2xl font-bold ${performanceColor}`}>{percentage}%</span>
+          <div className="quiz-stat-card">
+            <span className="quiz-stat-label">Accuracy</span>
+            <span className={`quiz-stat-value accuracy ${performanceClass}`}>{percentage}%</span>
           </div>
         </div>
       </div>
 
       {/* Action Buttons (Top) */}
-      <div className="flex justify-center gap-4 mb-10">
+      <div className="quiz-actions">
         <button
           onClick={onBack}
-          className="px-6 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all font-medium flex items-center gap-2 shadow-sm"
+          className="btn-back"
         >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Video
+          ← Back to Video
         </button>
         <button
           onClick={onRetake}
-          className="px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 hover:shadow-lg transition-all font-medium flex items-center gap-2 shadow-md shadow-blue-500/20"
+          className="btn-try-again"
         >
-          <RotateCcw className="w-4 h-4" />
-          Try Again
+          ↻ Try Again
         </button>
       </div>
 
       {/* Detailed Results */}
-      <div className="space-y-6">
-        <h3 className="text-xl font-bold text-gray-900 mb-4 px-2">Review Your Answers</h3>
+      <div className="quiz-results-section">
+        <h3 className="quiz-results-title">Review Your Answers</h3>
 
         {answers.map((answer, index) => {
           return (
             <div
               key={answer.questionId}
-              className={`backdrop-blur-xl bg-white/60 border rounded-2xl p-6 shadow-sm transition-all ${answer.isCorrect ? 'border-green-200' : 'border-red-200'
-                }`}
+              className={`quiz-question-card ${answer.isCorrect ? 'correct' : 'incorrect'}`}
             >
               {/* Question Header */}
-              <div className="flex items-start justify-between gap-4 mb-4">
-                <div className="flex items-center gap-3">
-                  <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 text-sm font-bold">
-                    {index + 1}
-                  </span>
-                  <h4 className="text-lg text-gray-900 font-medium">{answer.question}</h4>
+              <div className="quiz-question-header">
+                <div>
+                  <span className="quiz-question-number">{index + 1}</span>
+                  <h4 className="quiz-question-text">{answer.question}</h4>
                 </div>
-                <span className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${answer.isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                  }`}>
-                  {answer.isCorrect ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                  {answer.isCorrect ? 'Correct' : 'Incorrect'}
+                <span className={`quiz-status-badge ${answer.isCorrect ? 'correct' : 'incorrect'}`}>
+                  <span aria-hidden="true">{answer.isCorrect ? '✓' : '✗'}</span>
+                  <span>{answer.isCorrect ? 'Correct' : 'Incorrect'}</span>
                 </span>
               </div>
 
               {/* Options */}
-              <div className="space-y-3 mb-4 pl-11">
+              <div className="quiz-options">
                 {answer.options.map((option, optionIndex) => {
                   const isUserAnswer = answer.userAnswer === optionIndex;
                   const isCorrectAnswer = answer.correctAnswer === optionIndex;
 
-                  let containerClass = "flex items-center p-3 rounded-xl border transition-all text-left";
-                  let bgClass = "bg-white/50 border-transparent";
-                  let textClass = "text-gray-600";
+                  let optionClass = 'default';
+                  let textClass = 'default';
 
                   if (isCorrectAnswer) {
-                    bgClass = "bg-green-50 border-green-200";
-                    textClass = "text-green-800 font-medium";
+                    optionClass = 'correct';
+                    textClass = 'correct';
                   } else if (isUserAnswer && !isCorrectAnswer) {
-                    bgClass = "bg-red-50 border-red-200";
-                    textClass = "text-red-800";
+                    optionClass = 'incorrect';
+                    textClass = 'incorrect';
                   }
 
                   return (
-                    <div key={optionIndex} className={`${containerClass} ${bgClass}`}>
+                    <div key={optionIndex} className={`quiz-option ${optionClass}`}>
                       {/* Status Indicator Circle */}
-                      <div className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center mr-3 ${isCorrectAnswer
-                        ? 'bg-green-500 border-green-500'
-                        : isUserAnswer
-                          ? 'bg-red-500 border-red-500'
-                          : 'border-gray-300 bg-transparent'
-                        }`}>
-                        {isCorrectAnswer && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
-                        {isUserAnswer && !isCorrectAnswer && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
-                      </div>
+                      <div className={`quiz-option-indicator ${isCorrectAnswer ? 'correct' : isUserAnswer ? 'incorrect' : 'neutral'}`} />
 
-                      <div className="flex-1">
+                      <div className="quiz-option-text">
                         <span className={textClass}>{option}</span>
                       </div>
                       {isUserAnswer && (
-                        <span className="text-xs font-medium uppercase tracking-wider text-gray-500 ml-2">
-                          Your Answer
-                        </span>
+                        <span className="quiz-option-label">Your Answer</span>
                       )}
                     </div>
                   );
@@ -151,9 +134,9 @@ export default function QuizResults({ results, onRetake, onBack }) {
 
               {/* Explanation */}
               {answer.explanation && (
-                <div className="ml-11 p-4 bg-blue-50/50 rounded-xl text-sm border border-blue-100">
-                  <span className="font-semibold text-blue-800 block mb-1">Explanation:</span>
-                  <span className="text-blue-900/80 leading-relaxed">{answer.explanation}</span>
+                <div className="quiz-explanation">
+                  <span className="quiz-explanation-label">Explanation:</span>
+                  <span className="quiz-explanation-text">{answer.explanation}</span>
                 </div>
               )}
             </div>
@@ -162,12 +145,11 @@ export default function QuizResults({ results, onRetake, onBack }) {
       </div>
 
       {/* Bottom Action (Duplicate for convenience) */}
-      <div className="mt-10 flex justify-center">
+      <div className="quiz-bottom-action">
         <button
           onClick={onRetake}
-          className="px-8 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-2xl hover:shadow-lg hover:scale-105 transition-all font-bold text-lg flex items-center gap-2 shadow-blue-500/20"
+          className="btn-generate-more"
         >
-          <Sparkles className="w-5 h-5" />
           Generate More Questions
         </button>
       </div>
