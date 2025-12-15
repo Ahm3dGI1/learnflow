@@ -15,6 +15,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { BookOpen, Brain } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import VideoPlayer from "../components/VideoPlayer";
 import CheckpointPopup from "../components/CheckpointPopup";
@@ -22,6 +23,7 @@ import VideoSummary from "../components/VideoSummary";
 import CheckpointProgressBar from "../components/CheckpointProgressBar";
 import ChatInterface from "../components/ChatInterface";
 import { videoService, llmService, progressService } from "../services";
+import { isFeatureEnabled } from "../config/featureFlags";
 import "./VideoPage.css";
 
 /**
@@ -458,15 +460,21 @@ export default function VideoPage() {
                     onClick={() => navigate(`/video/${videoId}/quiz`)}
                     aria-label="Take quiz for this video"
                   >
+                    <BookOpen size={18} />
                     Take Quiz
                   </button>
-                  <button
-                    className="flashcards-button"
-                    onClick={() => navigate(`/video/${videoId}/flashcards`)}
-                    aria-label="Study with flashcards for this video"
-                  >
-                    Flashcards
-                  </button>
+                  
+                  {/* Flashcard Button - Only show if feature is enabled */}
+                  {isFeatureEnabled('FLASHCARDS_ENABLED') && (
+                    <button
+                      className="flashcards-button"
+                      onClick={() => navigate(`/video/${videoId}/flashcards`)}
+                      aria-label="Study with flashcards for this video"
+                    >
+                      <Brain size={18} />
+                      Flashcards
+                    </button>
+                  )}
                 </div>
               )}
             </div>

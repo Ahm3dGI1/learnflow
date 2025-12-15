@@ -82,15 +82,26 @@ POST /api/flashcards/session         - Save study session data
 
 The system works perfectly without backend endpoints:
 1. Set `REACT_APP_ENABLE_FLASHCARDS=true`
-2. Navigate to `/video/{videoId}/flashcards`
-3. System will use mock data and show warnings in console
-4. Full UI functionality available for testing
+2. Go to any video page - you'll see a "Flashcards" button next to "Take Quiz"
+3. Click the flashcards button to navigate to `/video/{videoId}/flashcards`
+4. System will use mock data and show warnings in console
+5. Full UI functionality available for testing
+
+## 🎨 UI Integration
+
+When flashcards are enabled:
+- **Video Page**: Adds a "Flashcards" button with brain icon next to the quiz button
+- **Navigation**: Flashcard button navigates to `/video/:videoId/flashcards`
+- **Styling**: Matches existing design with purple gradient (distinct from blue quiz button)
+- **Responsive**: Works on all screen sizes alongside existing buttons
 
 ## 🔗 Integration Points
 
 ### Existing Code Touched
 - `client/src/App.js` - Added conditional route registration
 - `client/src/services/index.js` - Added conditional service export
+- `client/src/pages/VideoPage.jsx` - Added conditional flashcard button (only shows when enabled)
+- `client/src/pages/VideoPage.css` - Added icon styling for action buttons
 - `.env_template` - Added feature flag documentation
 
 ### Zero Breaking Changes
