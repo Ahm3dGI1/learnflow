@@ -25,6 +25,7 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import VideoPage from "./pages/VideoPage";
 import QuizPage from "./pages/QuizPage";
+import FlashcardsPage from "./pages/FlashcardsPage";
 import ForgotPassword from "./pages/ForgotPassword";
 import Toast from "./components/Toast";
 import useToast from "./hooks/useToast";
@@ -64,6 +65,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <QuizPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/video/:videoId/flashcards"
+            element={
+              <ProtectedRoute>
+                <FlashcardsPage />
               </ProtectedRoute>
             }
           />

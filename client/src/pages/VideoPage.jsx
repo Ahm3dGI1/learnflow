@@ -450,15 +450,24 @@ export default function VideoPage() {
             <div className="video-header-row">
               <h1 className="video-title">{video?.title || "Untitled Video"}</h1>
 
-              {/* Quiz Button - Always visible if transcript exists */}
+              {/* Action Buttons - Always visible if transcript exists */}
               {video?.transcript && (
-                <button
-                  className="take-quiz-button"
-                  onClick={() => navigate(`/video/${videoId}/quiz`)}
-                  aria-label="Take quiz for this video"
-                >
-                  Take Quiz
-                </button>
+                <div className="video-action-buttons">
+                  <button
+                    className="take-quiz-button"
+                    onClick={() => navigate(`/video/${videoId}/quiz`)}
+                    aria-label="Take quiz for this video"
+                  >
+                    Take Quiz
+                  </button>
+                  <button
+                    className="flashcards-button"
+                    onClick={() => navigate(`/video/${videoId}/flashcards`)}
+                    aria-label="Study with flashcards for this video"
+                  >
+                    Flashcards
+                  </button>
+                </div>
               )}
             </div>
 
