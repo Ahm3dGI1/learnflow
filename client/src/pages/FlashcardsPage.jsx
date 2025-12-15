@@ -46,26 +46,6 @@ export default function FlashcardsPage() {
   const [error, setError] = useState(null);
   const [sessionProgress, setSessionProgress] = useState(null);
 
-  // Check if flashcards are enabled
-  if (!isFeatureEnabled('FLASHCARDS_ENABLED') || !flashcardService) {
-    return (
-      <div className="flashcards-disabled">
-        <div className="disabled-message">
-          <Brain size={48} />
-          <h2>Flashcards Feature Disabled</h2>
-          <p>The flashcards feature is currently disabled. Please contact your administrator to enable it.</p>
-          <button 
-            onClick={() => navigate(`/video/${videoId}`)}
-            className="back-button"
-          >
-            <ArrowLeft size={16} />
-            Back to Video
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   /**
    * Fetch Video Data
    */
@@ -171,6 +151,26 @@ export default function FlashcardsPage() {
   const handleReturnToVideo = () => {
     navigate(`/video/${videoId}`);
   };
+
+  // Check if flashcards are enabled (after all hooks)
+  if (!isFeatureEnabled('FLASHCARDS_ENABLED') || !flashcardService) {
+    return (
+      <div className="flashcards-disabled">
+        <div className="disabled-message">
+          <Brain size={48} />
+          <h2>Flashcards Feature Disabled</h2>
+          <p>The flashcards feature is currently disabled. Please contact your administrator to enable it.</p>
+          <button 
+            onClick={() => navigate(`/video/${videoId}`)}
+            className="back-button"
+          >
+            <ArrowLeft size={16} />
+            Back to Video
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Loading state
   if (loading) {
