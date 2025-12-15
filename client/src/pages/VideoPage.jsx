@@ -225,7 +225,8 @@ export default function VideoPage() {
     };
 
     fetchVideo();
-  }, [videoId, user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoId, user?.uid]);
   // Whenever React updates the real state, keep a silent mirror for the video player logic
   useEffect(() => { videoDataRef.current = video; }, [video]);
   useEffect(() => { checkpointsRef.current = checkpoints; }, [checkpoints]);

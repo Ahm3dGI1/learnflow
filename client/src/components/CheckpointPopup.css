@@ -53,7 +53,7 @@
 
 /* Header */
 .checkpoint-popup-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
   color: white;
   padding: 1.5rem;
   border-radius: 16px 16px 0 0;
@@ -164,15 +164,15 @@
 }
 
 .checkpoint-option:hover {
-  border-color: #667eea;
-  background-color: #f8f9ff;
+  border-color: #0284c7;
+  background-color: #e0f2fe;
   transform: translateX(2px);
 }
 
 .checkpoint-option.selected {
-  border-color: #667eea;
-  background-color: #eef1ff;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #0284c7;
+  background-color: #e0f2fe;
+  box-shadow: 0 0 0 3px rgba(56, 178, 172, 0.1);
 }
 
 .option-letter {
@@ -181,7 +181,7 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: #667eea;
+  background: #0284c7;
   color: white;
   border-radius: 50%;
   font-weight: 600;
@@ -190,7 +190,7 @@
 }
 
 .checkpoint-option.selected .option-letter {
-  background: #4c63d2;
+  background: #0369a1;
 }
 
 .option-text {
@@ -295,14 +295,14 @@
 }
 
 .checkpoint-button-primary {
-  background-color: #667eea;
+  background-color: #0284c7;
   color: white;
 }
 
 .checkpoint-button-primary:hover:not(:disabled) {
-  background-color: #5568d3;
+  background-color: #0369a1;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(56, 178, 172, 0.4);
 }
 
 .checkpoint-button-secondary {
