@@ -7,8 +7,8 @@
  * Features:
  * - Video player with metadata display
  * - AI Tutor chat interface in sidebar
- * - Checkpoints shown as popups at specific timestamps (future)
- * - Quiz and summary shown at video end (future)
+ * - Checkpoints shown as popups at specific timestamps
+ * - Quiz and summary shown at video end
  *
  * @module VideoPage
  */
@@ -18,7 +18,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import VideoPlayer from "../components/VideoPlayer";
 import CheckpointPopup from "../components/CheckpointPopup";
-import { videoService, llmService } from "../services";
+import VideoSummary from "../components/VideoSummary";
+import CheckpointProgressBar from "../components/CheckpointProgressBar";
+import ChatInterface from "../components/ChatInterface";
+import { videoService, llmService, progressService } from "../services";
 import "./VideoPage.css";
 
 /**
@@ -63,17 +66,34 @@ export default function VideoPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [embedUrl, setEmbedUrl] = useState("");
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [checkpoints, setCheckpoints] = useState([]);
   const [currentCheckpoint, setCurrentCheckpoint] = useState(null);
   const [checkpointsCompleted, setCheckpointsCompleted] = useState(new Set());
+  const [savedProgress, setSavedProgress] = useState(null);
   const [videoEnded, setVideoEnded] = useState(false);
+  const [summaryData, setSummaryData] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState(null);
   const videoRef = useRef(null);
   const lastTriggeredCheckpoint = useRef(null);
-  
+  const lastProgressSaveTime = useRef(0);
+  const hasResumed = useRef(false);
+  // Refs that always contain the latest values to prevent unnecessary re-renders of handleTimeUpdate callback
+  const videoDataRef = useRef(null);
+  const checkpointsRef = useRef([]);
+  const completedRef = useRef(new Set());
+  const currentCheckpointRef = useRef(null);
+  const videoEndedRef = useRef(false);
+  const userRef = useRef(null);
+
+
   // Checkpoint trigger window in seconds
   const CHECKPOINT_TRIGGER_WINDOW = 1.5;
   // Video end detection threshold in seconds
   const VIDEO_END_THRESHOLD = 2;
+  // Progress update interval in seconds
+  const PROGRESS_UPDATE_INTERVAL = 10;
 
   /**
    * Fetch Video Data
@@ -97,10 +117,23 @@ export default function VideoPage() {
         const videoData = await videoService.getVideo(videoId);
         setVideo(videoData);
 
+        // Fetch saved progress if user is logged in and video has database ID
+        if (user && videoData.id) {
+          try {
+            const progressData = await progressService.getProgress(user.uid, videoData.id);
+            if (progressData && !progressData.isCompleted) {
+              setSavedProgress(progressData);
+            }
+          } catch (err) {
+            console.error("Error fetching progress:", err);
+            // Continue without saved progress
+          }
+        }
+
         // Generate embed URL with enablejsapi for player control
         setEmbedUrl(`https://www.youtube.com/embed/${videoId}?autoplay=0&enablejsapi=1`);
 
-        // Fetch checkpoints if transcript exists
+        // Fetch checkpoints and optionally generate summary if transcript exists
         // Note: Backend caches checkpoints by videoId:languageCode to avoid regeneration
         if (videoData.transcript) {
           try {
@@ -112,6 +145,20 @@ export default function VideoPage() {
           } catch (err) {
             console.error("Error generating checkpoints:", err);
             // Continue without checkpoints
+          }
+
+          // Generate summary for existing videos (previously only generated on create)
+          try {
+            setSummaryLoading(true);
+            setSummaryError(null);
+            const summary = await llmService.generateSummary(videoData.transcript, videoId);
+            setSummaryData(summary);
+          } catch (err) {
+            console.error('Error generating summary:', err);
+            // Don't block page load on summary error
+            setSummaryError('Failed to generate summary');
+          } finally {
+            setSummaryLoading(false);
           }
         }
       } catch (err) {
@@ -125,6 +172,15 @@ export default function VideoPage() {
               fetchMetadata: true,
               fetchTranscript: true
             });
+
+            // Log any warnings from the backend
+            if (newVideo.metadataWarning) {
+              console.warn("Metadata fetch warning:", newVideo.metadataWarning);
+            }
+            if (newVideo.transcriptWarning) {
+              console.error("Transcript fetch warning:", newVideo.transcriptWarning);
+            }
+
             setVideo(newVideo);
             setEmbedUrl(`https://www.youtube.com/embed/${videoId}?autoplay=0&enablejsapi=1`);
 
@@ -140,6 +196,21 @@ export default function VideoPage() {
               } catch (err) {
                 console.error("Error generating checkpoints:", err);
               }
+
+              // Generate summary
+              try {
+                setSummaryLoading(true);
+                setSummaryError(null);
+                const summary = await llmService.generateSummary(
+                  newVideo.transcript
+                );
+                setSummaryData(summary);
+              } catch (err) {
+                console.error("Error generating summary:", err);
+                setSummaryError("Failed to generate summary");
+              } finally {
+                setSummaryLoading(false);
+              }
             }
           } catch (createErr) {
             console.error("Error creating video:", createErr);
@@ -154,7 +225,14 @@ export default function VideoPage() {
     };
 
     fetchVideo();
-  }, [videoId]);
+  }, [videoId, user]);
+  // Whenever React updates the real state, keep a silent mirror for the video player logic
+  useEffect(() => { videoDataRef.current = video; }, [video]);
+  useEffect(() => { checkpointsRef.current = checkpoints; }, [checkpoints]);
+  useEffect(() => { completedRef.current = checkpointsCompleted; }, [checkpointsCompleted]);
+  useEffect(() => { currentCheckpointRef.current = currentCheckpoint; }, [currentCheckpoint]);
+  useEffect(() => { videoEndedRef.current = videoEnded; }, [videoEnded]);
+  useEffect(() => { userRef.current = user; }, [user]);
 
   /**
    * Handle Back Navigation
@@ -167,7 +245,7 @@ export default function VideoPage() {
 
   /**
    * Handle Checkpoint Correct Answer
-   * 
+   *
    * Called when user answers checkpoint question correctly.
    * Marks checkpoint as completed and closes popup.
    */
@@ -175,20 +253,35 @@ export default function VideoPage() {
     if (currentCheckpoint) {
       setCheckpointsCompleted(prev => new Set([...prev, currentCheckpoint.id]));
       setCurrentCheckpoint(null);
-      
+
       // Resume video playback
-      if (videoRef.current) {
+      if (videoRef.current && videoRef.current.playVideo) {
         videoRef.current.playVideo();
       }
     }
   }, [currentCheckpoint]);
 
   /**
+   * Handle Skip Checkpoint
+   *
+   * Closes checkpoint popup and resumes video without answering.
+   * Does not mark checkpoint as completed.
+   */
+  const handleSkipCheckpoint = useCallback(() => {
+    setCurrentCheckpoint(null);
+
+    // Resume video playback
+    if (videoRef.current && videoRef.current.playVideo) {
+      videoRef.current.playVideo();
+    }
+  }, []);
+
+  /**
    * Handle Ask AI Tutor
-   * 
+   *
    * Opens chat interface with checkpoint context.
    * For now, shows alert - will be connected to chat later.
-   * 
+   *
    * @param {Object} checkpoint - Checkpoint that needs help
    */
   const handleAskTutor = useCallback((checkpoint) => {
@@ -198,36 +291,41 @@ export default function VideoPage() {
 
   /**
    * Handle Video Time Update
-   * 
+   *
    * Called every second to track video playback. Checks if current time
    * matches any checkpoint timestamp and triggers popup if needed.
-   * Also detects when video ends.
-   * 
+   * Also detects when video ends and saves progress every 10 seconds.
+   *
    * @param {number} time - Current video time in seconds
    */
-  const handleTimeUpdate = (time) => {
+  const handleTimeUpdate = useCallback(async (time) => {
     // Check if video has ended (within VIDEO_END_THRESHOLD seconds of duration)
-    if (video?.durationSeconds && time >= video.durationSeconds - VIDEO_END_THRESHOLD) {
-      setVideoEnded(true);
-    } else if (videoEnded && time < video.durationSeconds - VIDEO_END_THRESHOLD) {
-      // Reset if user seeks backward
-      setVideoEnded(false);
+    const v = videoDataRef.current;
+    const cps = checkpointsRef.current || [];
+    const completed = completedRef.current || new Set();
+    const cpOpen = currentCheckpointRef.current;
+    const u = userRef.current;
+
+    if (v?.durationSeconds && time >= v.durationSeconds - VIDEO_END_THRESHOLD) {
+      if (!videoEndedRef.current) {
+        videoEndedRef.current = true;
+        setVideoEnded(true);
+      }
+    } else if (videoEndedRef.current && v?.durationSeconds && time < v.durationSeconds - VIDEO_END_THRESHOLD) {
+      videoEndedRef.current = false;
     }
 
+
     // Check if we should trigger a checkpoint
-    if (!currentCheckpoint) {
-      for (const checkpoint of checkpoints) {
-        // Check if we're within trigger window after checkpoint time and haven't completed it
+    if (!cpOpen) {
+      for (const checkpoint of cps) {
         if (
           time >= checkpoint.timestampSeconds &&
           time < checkpoint.timestampSeconds + CHECKPOINT_TRIGGER_WINDOW &&
-          !checkpointsCompleted.has(checkpoint.id) &&
+          !completed.has(checkpoint.id) &&
           lastTriggeredCheckpoint.current !== checkpoint.id
         ) {
-          // Pause video and show checkpoint
-          if (videoRef.current) {
-            videoRef.current.pauseVideo();
-          }
+          if (videoRef.current) videoRef.current.pauseVideo();
           setCurrentCheckpoint(checkpoint);
           lastTriggeredCheckpoint.current = checkpoint.id;
           break;
@@ -236,26 +334,61 @@ export default function VideoPage() {
     }
 
     // Reset lastTriggeredCheckpoint if user seeks backward
-    if (checkpoints.length > 0) {
-      const lastCheckpoint = checkpoints.find(
+    if (cps.length > 0) {
+      const lastCheckpoint = cps.find(
         cp => cp.id === lastTriggeredCheckpoint.current
       );
       if (lastCheckpoint && time < lastCheckpoint.timestampSeconds - 5) {
         lastTriggeredCheckpoint.current = null;
       }
     }
-  };
+
+    // Save progress every 10 seconds
+    const currentTime = Date.now();
+    const timeSinceLastSave = (currentTime - lastProgressSaveTime.current) / 1000;
+
+    if (
+      u &&
+      v?.id &&
+      time > 0 &&
+      timeSinceLastSave >= PROGRESS_UPDATE_INTERVAL
+    ) {
+      try {
+        await progressService.updateProgress(u.uid, v.id, Math.floor(time));
+        lastProgressSaveTime.current = currentTime;
+        console.log(`Progress saved: ${Math.floor(time)}s`);
+      } catch (err) {
+        console.error("Error saving progress:", err);
+      }
+    }
+  }, []);
 
   /**
    * Handle Video Player Ready
-   * 
+   *
    * Called when YouTube player is initialized and ready.
-   * 
+   * Auto-seeks to saved position if progress exists.
+   *
    * @param {Object} player - YouTube player instance
    */
-  const handlePlayerReady = (player) => {
+  const handlePlayerReady = useCallback((player) => {
     console.log('Video player ready');
-  };
+
+    // Auto-resume from saved position if available
+    // Add a small delay to allow YouTube to buffer
+    if (savedProgress && !hasResumed.current && videoRef.current) {
+      const resumePosition = savedProgress.lastPositionSeconds;
+      console.log(`Will resume from ${resumePosition}s in 1 second...`);
+
+      setTimeout(() => {
+        if (videoRef.current) {
+          console.log(`Resuming now from ${resumePosition}s`);
+          videoRef.current.seekTo(resumePosition);
+          hasResumed.current = true;
+        }
+      }, 1000); // Wait 1 second for initial buffering
+    }
+  }, [savedProgress]);
 
   // Loading state
   if (loading) {
@@ -288,7 +421,7 @@ export default function VideoPage() {
     <div className="video-page-container">
       {/* Header */}
       <header className="video-page-header">
-        <button onClick={handleBack} className="back-button">
+        <button onClick={handleBack} className="video-page-back-button">
           ← Back to Dashboard
         </button>
         <div className="user-info">
@@ -314,7 +447,21 @@ export default function VideoPage() {
 
           {/* Video Info */}
           <div className="video-info-section">
-            <h1 className="video-title">{video?.title || "Untitled Video"}</h1>
+            <div className="video-header-row">
+              <h1 className="video-title">{video?.title || "Untitled Video"}</h1>
+
+              {/* Quiz Button - Always visible if transcript exists */}
+              {video?.transcript && (
+                <button
+                  className="take-quiz-button"
+                  onClick={() => navigate(`/video/${videoId}/quiz`)}
+                  aria-label="Take quiz for this video"
+                >
+                  Take Quiz
+                </button>
+              )}
+            </div>
+
             <div className="video-metadata">
               <span className="metadata-item">
                 {formatDuration(video?.durationSeconds)}
@@ -326,17 +473,64 @@ export default function VideoPage() {
                 <span className="metadata-item">{video.totalViews} views</span>
               )}
             </div>
+
             {video?.description && (
               <div className="video-description">
                 <h3>Description</h3>
-                <p>{video.description}</p>
+                <div className={`description-content ${isDescriptionExpanded ? 'expanded' : 'collapsed'}`}>
+                  {isDescriptionExpanded ? video.description : `${video.description.substring(0, 150)}...`}
+                </div>
+                {video.description.length > 150 && (
+                  <button
+                    className="show-more-button"
+                    onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                  >
+                    {isDescriptionExpanded ? "Show Less" : "Show More"}
+                  </button>
+                )}
               </div>
+            )}
+
+            {/* Video Summary */}
+            <VideoSummary
+              summary={summaryData?.summary}
+              loading={summaryLoading}
+              error={summaryError}
+              wordCount={summaryData?.wordCount}
+              onGenerate={() => {
+                if (video?.transcript) {
+                  setSummaryLoading(true);
+                  setSummaryError(null);
+                  llmService.generateSummary(video.transcript, videoId)
+                    .then(data => setSummaryData(data))
+                    .catch(err => {
+                      console.error("Summary gen error:", err);
+                      setSummaryError("Failed to generate summary");
+                    })
+                    .finally(() => setSummaryLoading(false));
+                }
+              }}
+            />
+
+            {/* Checkpoint Progress Bar */}
+            {user && video && checkpoints.length > 0 && (
+              <CheckpointProgressBar
+                videoId={video.id}
+                videoDuration={video.durationSeconds}
+                checkpoints={checkpoints}
+                checkpointsCompleted={checkpointsCompleted}
+                onCheckpointClick={(timeSeconds) => {
+                  if (videoRef.current) {
+                    videoRef.current.seekTo(timeSeconds);
+                  }
+                }}
+              />
             )}
 
             {/* Checkpoints List */}
             {checkpoints.length > 0 && (
               <div className="video-checkpoints">
-                <h3>📍 Learning Checkpoints</h3>
+                <h3>Learning Checkpoints</h3>
                 <p className="checkpoints-subtitle">
                   You'll be asked to answer questions at these points during the video
                 </p>
@@ -344,13 +538,23 @@ export default function VideoPage() {
                   {checkpoints.map((checkpoint) => (
                     <div
                       key={checkpoint.id}
-                      className={`checkpoint-item ${
-                        checkpointsCompleted.has(checkpoint.id) ? 'completed' : ''
-                      }`}
+                      className={`checkpoint-item ${checkpointsCompleted.has(checkpoint.id) ? 'completed' : ''}`}
+                      onClick={() => {
+                        if (videoRef.current && checkpoint.timestampSeconds !== undefined) {
+                          videoRef.current.seekTo(checkpoint.timestampSeconds);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if ((e.key === 'Enter' || e.key === ' ') && checkpoint.timestampSeconds !== undefined) {
+                          e.preventDefault();
+                          if (videoRef.current) {
+                            videoRef.current.seekTo(checkpoint.timestampSeconds);
+                          }
+                        }
+                      }}
                     >
-                      <div className="checkpoint-marker">
-                        {checkpointsCompleted.has(checkpoint.id) ? '✅' : '⏱️'}
-                      </div>
                       <div className="checkpoint-info">
                         <div className="checkpoint-time">{checkpoint.timestamp}</div>
                         <div className="checkpoint-item-title">{checkpoint.title}</div>
@@ -360,38 +564,12 @@ export default function VideoPage() {
                 </div>
               </div>
             )}
-
-            {/* Quiz Section - Shows only after video ends */}
-            {video?.transcript && videoEnded && (
-              <div className="video-quiz-section">
-                <h3>📝 Test Your Knowledge</h3>
-                <p className="quiz-section-subtitle">
-                  Great! You've finished the video. Ready to test what you've learned?
-                </p>
-                <button 
-                  className="take-quiz-button"
-                  onClick={() => navigate(`/video/${videoId}/quiz`)}
-                  aria-label="Take quiz for this video"
-                >
-                  Take Quiz →
-                </button>
-              </div>
-            )}
           </div>
         </div>
 
         {/* Right Column - AI Tutor Chat */}
         <div className="video-sidebar-column">
-          {/* Chat Section - Placeholder */}
-          <div className="chat-section">
-            <h2>💬 AI Tutor</h2>
-            <div className="placeholder-content">
-              <p>Chat with an AI tutor about this video</p>
-              <button className="feature-placeholder-button" disabled>
-                Start Chat (Coming Soon)
-              </button>
-            </div>
-          </div>
+          <ChatInterface videoId={videoId} videoTitle={video?.title} />
         </div>
       </div>
 
@@ -401,6 +579,10 @@ export default function VideoPage() {
           checkpoint={currentCheckpoint}
           onCorrectAnswer={handleCheckpointCorrect}
           onAskTutor={handleAskTutor}
+          onSkip={handleSkipCheckpoint}
+          checkpointId={currentCheckpoint?.id}
+          firebaseUid={user?.uid}
+          videoId={video?.id}
         />
       )}
     </div>

@@ -6,7 +6,14 @@ assignment-files/
 server/.env
 */.env
 
+server/venv 
 /venv
 *.pyc
 
 *.db
+server/secrets/
+.DS_Store
+
+server/secrets
+
+logs

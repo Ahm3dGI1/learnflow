@@ -195,9 +195,9 @@ class ErrorService {
 
     // Log with appropriate console method
     const consoleMethod = severity === ErrorSeverity.CRITICAL ? 'error' :
-                         severity === ErrorSeverity.ERROR ? 'error' :
-                         severity === ErrorSeverity.WARNING ? 'warn' :
-                         'info';
+      severity === ErrorSeverity.ERROR ? 'error' :
+        severity === ErrorSeverity.WARNING ? 'warn' :
+          'info';
 
     console[consoleMethod](`[${category}] ${context || 'Error'}:`, logData);
 

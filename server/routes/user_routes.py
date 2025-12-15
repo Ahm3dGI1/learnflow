@@ -10,7 +10,10 @@ from flask import Blueprint, jsonify, g, request
 from database import SessionLocal
 from services.user_service import get_or_create_user, get_user_by_firebase_uid
 from middleware.auth import auth_required
+from utils.logger import get_logger
+from utils.exceptions import UserNotFoundError
 
+logger = get_logger(__name__)
 user_bp = Blueprint("user", __name__, url_prefix="/api/users")
 
 @user_bp.route("/me", methods=["GET"])
@@ -18,10 +21,12 @@ user_bp = Blueprint("user", __name__, url_prefix="/api/users")
 def get_current_user():
     claims = getattr(g, "firebase_user", {})
     firebase_uid = claims.get("uid")
+    logger.info("Fetching current user", extra={"user_id": firebase_uid})
     with SessionLocal() as db:
         user = get_user_by_firebase_uid(firebase_uid, db)
         if not user:
-            return jsonify({"error": "User not found"}), 404
+            logger.warning("User not found", extra={"user_id": firebase_uid})
+            raise UserNotFoundError()
         return jsonify({
             "data": {
                 "id": user.id,

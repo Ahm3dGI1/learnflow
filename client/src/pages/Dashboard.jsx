@@ -21,8 +21,9 @@ import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import { useAuth } from "../auth/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useVideoHistory } from "../hooks/useVideoHistory";
+import { videoService, progressService } from "../services";
 import InputBar from "../components/InputBar";
 import VideoHistoryCard from "../components/VideoHistoryCard";
 import "./Dashboard.css";
@@ -51,7 +52,48 @@ export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [videoUrl, setVideoUrl] = useState("");
+  const [progressMap, setProgressMap] = useState({});
   const { history, addToHistory, removeFromHistory, clearHistory } = useVideoHistory();
+
+  /**
+   * Fetch Progress Data for History Videos
+   *
+   * Fetches progress information for all videos in history whenever the history
+   * changes. Creates a map of YouTube video ID to progress data for efficient lookup.
+   */
+  useEffect(() => {
+    const fetchProgressForHistory = async () => {
+      if (!user || history.length === 0) {
+        setProgressMap({});
+        return;
+      }
+
+      const newProgressMap = {};
+
+      // Fetch progress for each video in history
+      for (const historyVideo of history) {
+        try {
+          // First, get the database video record to get its database ID
+          const videoData = await videoService.getVideo(historyVideo.videoId);
+
+          if (videoData && videoData.id) {
+            // Then fetch progress using database video ID
+            const progressData = await progressService.getProgress(user.uid, videoData.id);
+            if (progressData) {
+              newProgressMap[historyVideo.videoId] = progressData;
+            }
+          }
+        } catch (err) {
+          // Ignore errors for individual videos
+          console.error(`Error fetching progress for ${historyVideo.videoId}:`, err);
+        }
+      }
+
+      setProgressMap(newProgressMap);
+    };
+
+    fetchProgressForHistory();
+  }, [history, user]);
 
   /**
    * Extract Video ID from YouTube URL
@@ -86,11 +128,13 @@ export default function Dashboard() {
   const handleLoadVideo = () => {
     const videoId = extractVideoId(videoUrl);
     if (videoId) {
-      // Add to history
+      // Add to history (non-blocking, handle error silently to prevent crash)
       addToHistory({
         videoId,
         embedUrl: `https://www.youtube.com/embed/${videoId}`,
         title: `YouTube Video - ${videoId}`,
+      }).catch(err => {
+        console.warn("Failed to add to history from Dashboard:", err);
       });
 
       // Navigate to video page
@@ -134,7 +178,7 @@ export default function Dashboard() {
    */
   const handleClearAllHistory = () => {
     if (window.confirm('Clear all video history? This cannot be undone.')) {
-        clearHistory();
+      clearHistory();
     }
   };
 
@@ -178,6 +222,7 @@ export default function Dashboard() {
                 <VideoHistoryCard
                   key={video.id}
                   video={video}
+                  progress={progressMap[video.videoId]}
                   onSelect={handleSelectFromHistory}
                   onDelete={handleDeleteFromHistory}
                 />
@@ -189,8 +234,8 @@ export default function Dashboard() {
         {history.length === 0 && (
           <div className="empty-state">
             <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1">
-              <path d="M23 7l-7 5 7 5V7z"/>
-              <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+              <path d="M23 7l-7 5 7 5V7z" />
+              <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
             </svg>
             <h3>No videos yet</h3>
             <p>Start learning by loading a YouTube video above</p>
