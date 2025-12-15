@@ -56,7 +56,7 @@ export default function FlashcardDeck({
   const [deckComplete, setDeckComplete] = useState(false);
 
   const [isFlipped, setIsFlipped] = useState(false);
-  const timeoutRef = React.useRef(null);
+  const timeoutRef = useRef(null);
 
   const currentCard = flashcards[currentIndex];
   const totalCards = flashcards.length;
