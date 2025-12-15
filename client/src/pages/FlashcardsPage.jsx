@@ -21,7 +21,8 @@ import { ArrowLeft, RefreshCw, Zap, Brain, BookOpen, Target } from 'lucide-react
 import { useAuth } from '../auth/AuthContext';
 import useToast from '../hooks/useToast';
 import FlashcardDeck from '../components/FlashcardDeck';
-import { videoService, llmService } from '../services';
+import { videoService, llmService, flashcardService } from '../services';
+import { isFeatureEnabled } from '../config/featureFlags';
 import './FlashcardsPage.css';
 
 /**
@@ -44,6 +45,26 @@ export default function FlashcardsPage() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
   const [sessionProgress, setSessionProgress] = useState(null);
+
+  // Check if flashcards are enabled
+  if (!isFeatureEnabled('FLASHCARDS_ENABLED') || !flashcardService) {
+    return (
+      <div className="flashcards-disabled">
+        <div className="disabled-message">
+          <Brain size={48} />
+          <h2>Flashcards Feature Disabled</h2>
+          <p>The flashcards feature is currently disabled. Please contact your administrator to enable it.</p>
+          <button 
+            onClick={() => navigate(`/video/${videoId}`)}
+            className="back-button"
+          >
+            <ArrowLeft size={16} />
+            Back to Video
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   /**
    * Fetch Video Data

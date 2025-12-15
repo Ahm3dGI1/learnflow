@@ -21,6 +21,61 @@
   flex-direction: column;
 }
 
+/* ===== DISABLED STATE ===== */
+
+.flashcards-disabled {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.disabled-message {
+  text-align: center;
+  color: white;
+  max-width: 500px;
+}
+
+.disabled-message svg {
+  margin-bottom: 1rem;
+  opacity: 0.7;
+}
+
+.disabled-message h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.disabled-message p {
+  font-size: 1rem;
+  margin-bottom: 2rem;
+  opacity: 0.8;
+  line-height: 1.5;
+}
+
+.disabled-message .back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 0.5rem;
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.disabled-message .back-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
 /* ===== HEADER ===== */
 
 .flashcards-header {
