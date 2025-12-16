@@ -1,15 +1,123 @@
 """
-Centralized LearnLM client configuration and initialization.
-This module provides a LearnLM client class for interacting with Google's
-LearnLM model.
+Centralized LLM client configuration and initialization.
+This module provides an LLM client class for interacting with OpenAI's GPT models.
+Can be switched back to Gemini by changing LLM_PROVIDER env var.
 """
 
 import os
-from google import genai
-from google.genai import types
+from openai import OpenAI
 from prompts.system import system_instructions
 
 
+class OpenAIClient:
+    """
+    Client for interacting with OpenAI's GPT models.
+    Handles initialization, configuration, and content generation.
+    """
+
+    def __init__(self):
+        """
+        Initialize the OpenAI client with configuration from environment.
+
+        Raises:
+            ValueError: If required environment variables are not set
+        """
+        self.api_key = os.environ.get("OPENAI_API_KEY")
+        self.model_name = os.environ.get("OPENAI_MODEL_NAME", "gpt-4o-mini")
+
+        if not self.api_key:
+            raise ValueError(
+                "OPENAI_API_KEY not found in environment variables. "
+                "Please set it in your .env file."
+            )
+
+        self.client = OpenAI(api_key=self.api_key)
+
+    def generate_content(
+        self,
+        prompt,
+        system_instruction=None,
+        temperature=0.7,
+        **kwargs
+    ):
+        """
+        Generate content from OpenAI (non-streaming).
+
+        Args:
+            prompt (str): User prompt/input text
+            system_instruction (str, optional): System instruction for model
+                If None, uses default LearnFlow system instructions
+            temperature (float): Temperature for generation (default: 0.7)
+            **kwargs: Additional configuration parameters
+
+        Returns:
+            str: Complete response text from the model
+
+        Raises:
+            Exception: If content generation fails
+        """
+        # Use default system instructions if none provided
+        if system_instruction is None:
+            system_instruction = system_instructions
+
+        messages = [
+            {"role": "system", "content": system_instruction},
+            {"role": "user", "content": prompt}
+        ]
+
+        response = self.client.chat.completions.create(
+            model=self.model_name,
+            messages=messages,
+            temperature=temperature
+        )
+
+        return response.choices[0].message.content
+
+    def generate_content_stream(
+        self,
+        prompt,
+        system_instruction=None,
+        temperature=0.7,
+        **kwargs
+    ):
+        """
+        Generate streaming content from OpenAI.
+
+        Args:
+            prompt (str): User prompt/input text
+            system_instruction (str, optional): System instruction for model
+                If None, uses default LearnFlow system instructions
+            temperature (float): Temperature for generation (default: 0.7)
+            **kwargs: Additional configuration parameters
+
+        Yields:
+            str: Text chunks from the model's response
+
+        Raises:
+            Exception: If content generation fails
+        """
+        # Use default system instructions if none provided
+        if system_instruction is None:
+            system_instruction = system_instructions
+
+        messages = [
+            {"role": "system", "content": system_instruction},
+            {"role": "user", "content": prompt}
+        ]
+
+        stream = self.client.chat.completions.create(
+            model=self.model_name,
+            messages=messages,
+            temperature=temperature,
+            stream=True
+        )
+
+        for chunk in stream:
+            if chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
+
+
+# Keep Gemini client for easy switching back
 class LearnLMClient:
     """
     Client for interacting with Google's LearnLM model.
@@ -23,8 +131,9 @@ class LearnLMClient:
         Raises:
             ValueError: If required environment variables are not set
         """
+        from google import genai
+
         self.api_key = os.environ.get("GEMINI_API_KEY")
-        # Switching to generic alias `gemini-flash-latest` which is explicitly listed as available
         self.model_name = "gemini-flash-latest"
 
         if not self.api_key:
@@ -42,22 +151,9 @@ class LearnLMClient:
         temperature=0.7,
         **kwargs
     ):
-        """
-        Generate content from LearnLM (non-streaming).
+        """Generate content from LearnLM (non-streaming)."""
+        from google.genai import types
 
-        Args:
-            prompt (str): User prompt/input text
-            system_instruction (str, optional): System instruction for model
-                If None, uses default LearnFlow system instructions
-            temperature (float): Temperature for generation (default: 0.7)
-            **kwargs: Additional configuration parameters
-
-        Returns:
-            str: Complete response text from the model
-
-        Raises:
-            Exception: If content generation fails
-        """
         contents = [
             types.Content(
                 role="user",
@@ -65,7 +161,6 @@ class LearnLMClient:
             )
         ]
 
-        # Use default system instructions if none provided
         if system_instruction is None:
             system_instruction = system_instructions
 
@@ -90,22 +185,9 @@ class LearnLMClient:
         temperature=0.7,
         **kwargs
     ):
-        """
-        Generate streaming content from LearnLM.
+        """Generate streaming content from LearnLM."""
+        from google.genai import types
 
-        Args:
-            prompt (str): User prompt/input text
-            system_instruction (str, optional): System instruction for model
-                If None, uses default LearnFlow system instructions
-            temperature (float): Temperature for generation (default: 0.7)
-            **kwargs: Additional configuration parameters
-
-        Yields:
-            str: Text chunks from the model's response
-
-        Raises:
-            Exception: If content generation fails
-        """
         contents = [
             types.Content(
                 role="user",
@@ -113,7 +195,6 @@ class LearnLMClient:
             )
         ]
 
-        # Use default system instructions if none provided
         if system_instruction is None:
             system_instruction = system_instructions
 
@@ -138,17 +219,26 @@ _client_instance = None
 
 def get_client():
     """
-    Get or create the singleton LearnLM client instance.
+    Get or create the singleton LLM client instance.
+
+    Uses LLM_PROVIDER env var to select provider:
+    - "openai" (default): Use OpenAI GPT models
+    - "gemini": Use Google's Gemini/LearnLM models
 
     Returns:
-        LearnLMClient: Initialized LearnLM client
+        OpenAIClient or LearnLMClient: Initialized LLM client
 
     Raises:
-        ValueError: If GEMINI_API_KEY is not set in environment
+        ValueError: If required API key is not set in environment
     """
     global _client_instance
 
     if _client_instance is None:
-        _client_instance = LearnLMClient()
+        provider = os.environ.get("LLM_PROVIDER", "openai").lower()
+
+        if provider == "gemini":
+            _client_instance = LearnLMClient()
+        else:
+            _client_instance = OpenAIClient()
 
     return _client_instance
