@@ -11,7 +11,17 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 import os
 from pathlib import Path
-from routes import llm_bp, video_bp, user_bp, progress_bp
+from routes import (
+    checkpoint_bp,
+    chat_bp,
+    quiz_bp,
+    summary_bp,
+    checkpoint_progress_bp,
+    health_bp,
+    video_bp,
+    user_bp,
+    progress_bp
+)
 from database import init_db
 from utils.logger import get_logger, log_request
 from utils.exceptions import APIError, get_error_response
@@ -33,7 +43,15 @@ CORS(app)  # Enable CORS for all routes
 logger = get_logger(__name__)
 
 # Register API blueprints
-app.register_blueprint(llm_bp)  # LLM routes (checkpoints, quiz, chat)
+# LLM-related routes (split from original llm_routes.py)
+app.register_blueprint(checkpoint_bp)  # Checkpoint generation and caching
+app.register_blueprint(chat_bp)  # Chat with AI tutor
+app.register_blueprint(quiz_bp)  # Quiz generation, submission, and attempts
+app.register_blueprint(summary_bp)  # Video summary generation
+app.register_blueprint(checkpoint_progress_bp)  # Checkpoint completion tracking
+app.register_blueprint(health_bp)  # Health check endpoint
+
+# Other feature routes
 app.register_blueprint(video_bp)  # Video routes (CRUD, metadata, transcripts)
 app.register_blueprint(user_bp)  # User routes (create/update, fetch by Firebase UID)
 app.register_blueprint(progress_bp)  # Progress routes (video watch tracking, resume)

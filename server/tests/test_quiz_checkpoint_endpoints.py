@@ -120,7 +120,7 @@ def test_data(session):
 class TestQuizGeneration:
     """Tests for quiz generation with database IDs."""
 
-    @patch('routes.llm_routes.generate_quiz')
+    @patch('routes.quiz_routes.generate_quiz')
     def test_quiz_generation_creates_database_record(self, mock_generate, client, session):
         """Test that quiz generation creates a Quiz database record with ID."""
         # Create a new video for this test to avoid cache collision
@@ -193,7 +193,7 @@ class TestQuizGeneration:
 class TestCheckpointGeneration:
     """Tests for checkpoint generation with database IDs."""
 
-    @patch('routes.llm_routes.generate_checkpoints')
+    @patch('routes.checkpoint_routes.generate_checkpoints')
     def test_checkpoint_generation_creates_database_records(self, mock_generate, client, test_data, session):
         """Test that checkpoint generation creates Checkpoint database records with IDs."""
         # Mock LLM response

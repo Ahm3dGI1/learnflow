@@ -100,7 +100,7 @@ def test_data(session):
 class TestChatSendEndpoint:
     """Tests for POST /api/llm/chat/send endpoint."""
 
-    @patch('routes.llm_routes.generate_chat_response')
+    @patch('routes.chat_routes.generate_chat_response')
     def test_send_chat_success(self, mock_generate, client, test_data, session):
         """Test successful chat message send and save."""
         # Mock LLM response
@@ -190,7 +190,7 @@ class TestChatSendEndpoint:
 
         assert response.status_code == 401
 
-    @patch('routes.llm_routes.generate_chat_response')
+    @patch('routes.chat_routes.generate_chat_response')
     def test_send_chat_ignores_body_user_and_uses_auth(self, mock_generate, client, test_data, session):
         """Server should ignore userId in body and use authenticated Firebase UID."""
         # Mock LLM response
@@ -426,7 +426,7 @@ class TestChatHistoryEndpoint:
 class TestSessionIdGeneration:
     """Tests for session ID generation."""
 
-    @patch('routes.llm_routes.generate_chat_response')
+    @patch('routes.chat_routes.generate_chat_response')
     def test_session_id_generated_if_not_provided(self, mock_generate, client, test_data):
         """Test that session ID is auto-generated if not provided."""
         mock_generate.return_value = {
@@ -460,7 +460,7 @@ class TestSessionIdGeneration:
         assert data['sessionId'] is not None
         assert len(data['sessionId']) > 0
 
-    @patch('routes.llm_routes.generate_chat_response')
+    @patch('routes.chat_routes.generate_chat_response')
     def test_session_id_preserved_if_provided(self, mock_generate, client, test_data):
         """Test that provided session ID is preserved."""
         mock_generate.return_value = {
