@@ -215,7 +215,7 @@ describe('VideoHistoryCard', () => {
     fireEvent.click(deleteButton);
 
     expect(mockOnDelete).toHaveBeenCalledTimes(1);
-    expect(mockOnDelete).toHaveBeenCalledWith(mockVideo.id);
+    expect(mockOnDelete).toHaveBeenCalledWith(mockVideo.videoId);
   });
 
   // ========== DATE FORMATTING TESTS ==========
@@ -223,7 +223,7 @@ describe('VideoHistoryCard', () => {
   test('shows "minutes ago" for recent videos', () => {
     const recentVideo = {
       ...mockVideo,
-      lastViewedAt: new Date(Date.now() - 1800000).toISOString(), // 30 minutes ago
+      lastWatchedAt: new Date(Date.now() - 1800000).toISOString(), // 30 minutes ago
     };
 
     render(
@@ -241,7 +241,7 @@ describe('VideoHistoryCard', () => {
   test('uses singular "minute" for 1 minute ago', () => {
     const recentVideo = {
       ...mockVideo,
-      lastViewedAt: new Date(Date.now() - 60000).toISOString(), // 1 minute ago
+      lastWatchedAt: new Date(Date.now() - 60000).toISOString(), // 1 minute ago
     };
 
     render(
@@ -260,7 +260,7 @@ describe('VideoHistoryCard', () => {
   test('shows "hours ago" for videos viewed today', () => {
     const todayVideo = {
       ...mockVideo,
-      lastViewedAt: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
+      lastWatchedAt: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
     };
 
     render(
@@ -278,7 +278,7 @@ describe('VideoHistoryCard', () => {
   test('uses singular "hour" for 1 hour ago', () => {
     const recentVideo = {
       ...mockVideo,
-      lastViewedAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+      lastWatchedAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
     };
 
     render(
@@ -297,7 +297,7 @@ describe('VideoHistoryCard', () => {
   test('shows "days ago" for videos from this week', () => {
     const weekVideo = {
       ...mockVideo,
-      lastViewedAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+      lastWatchedAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
     };
 
     render(
@@ -315,7 +315,7 @@ describe('VideoHistoryCard', () => {
   test('uses singular "day" for 1 day ago', () => {
     const yesterdayVideo = {
       ...mockVideo,
-      lastViewedAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+      lastWatchedAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
     };
 
     render(
@@ -334,7 +334,7 @@ describe('VideoHistoryCard', () => {
   test('shows formatted date for older videos', () => {
     const oldVideo = {
       ...mockVideo,
-      lastViewedAt: new Date('2024-01-01T10:00:00Z').toISOString(),
+      lastWatchedAt: new Date('2024-01-01T10:00:00Z').toISOString(),
     };
 
     render(
