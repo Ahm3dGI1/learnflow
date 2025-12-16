@@ -46,6 +46,8 @@ const getLearningReport = async (firebaseUid) => {
   }
 };
 
-export default {
+const learningReportService = {
   getLearningReport,
 };
+
+export default learningReportService;
