@@ -7,32 +7,60 @@ This directory contains Flask blueprints for all API endpoints.
 ```
 routes/
 ├── __init__.py          # Route exports
-└── llm_routes.py        # LLM-related endpoints (/api/llm/*)
+├── llm_routes.py        # LLM-related endpoints (/api/llm/*)
+├── video_routes.py      # Video and transcript endpoints (/api/videos/*)
+├── user_routes.py       # User management endpoints (/api/users/*)
+└── progress_routes.py   # Progress tracking endpoints (/api/progress/*)
 ```
 
 ## Available Routes
 
 ### LLM Routes (`/api/llm/*`)
 
-AI-powered features using LearnLM model.
+AI-powered features using LearnLM model. All endpoints require Firebase authentication.
 
 **Endpoints:**
-- `POST /api/llm/checkpoints/generate` - Generate learning checkpoints from video transcript
-- `POST /api/llm/checkpoints/cache/clear` - Clear checkpoint cache (admin/testing)
+- `POST /api/llm/checkpoints/generate` - Generate learning checkpoints
+- `POST /api/llm/quiz/generate` - Generate quiz questions
+- `POST /api/llm/quiz/submit` - Submit quiz answers and get results
+- `POST /api/llm/chat/stream` - AI tutoring chat (streaming)
+- `POST /api/llm/summary/generate` - Generate video summary
 - `GET /api/llm/health` - Health check for LLM services
+- Cache clear endpoints for testing
 
-**Documentation:** [docs/api/checkpoints.md](../docs/api/checkpoints.md)
+**Documentation:** [docs/api/](../docs/api/)
 
-### Quiz Routes (`/api/quiz/*`)
+### Video Routes (`/api/videos/*`)
 
-Quiz generation and management (legacy endpoints in `app.py`).
+Video metadata, transcripts, and watch history.
 
 **Endpoints:**
-- `GET /api/quiz/<quiz_id>` - Get quiz by ID
-- `POST /api/quiz/generate` - Generate quiz (mock data)
-- `POST /api/quiz/submit` - Submit quiz answers
+- `POST /api/videos/transcript` - Fetch video transcript
+- `POST /api/videos/transcript/available` - List available transcript languages
+- `GET /api/videos/history/{uid}` - Get user's video watch history
+- `POST /api/videos/history/{uid}` - Add/update video in history
+- `DELETE /api/videos/history/{uid}/{videoId}` - Remove video from history
+- `DELETE /api/videos/history/{uid}` - Clear all history
 
-**Status:** Will be refactored to use LLM in future PR
+**Documentation:** [docs/TRANSCRIPT_API.md](../docs/TRANSCRIPT_API.md)
+
+### User Routes (`/api/users/*`)
+
+User management with Firebase authentication.
+
+**Endpoints:**
+- `GET /api/users/me` - Get current authenticated user
+- `POST /api/users` - Create or update user from Firebase claims
+
+### Progress Routes (`/api/progress/*`)
+
+Track user learning progress across videos.
+
+**Endpoints:**
+- `GET /api/progress/users/<firebase_uid>/videos/<video_id>` - Get progress for specific video
+- `POST /api/progress/users/<firebase_uid>/videos/<video_id>` - Update progress for a specific video
+- `PUT /api/progress/users/<firebase_uid>/videos/<video_id>/complete` - Mark video as complete
+- `GET /api/progress/users/<firebase_uid>` - Get all progress for user
 
 ## Adding New Routes
 
@@ -114,14 +142,12 @@ def create_resource():
         return jsonify({'error': 'Internal error', 'details': str(e)}), 500
 ```
 
-## Future Routes
+## Middleware
 
-Planned endpoints for upcoming features:
+All authenticated routes use the following middleware:
 
-- **Chat Routes** (`/api/llm/chat/*`) - Conversational tutoring
-- **Quiz Routes (v2)** (`/api/llm/quiz/*`) - LLM-powered quiz generation
-- **User Routes** (`/api/user/*`) - User profiles and progress tracking
-- **Video Routes** (`/api/video/*`) - Video metadata and transcript management
+- **`@auth_required`** - Validates Firebase JWT tokens
+- **`@rate_limit`** - Applies rate limiting (user or video scoped)
 
 ## Development
 
@@ -144,6 +170,7 @@ app.run(debug=True, port=PORT)
 
 ## Related Documentation
 
-- [Checkpoint API](../docs/api/checkpoints.md) - Detailed checkpoint endpoint documentation
+- [API Documentation](../docs/api/) - Full API endpoint documentation
+- [Transcript API](../docs/TRANSCRIPT_API.md) - YouTube transcript fetching
 - [LLM Client](../llm/README.md) - LearnLM client usage
 - [Services](../services/) - Business logic implementation
