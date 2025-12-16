@@ -291,8 +291,8 @@ export default function VideoPage() {
     currentCheckpointRef.current = null;
     
     // Resume video playback
-    if (videoRef.current?.resume) {
-      videoRef.current.resume();
+    if (videoRef.current && videoRef.current.playVideo) {
+      videoRef.current.playVideo();
     }
     
     // Set the question in the chat interface
@@ -300,7 +300,7 @@ export default function VideoPage() {
       const question = `I need help with this checkpoint question: "${checkpoint.question}". Can you explain the concept and guide me to the answer?`;
       chatInterfaceRef.current.setQuestion(question, true);
     }
-  }, []);
+  }, [setCurrentCheckpoint]);
 
   /**
    * Handle Video Time Update
