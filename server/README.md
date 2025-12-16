@@ -40,28 +40,33 @@ Server runs on `http://localhost:5000` (configurable via .env file)
 
 ## Endpoints
 
-### GET /api/quiz/:id
-Get a quiz by ID (mock data for now)
+### LLM Endpoints (`/api/llm/*`)
+AI-powered learning features using Google's LearnLM model.
 
-### POST /api/quiz/generate
-Generate quiz from video transcript
-```json
-{
-  "transcript": "video text here",
-  "videoId": "optional-video-id"
-}
-```
+- `POST /api/llm/checkpoints/generate` - Generate learning checkpoints
+- `POST /api/llm/quiz/generate` - Generate quiz questions
+- `POST /api/llm/chat/stream` - AI tutoring chat (streaming)
+- `POST /api/llm/summary/generate` - Generate video summary
+- `GET /api/llm/health` - Health check
 
-### POST /api/quiz/submit
-Submit quiz answers
-```json
-{
-  "quizId": "123",
-  "answers": [0, 1, 2, 3]
-}
-```
+### Video Endpoints (`/api/videos/*`)
+Video metadata and transcript management.
 
-## TODO
-- [ ] Integrate OpenAI API for actual quiz generation
-- [ ] Add database for storing quizzes
-- [ ] Add user authentication
+- `POST /api/videos/transcript` - Fetch video transcript
+- `GET /api/videos/history/{uid}` - Get user's video history
+- `POST /api/videos/history/{uid}` - Add video to history
+- `DELETE /api/videos/history/{uid}/{videoId}` - Remove from history
+
+### User Endpoints (`/api/users/*`)
+User management with Firebase authentication.
+
+- `GET /api/users/me` - Get current user profile
+- `POST /api/users` - Create/update user
+
+### Progress Endpoints (`/api/progress/*`)
+Track user learning progress.
+
+- `GET /api/progress/{uid}` - Get user progress
+- `POST /api/progress/{uid}` - Update progress
+
+**Full API Documentation:** [docs/api/README.md](docs/api/README.md)
