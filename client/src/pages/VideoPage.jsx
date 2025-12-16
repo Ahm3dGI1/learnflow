@@ -95,6 +95,9 @@ export default function VideoPage() {
   // Progress update interval in seconds
   const PROGRESS_UPDATE_INTERVAL = 10;
 
+  // Extract user ID to avoid dependency on entire user object
+  const userId = user?.uid;
+
   /**
    * Fetch Video Data
    *
@@ -118,9 +121,9 @@ export default function VideoPage() {
         setVideo(videoData);
 
         // Fetch saved progress if user is logged in and video has database ID
-        if (user && videoData.id) {
+        if (userId && videoData.id) {
           try {
-            const progressData = await progressService.getProgress(user.uid, videoData.id);
+            const progressData = await progressService.getProgress(userId, videoData.id);
             if (progressData && !progressData.isCompleted) {
               setSavedProgress(progressData);
             }
@@ -225,7 +228,7 @@ export default function VideoPage() {
     };
 
     fetchVideo();
-  }, [videoId, user?.uid]); // Use user?.uid to prevent infinite loop when user object reference changes
+  }, [videoId, userId]); // Use userId to prevent re-renders when user object reference changes
   // Whenever React updates the real state, keep a silent mirror for the video player logic
   useEffect(() => { videoDataRef.current = video; }, [video]);
   useEffect(() => { checkpointsRef.current = checkpoints; }, [checkpoints]);
