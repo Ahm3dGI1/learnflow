@@ -2,6 +2,7 @@
  * Checkpoint Popup Styles
  * 
  * Modal overlay and popup styling for checkpoint questions during video playback.
+ * Updated to match Quiz Page blue theme and glassmorphism design.
  */
 
 /* Overlay */
@@ -12,6 +13,8 @@
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -30,9 +33,12 @@
 
 /* Container */
 .checkpoint-popup-container {
-  background-color: white;
-  border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 1.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
   max-width: 600px;
   width: 90%;
   max-height: 80vh;
@@ -53,14 +59,15 @@
 
 /* Header */
 .checkpoint-popup-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(to right, #3b82f6, #06b6d4);
   color: white;
   padding: 1.5rem;
-  border-radius: 16px 16px 0 0;
+  border-radius: 1.5rem 1.5rem 0 0;
   display: flex;
   align-items: center;
   gap: 1rem;
   position: relative;
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
 }
 
 .checkpoint-close-button {
@@ -151,8 +158,8 @@
 .checkpoint-option {
   width: 100%;
   padding: 1rem 1.25rem;
-  background: white;
-  border: 2px solid #e0e0e0;
+  background: rgba(255, 255, 255, 0.6);
+  border: 2px solid rgba(203, 213, 225, 0.5);
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -164,15 +171,16 @@
 }
 
 .checkpoint-option:hover {
-  border-color: #667eea;
-  background-color: #f8f9ff;
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.05);
   transform: translateX(2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .checkpoint-option.selected {
-  border-color: #667eea;
-  background-color: #eef1ff;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .option-letter {
@@ -181,16 +189,18 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: #667eea;
+  background: linear-gradient(to right, #3b82f6, #06b6d4);
   color: white;
   border-radius: 50%;
   font-weight: 600;
   font-size: 0.9rem;
   flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
 }
 
 .checkpoint-option.selected .option-letter {
-  background: #4c63d2;
+  background: linear-gradient(to right, #2563eb, #0891b2);
+  box-shadow: 0 4px 6px rgba(37, 99, 235, 0.4);
 }
 
 .option-text {
@@ -204,18 +214,19 @@
 .checkpoint-feedback {
   margin-top: 1.5rem;
   padding: 1.25rem;
-  border-radius: 8px;
+  border-radius: 12px;
   animation: fadeIn 0.3s ease;
+  border: 1px solid;
 }
 
 .checkpoint-feedback.correct {
-  background-color: #d4edda;
-  border: 1px solid #c3e6cb;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
 .checkpoint-feedback.incorrect {
-  background-color: #f8d7da;
-  border: 1px solid #f5c6cb;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(251, 146, 60, 0.1) 100%);
+  border-color: rgba(239, 68, 68, 0.3);
 }
 
 .feedback-icon {
@@ -227,47 +238,47 @@
   margin: 0 0 0.5rem 0;
   font-size: 1rem;
   line-height: 1.5;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .checkpoint-feedback.correct .feedback-message {
-  color: #155724;
+  color: #047857;
 }
 
 .checkpoint-feedback.incorrect .feedback-message {
-  color: #721c24;
+  color: #dc2626;
 }
 
 .feedback-hint {
   margin: 0.5rem 0;
   font-size: 0.95rem;
-  color: #721c24;
+  color: #dc2626;
 }
 
 .feedback-hint strong {
-  color: #721c24;
+  color: #b91c1c;
   font-weight: 600;
 }
 
 .feedback-explanation {
   margin: 0.75rem 0 0 0;
   padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.5);
-  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 8px;
   font-size: 0.9rem;
   line-height: 1.6;
-  color: #495057;
+  color: #374151;
   border-left: 3px solid currentColor;
 }
 
 .checkpoint-feedback.correct .feedback-explanation {
-  color: #155724;
-  border-left-color: #28a745;
+  color: #047857;
+  border-left-color: #10b981;
 }
 
 .checkpoint-feedback.incorrect .feedback-explanation {
-  color: #721c24;
-  border-left-color: #dc3545;
+  color: #dc2626;
+  border-left-color: #ef4444;
 }
 
 /* Actions */
@@ -295,36 +306,39 @@
 }
 
 .checkpoint-button-primary {
-  background-color: #667eea;
+  background: linear-gradient(to right, #3b82f6, #06b6d4);
   color: white;
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);
 }
 
 .checkpoint-button-primary:hover:not(:disabled) {
-  background-color: #5568d3;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  background: linear-gradient(to right, #2563eb, #0891b2);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4);
 }
 
 .checkpoint-button-secondary {
-  background-color: #6c757d;
+  background-color: #6b7280;
   color: white;
+  box-shadow: 0 4px 6px -1px rgba(107, 114, 128, 0.3);
 }
 
 .checkpoint-button-secondary:hover {
-  background-color: #5a6268;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
+  background-color: #4b5563;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(107, 114, 128, 0.4);
 }
 
 .checkpoint-button-tutor {
-  background-color: #28a745;
+  background: linear-gradient(to right, #10b981, #06b6d4);
   color: white;
+  box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4);
 }
 
 .checkpoint-button-tutor:hover {
-  background-color: #218838;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+  background: linear-gradient(to right, #059669, #0891b2);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4);
 }
 
 /* Responsive Design */

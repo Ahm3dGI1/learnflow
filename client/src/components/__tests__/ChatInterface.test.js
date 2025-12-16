@@ -2,7 +2,7 @@
  * Unit tests for ChatInterface component
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ChatInterface from '../ChatInterface';
 import { useAuth } from '../../auth/AuthContext';
@@ -679,6 +679,73 @@ describe('ChatInterface', () => {
 
       const button = screen.getByRole('button', { name: 'Send' });
       expect(button).toHaveAttribute('type', 'submit');
+    });
+  });
+
+  // ========== IMPERATIVE HANDLE TESTS ==========
+
+  describe('Imperative Handle - setQuestion', () => {
+    test('setQuestion sets input value and focuses input', async () => {
+      const ref = { current: null };
+      render(<ChatInterface ref={ref} videoId={mockVideoId} videoTitle={mockVideoTitle} />);
+
+      const input = screen.getByPlaceholderText('Type your question...');
+      const focusSpy = jest.spyOn(input, 'focus');
+
+      // Wrap in act to handle state updates
+      await act(async () => {
+        ref.current.setQuestion('What is this video about?', true);
+      });
+
+      expect(input).toHaveValue('What is this video about?');
+      expect(focusSpy).toHaveBeenCalled();
+    });
+
+    test('setQuestion sets input value without focusing when autoFocus is false', async () => {
+      const ref = { current: null };
+      render(<ChatInterface ref={ref} videoId={mockVideoId} videoTitle={mockVideoTitle} />);
+
+      const input = screen.getByPlaceholderText('Type your question...');
+      const focusSpy = jest.spyOn(input, 'focus');
+
+      // Wrap in act to handle state updates
+      await act(async () => {
+        ref.current.setQuestion('Another question', false);
+      });
+
+      expect(input).toHaveValue('Another question');
+      expect(focusSpy).not.toHaveBeenCalled();
+    });
+
+    test('setQuestion defaults autoFocus to true', async () => {
+      const ref = { current: null };
+      render(<ChatInterface ref={ref} videoId={mockVideoId} videoTitle={mockVideoTitle} />);
+
+      const input = screen.getByPlaceholderText('Type your question...');
+      const focusSpy = jest.spyOn(input, 'focus');
+
+      // Wrap in act to handle state updates
+      await act(async () => {
+        ref.current.setQuestion('Default focus test');
+      });
+
+      expect(input).toHaveValue('Default focus test');
+      expect(focusSpy).toHaveBeenCalled();
+    });
+
+    test('setQuestion calls scrollIntoView on input when autoFocus is true', async () => {
+      const ref = { current: null };
+      render(<ChatInterface ref={ref} videoId={mockVideoId} videoTitle={mockVideoTitle} />);
+
+      const input = screen.getByPlaceholderText('Type your question...');
+      const scrollSpy = jest.spyOn(input, 'scrollIntoView');
+
+      // Wrap in act to handle state updates
+      await act(async () => {
+        ref.current.setQuestion('Scroll test', true);
+      });
+
+      expect(scrollSpy).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
     });
   });
 });
