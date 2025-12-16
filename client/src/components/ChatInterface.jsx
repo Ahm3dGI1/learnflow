@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { llmService, videoService } from '../services';
 import '../pages/Auth.css'; // Import auth styles for glass variables

@@ -33,9 +33,6 @@ def client():
 @pytest.fixture(scope="function")
 def test_data(session):
     """Create test data with user, video, quiz, and multiple attempts."""
-    import random
-    import string
-    
     # Generate unique firebase_uid for each test
     unique_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
     firebase_uid = f'test-firebase-{unique_id}'
