@@ -663,7 +663,7 @@ class TestChatHistoryPagination:
             )
 
         assert response.status_code == 400
-        assert 'limit must be between 1 and 1000' in response.get_json()['error']
+        assert 'Invalid limit parameter. Must be between 1 and 1000.' in response.get_json()['error']
 
         # Test limit > 1000
         with patch(VERIFY_PATCH_PATH, return_value=claims):
@@ -673,7 +673,7 @@ class TestChatHistoryPagination:
             )
 
         assert response.status_code == 400
-        assert 'limit must be between 1 and 1000' in response.get_json()['error']
+        assert 'Invalid limit parameter. Must be between 1 and 1000.' in response.get_json()['error']
 
         # Test negative limit
         with patch(VERIFY_PATCH_PATH, return_value=claims):
@@ -683,7 +683,7 @@ class TestChatHistoryPagination:
             )
 
         assert response.status_code == 400
-        assert 'limit must be between 1 and 1000' in response.get_json()['error']
+        assert 'Invalid limit parameter. Must be between 1 and 1000.' in response.get_json()['error']
 
     def test_pagination_invalid_offset(self, client, test_data):
         """Test validation of offset parameter."""
@@ -701,7 +701,7 @@ class TestChatHistoryPagination:
             )
 
         assert response.status_code == 400
-        assert 'offset must be >= 0' in response.get_json()['error']
+        assert 'Invalid offset parameter. Must be >= 0.' in response.get_json()['error']
 
     def test_pagination_default_values(self, client, test_data, session):
         """Test that default pagination values are applied correctly."""
