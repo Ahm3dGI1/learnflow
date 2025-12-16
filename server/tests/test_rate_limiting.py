@@ -5,12 +5,22 @@ Tests the RateLimiter class and rate_limit decorator to ensure
 proper request throttling and error responses.
 """
 
+import os
 import time
 import pytest
 from unittest.mock import patch
 from middleware.rate_limit import RateLimiter, rate_limit, rate_limiter
 from middleware.auth import auth_required
 from flask import Flask, jsonify
+
+
+# Enable rate limiting for all tests in this module
+@pytest.fixture(autouse=True)
+def enable_rate_limiting():
+    """Enable rate limiting for all tests."""
+    os.environ['RATE_LIMIT_ENABLED'] = 'true'
+    yield
+    os.environ.pop('RATE_LIMIT_ENABLED', None)
 
 
 # ========== Test Fixtures ==========
