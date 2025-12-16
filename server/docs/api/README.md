@@ -250,7 +250,7 @@ For issues or questions:
 ### Current Version (v2.0)
 
 **Added:**
-- Firebase JWT authentication on all LLM endpoints
+- Firebase JWT authentication on selected LLM endpoints (chat, quiz submission, quiz attempts, checkpoint progress)
 - Rate limiting (user-scoped and video-scoped)
 - Chat/tutoring API with streaming support
 - Quiz generation with LLM
