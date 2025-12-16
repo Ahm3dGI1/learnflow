@@ -66,8 +66,8 @@ export default function FlashcardDeck({
    */
   useEffect(() => {
     setIsFlipped(false);
+    const timeoutId = timeoutRef.current;
     return () => {
-      const timeoutId = timeoutRef.current;
       if (timeoutId) clearTimeout(timeoutId);
     };
   }, [currentIndex]);
