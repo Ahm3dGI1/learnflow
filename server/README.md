@@ -66,7 +66,9 @@ User management with Firebase authentication.
 ### Progress Endpoints (`/api/progress/*`)
 Track user learning progress.
 
-- `GET /api/progress/{uid}` - Get user progress
-- `POST /api/progress/{uid}` - Update progress
+- `GET /api/progress/users/{firebase_uid}/videos/{video_id}` - Get progress for a specific video
+- `POST /api/progress/users/{firebase_uid}/videos/{video_id}` - Update progress for a specific video
+- `PUT /api/progress/users/{firebase_uid}/videos/{video_id}/complete` - Mark video as complete
+- `GET /api/progress/users/{firebase_uid}` - Get all progress for user
 
 **Full API Documentation:** [docs/api/README.md](docs/api/README.md)
