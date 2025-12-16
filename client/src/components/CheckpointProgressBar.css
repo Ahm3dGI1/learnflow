@@ -25,7 +25,7 @@
   position: absolute;
   width: 12px;
   height: 12px;
-  background-color: #667eea;
+  background-color: #0ea5e9;
   border-radius: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
@@ -37,7 +37,7 @@
 
 .checkpoint-marker:hover {
   transform: translate(-50%, -50%) scale(1.2);
-  background-color: #764ba2;
+  background-color: #0284c7;
 }
 
 .checkpoint-marker.completed {
@@ -61,7 +61,7 @@
 /* Progress fill */
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, #0ea5e9 0%, #0284c7 100%);
   border-radius: 4px;
   transition: width 0.3s ease;
 }
