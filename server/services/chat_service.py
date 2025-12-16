@@ -260,7 +260,7 @@ def get_chat_history(video_id, user_id, limit=20, offset=0):
                 'limit': limit,
                 'offset': offset,
                 'total': total,
-                'hasMore': offset + len(data) < total
+                'hasMore': offset + limit < total
             }
         }
     except Exception as e:

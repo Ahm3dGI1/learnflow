@@ -744,9 +744,9 @@ def get_chat_history_route(video_id):
 
         # Validation
         if limit < 1 or limit > 1000:
-            return jsonify({'error': 'limit must be between 1 and 1000'}), 400
+            return jsonify({'error': 'Invalid limit parameter. Must be between 1 and 1000.'}), 400
         if offset < 0:
-            return jsonify({'error': 'offset must be >= 0'}), 400
+            return jsonify({'error': 'Invalid offset parameter. Must be >= 0.'}), 400
         
         # Get authenticated user from Firebase token
         firebase_uid = g.firebase_user.get('uid')
