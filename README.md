@@ -58,7 +58,6 @@ npm install
 ### Backend (server/.env)
 - `PORT` – Server port (default: 8080 for Cloud Run, 5000 for local)
 - `OPENAI_API_KEY` – OpenAI API key
-- `OPENAI_MODEL_NAME` – Model name (default: gpt-4)
 - `DATABASE_URL` – Database connection (default: sqlite:///./learnflow.db)
 - `FIREBASE_SERVICE_ACCOUNT_FILE` – Path to Firebase admin credentials JSON (for local)
 - `FIREBASE_SERVICE_ACCOUNT_JSON` – Firebase credentials as JSON string (for production)
