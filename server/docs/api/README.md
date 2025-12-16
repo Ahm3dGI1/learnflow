@@ -67,21 +67,34 @@ curl -X POST http://localhost:5000/api/llm/quiz/generate \
 
 ## Authentication
 
-Currently, all endpoints are public. Authentication will be added in future updates.
+All LLM endpoints require Firebase JWT token authentication.
 
-**Planned:**
-- Firebase JWT token authentication
+**Headers:**
+```
+Authorization: Bearer <firebase-id-token>
+```
+
+**Features:**
+- Firebase JWT token verification
 - User-specific rate limiting
 - Progress tracking per user
 
 ## Rate Limiting
 
-**Current:** None
+Rate limiting is implemented for LLM endpoints to prevent abuse.
 
-**Planned:**
-- 100 requests per hour per IP
-- 50 LLM generations per day per user
+**Current Limits:**
+- **User-scoped endpoints**: 30 requests per minute per user
+- **Video-scoped endpoints**: 10 requests per minute per video
 - Cached responses don't count toward limits
+
+**Rate Limit Response (429):**
+```json
+{
+  "error": "Rate limit exceeded",
+  "retryAfter": 45
+}
+```
 
 ## Error Responses
 
@@ -100,9 +113,10 @@ All endpoints follow a consistent error format:
 |------|---------|-------|
 | 200 | OK | Successful request |
 | 400 | Bad Request | Invalid request data |
-| 401 | Unauthorized | Missing/invalid authentication (future) |
+| 401 | Unauthorized | Missing/invalid Firebase token |
+| 403 | Forbidden | User not authorized for this resource |
 | 404 | Not Found | Resource doesn't exist |
-| 429 | Too Many Requests | Rate limit exceeded (future) |
+| 429 | Too Many Requests | Rate limit exceeded |
 | 500 | Internal Server Error | Server-side error |
 | 503 | Service Unavailable | LLM overloaded, retry later |
 
@@ -233,15 +247,21 @@ For issues or questions:
 
 ## Changelog
 
-### Current Version (v1.0)
+### Current Version (v2.0)
+
+**Added:**
+- Firebase JWT authentication on all LLM endpoints
+- Rate limiting (user-scoped and video-scoped)
+- Chat/tutoring API with streaming support
+- Quiz generation with LLM
+- Video summary generation
+- Video history tracking
+- Quiz attempt history
+- YouTube Data API fallback for transcript fetching
+
+### Previous Version (v1.0)
 
 **Added:**
 - Checkpoint generation API
 - In-memory caching system
 - Health check endpoints
-
-**Coming Next:**
-- Chat/tutoring API
-- Quiz generation v2 with LLM
-- User authentication
-- Rate limiting
