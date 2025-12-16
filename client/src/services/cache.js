@@ -11,6 +11,7 @@ class CacheService {
   constructor() {
     this.cache = new Map();
     this.timers = new Map();
+    this.expirations = new Map(); // Store expiration timestamps
   }
 
   /**
@@ -26,8 +27,10 @@ class CacheService {
       clearTimeout(this.timers.get(key));
     }
 
-    // Set the cache entry
+    // Set the cache entry with expiration timestamp
+    const expiresAt = ttl > 0 ? Date.now() + ttl : null;
     this.cache.set(key, value);
+    this.expirations.set(key, expiresAt);
 
     // Set expiration timer
     if (ttl > 0) {
@@ -41,11 +44,25 @@ class CacheService {
 
   /**
    * Get cache entry
+   * Validates expiration on retrieval to handle lost timers
    * 
    * @param {string} key - Cache key
    * @returns {*} Cached value or undefined
    */
   get(key) {
+    // Check if entry exists
+    if (!this.cache.has(key)) {
+      return undefined;
+    }
+
+    // Validate expiration
+    const expiresAt = this.expirations.get(key);
+    if (expiresAt && Date.now() > expiresAt) {
+      // Entry expired, clean it up
+      this.delete(key);
+      return undefined;
+    }
+
     return this.cache.get(key);
   }
 
@@ -72,6 +89,9 @@ class CacheService {
       this.timers.delete(key);
     }
 
+    // Clear expiration
+    this.expirations.delete(key);
+
     return this.cache.delete(key);
   }
 
@@ -82,6 +102,7 @@ class CacheService {
     // Clear all timers
     this.timers.forEach(timer => clearTimeout(timer));
     this.timers.clear();
+    this.expirations.clear();
     this.cache.clear();
   }
 

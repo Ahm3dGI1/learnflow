@@ -85,7 +85,7 @@ export default function FlashcardsPage() {
 
     setGenerating(true);
     try {
-      // Use flashcardService which has mock fallback if backend is unavailable
+      // Generate flashcards using AI from video transcript
       const generatedFlashcards = await flashcardService.generateFlashcards(
         user.uid, 
         videoId, 
@@ -98,10 +98,18 @@ export default function FlashcardsPage() {
       );
 
       setFlashcards(generatedFlashcards);
-      toast.success(`Generated ${generatedFlashcards.length} flashcards!`);
+      toast.success(`Generated ${generatedFlashcards.length} flashcards from video content!`);
     } catch (err) {
       console.error('Failed to generate flashcards:', err);
-      toast.error('Failed to generate flashcards. Please try again.');
+      
+      // Show user-friendly error message
+      if (err.message.includes('unavailable')) {
+        toast.error('Flashcard generation is currently unavailable. Please ensure the backend server is running.');
+      } else {
+        toast.error('Failed to generate flashcards. Please try again later.');
+      }
+      
+      setError('Unable to generate flashcards. The backend service may be offline.');
     } finally {
       setGenerating(false);
     }

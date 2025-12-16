@@ -93,10 +93,11 @@ class FlashcardService {
 
       return flashcards;
     } catch (error) {
-      console.warn('Backend flashcard API not available, using mock data:', error.message);
+      console.error('Backend flashcard API not available:', error.message);
       
-      // Return mock flashcards if backend is not available (graceful degradation)
-      return this.generateMockFlashcards(videoId, count, difficulty);
+      // Throw error to let the UI handle it appropriately
+      // This prevents silently showing mock data that doesn't relate to the video
+      throw new Error('Flashcard generation is currently unavailable. Please ensure the backend server is running.');
     }
   }
 
@@ -334,10 +335,19 @@ class FlashcardService {
   /**
    * Generate Unique Card ID
    * 
+   * Uses crypto.randomUUID() for better uniqueness guarantees.
+   * Falls back to timestamp + random string for older browsers.
+   * 
    * @returns {string} Unique card identifier
    */
   generateCardId() {
-    return `card_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+    // Use crypto.randomUUID() if available (modern browsers)
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return `card_${crypto.randomUUID()}`;
+    }
+    
+    // Fallback for older browsers
+    return `card_${Date.now()}_${Math.random().toString(36).slice(2, 11)}_${Math.random().toString(36).slice(2, 11)}`;
   }
 
   /**
@@ -363,39 +373,44 @@ class FlashcardService {
   }
 
   /**
-   * Generate Mock Flashcards (Fallback)
+   * Generate Mock Flashcards (Demo/Testing Only)
    * 
-   * Used when backend is not available to provide a basic flashcard experience
+   * IMPORTANT: This generates generic placeholder flashcards that are NOT related
+   * to actual video content. Should only be used for UI testing and demos.
+   * NOT recommended for production use as it provides no educational value.
+   * 
    * @param {string} videoId - Video ID
    * @param {number} count - Number of flashcards to generate
    * @param {string} difficulty - Difficulty level
-   * @returns {Array} Mock flashcards
+   * @returns {Array} Mock flashcards with generic content
    */
   generateMockFlashcards(videoId, count = 5, difficulty = 'medium') {
+    console.warn('⚠️ DEMO MODE: Generating mock flashcards. These are not based on actual video content.');
+    
     const mockCards = [
       {
-        question: 'What is the main topic of this video?',
-        answer: 'The video covers key learning concepts that can be reviewed through flashcards.',
+        question: '[DEMO] What is the main topic of this video?',
+        answer: '[DEMO] This is placeholder content. Real flashcards are generated from actual video transcripts by AI.',
         type: 'concept'
       },
       {
-        question: 'Key Term Definition',
-        answer: 'Important terms and definitions from the video content.',
+        question: '[DEMO] Key Term Definition',
+        answer: '[DEMO] This is placeholder content. Real flashcards contain terms and definitions from the video.',
         type: 'definition'
       },
       {
-        question: 'Why is this concept important?',
-        answer: 'This concept is important because it forms the foundation for understanding more complex topics.',
+        question: '[DEMO] Why is this concept important?',
+        answer: '[DEMO] This is placeholder content. Real flashcards explain concepts covered in the video.',
         type: 'concept'
       },
       {
-        question: 'How can you apply this knowledge?',
-        answer: 'You can apply this knowledge by practicing the concepts and reviewing them regularly.',
+        question: '[DEMO] How can you apply this knowledge?',
+        answer: '[DEMO] This is placeholder content. Real flashcards are tailored to the video content.',
         type: 'application'
       },
       {
-        question: 'Summary Question',
-        answer: 'Summarize the key points covered in this learning session.',
+        question: '[DEMO] Summary Question',
+        answer: '[DEMO] This is placeholder content. Connect the backend to get AI-generated flashcards.',
         type: 'summary'
       }
     ];

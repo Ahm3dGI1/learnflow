@@ -469,7 +469,7 @@ export default function VideoPage() {
                     <button
                       className="flashcards-button"
                       onClick={() => navigate(`/video/${videoId}/flashcards`)}
-                      aria-label="Study with flashcards for this video"
+                      aria-label="Generate and study flashcards"
                     >
                       <Brain size={18} />
                       Flashcards

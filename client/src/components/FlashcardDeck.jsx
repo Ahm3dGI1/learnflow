@@ -80,15 +80,23 @@ export default function FlashcardDeck({
     } else {
       // Deck completed
       setDeckComplete(true);
-      if (onComplete) {
-        onComplete({
-          responses,
-          stats: sessionStats,
-          duration: Date.now() - sessionStats.startTime
+      
+      // Use functional update to get latest responses and stats
+      setResponses(latestResponses => {
+        setSessionStats(latestStats => {
+          if (onComplete) {
+            onComplete({
+              responses: latestResponses,
+              stats: latestStats,
+              duration: Date.now() - latestStats.startTime
+            });
+          }
+          return latestStats;
         });
-      }
+        return latestResponses;
+      });
     }
-  }, [currentIndex, totalCards, onComplete, responses, sessionStats]);
+  }, [currentIndex, totalCards, onComplete]);
 
   /**
    * Navigate to Previous Card
@@ -103,43 +111,51 @@ export default function FlashcardDeck({
    * Handle User Response to Flashcard
    */
   const handleResponse = useCallback((cardId, isCorrect) => {
-    const newResponses = {
-      ...responses,
+    // Use functional updates to avoid dependency on responses and sessionStats
+    setResponses(prevResponses => ({
+      ...prevResponses,
       [cardId]: isCorrect
-    };
-    setResponses(newResponses);
+    }));
 
-    // Update session statistics
-    const newStats = {
-      ...sessionStats,
-      [isCorrect ? 'correct' : 'incorrect']: sessionStats[isCorrect ? 'correct' : 'incorrect'] + 1,
-      total: sessionStats.total + 1
-    };
-    setSessionStats(newStats);
+    setSessionStats(prevStats => {
+      const newStats = {
+        ...prevStats,
+        [isCorrect ? 'correct' : 'incorrect']: prevStats[isCorrect ? 'correct' : 'incorrect'] + 1,
+        total: prevStats.total + 1
+      };
 
-    // Report progress
-    if (onProgress) {
-      onProgress({
-        cardId,
-        isCorrect,
-        currentIndex,
-        totalCards,
-        stats: newStats
-      });
-    }
+      // Report progress with updated stats
+      if (onProgress) {
+        onProgress({
+          cardId,
+          isCorrect,
+          currentIndex,
+          totalCards,
+          stats: newStats
+        });
+      }
 
-    // Auto-advance after a short delay
-    timeoutRef.current = setTimeout(() => {
-      handleNext();
-    }, 1500);
-  }, [responses, sessionStats, onProgress, currentIndex, totalCards, handleNext]);
+      return newStats;
+    });
+
+    // Note: Users can manually advance instead of auto-advance
+    // Removed auto-advance to give users more control
+  }, [onProgress, currentIndex, totalCards]);
 
   /**
    * Keyboard Shortcuts
    */
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (deckComplete || !currentCard) return;
+      // Ignore keyboard events when user is typing in an input/textarea
+      const activeElement = document.activeElement;
+      const isTyping = activeElement && (
+        activeElement.tagName === 'INPUT' ||
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.isContentEditable
+      );
+      
+      if (isTyping || deckComplete || !currentCard) return;
 
       switch (e.code) {
         case 'Space':
