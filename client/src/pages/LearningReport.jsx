@@ -253,7 +253,7 @@ export default function LearningReport() {
               <div className="activity-list">
                 {report.recentActivity.map((activity, idx) => (
                   <ActivityItem
-                    key={idx}
+                    key={activity.date}
                     date={activity.date}
                     videosWatched={activity.videosWatched}
                     quizAttempts={activity.quizAttempts}
