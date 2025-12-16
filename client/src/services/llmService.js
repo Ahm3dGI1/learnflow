@@ -180,21 +180,23 @@ const llmService = {
   },
 
   /**
-   * Get chat history for a video
+   * Get chat history for a video with pagination
    * @param {string} videoId - YouTube video ID
    * @param {number} userId - User ID
-   * @param {number} limit - Maximum number of messages to retrieve (optional)
-   * @returns {Promise<object>} Chat history with messages array
+   * @param {number} [limit=20] - Maximum number of messages to retrieve (max: 1000)
+   * @param {number} [offset=0] - Number of messages to skip for pagination
+   * @returns {Promise<object>} Paginated chat history
    * @example
-   * const history = await llmService.getChatHistory('abc123', 1, 50);
-   * // Returns: { videoId: 'abc123', messages: [...], totalMessages: 10 }
+   * const history = await llmService.getChatHistory('abc123', 1, 20, 0);
+   * // Returns: { videoId: 'abc123', data: [...], pagination: { limit, offset, total, hasMore } }
    */
-  getChatHistory: async (videoId, userId, limit = null) => {
+  getChatHistory: async (videoId, userId, limit = 20, offset = 0) => {
     try {
-      const queryParams = new URLSearchParams({ userId: userId.toString() });
-      if (limit) {
-        queryParams.append('limit', limit.toString());
-      }
+      const queryParams = new URLSearchParams({
+        userId: userId.toString(),
+        limit: limit.toString(),
+        offset: offset.toString()
+      });
       const response = await api.get(`/api/llm/chat/history/${videoId}?${queryParams.toString()}`, {}, true);
       return response;
     } catch (error) {

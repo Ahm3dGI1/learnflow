@@ -18,51 +18,56 @@ import videoService from '../services/videoService';
 /**
  * useVideoHistory Hook
  * 
- * Manages video watch history with backend API persistence.
- * Loads history on mount, syncs changes with server, and provides CRUD operations.
- * Maintains maximum of 50 videos per user and automatically moves recently viewed
- * videos to the top of the list.
+ * Manages video watch history with backend API persistence and pagination.
+ * Loads initial batch on mount, syncs changes with server, and provides pagination control.
+ * Supports incremental loading with "Load More" functionality.
  * 
  * @returns {Object} History management interface
- * @property {Array<Object>} history - Array of video history entries
+ * @property {Array<Object>} history - Array of video history entries (paginated)
+ * @property {boolean} loading - Loading state for current fetch
+ * @property {boolean} hasMore - Whether more videos are available to load
  * @property {Function} addToHistory - Add or update a video in history
  * @property {Function} removeFromHistory - Remove a video by ID
  * @property {Function} clearHistory - Clear all history for current user
  * @property {Function} getVideoById - Retrieve a specific video by YouTube ID
+ * @property {Function} loadMore - Load next batch of videos
+ * @property {Function} refreshHistory - Reload history from server
  * 
  * @example
- * const { history, addToHistory, removeFromHistory } = useVideoHistory();
+ * const { history, loadMore, hasMore } = useVideoHistory();
  * 
- * // Add a video to history
- * addToHistory({
- *   videoId: 'dQw4w9WgXcQ',
- *   embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
- *   title: 'Example Video'
- * });
- * 
- * // Remove a video
- * removeFromHistory(videoEntry.id);
+ * // Display videos and load more button
+ * {hasMore && <button onClick={loadMore}>Load More</button>}
  */
 export function useVideoHistory() {
   const { user } = useAuth();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Load history from server on mount
   useEffect(() => {
     const loadHistory = async () => {
       if (!user) {
         setHistory([]);
+        setOffset(0);
+        setHasMore(false);
         return;
       }
 
       setLoading(true);
       try {
-        const data = await videoService.getVideoHistory(user.uid);
-        setHistory(data);
+        const result = await videoService.getVideoHistory(user.uid, 20, 0);
+        setHistory(result.data || []);
+        setTotalCount(result.pagination.total);
+        setHasMore(result.pagination.hasMore);
+        setOffset(0);
       } catch (error) {
         console.error('Failed to load video history:', error);
         setHistory([]);
+        setHasMore(false);
       } finally {
         setLoading(false);
       }
@@ -71,13 +76,40 @@ export function useVideoHistory() {
     loadHistory();
   }, [user]);
 
+  /**
+   * Load More Videos
+   * 
+   * Fetches the next batch of videos based on current offset.
+   * Appends to existing history without replacing it.
+   */
+  const loadMore = async () => {
+    if (!user || loading || !hasMore) return;
+
+    setLoading(true);
+    try {
+      const newOffset = offset + 20;
+      const result = await videoService.getVideoHistory(user.uid, 20, newOffset);
+      setHistory(prev => [...prev, ...result.data]);
+      setOffset(newOffset);
+      setHasMore(result.pagination.hasMore);
+    } catch (error) {
+      console.error('Failed to load more videos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const refreshHistory = async () => {
     if (!user) return;
 
     setLoading(true);
     try {
-      const data = await videoService.getVideoHistory(user.uid);
-      setHistory(data);
+      const result = await videoService.getVideoHistory(user.uid, 20, 0);
+      // Reset pagination when refreshing
+      setHistory(result.data || []);
+      setOffset(0);
+      setTotalCount(result.pagination.total);
+      setHasMore(result.pagination.hasMore);
     } catch (error) {
       console.error('Failed to refresh video history:', error);
     } finally {
@@ -212,10 +244,13 @@ export function useVideoHistory() {
   return {
     history,
     loading,
+    hasMore,
+    totalCount,
     addToHistory,
     removeFromHistory,
     clearHistory,
     getVideoById,
+    loadMore,
     refreshHistory,
   };
 }

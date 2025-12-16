@@ -43,9 +43,9 @@ describe('ChatInterface', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     
-    // Default mock implementations
+    // Default mock implementations - updated to new pagination format
     useAuth.mockReturnValue({ user: mockUser });
-    llmService.getChatHistory.mockResolvedValue({ messages: [] });
+    llmService.getChatHistory.mockResolvedValue({ data: [], pagination: { limit: 20, offset: 0, total: 0, hasMore: false } });
     videoService.fetchTranscript.mockResolvedValue({
       snippets: [{ text: 'Test transcript content' }],
       languageCode: 'en',
@@ -100,10 +100,11 @@ describe('ChatInterface', () => {
   describe('Chat History Loading', () => {
     test('fetches and displays chat history on mount', async () => {
       const mockHistory = {
-        messages: [
+        data: [
           { role: 'user', message: 'What is photosynthesis?', timestamp_context: '05:30' },
           { role: 'assistant', message: 'Photosynthesis is the process by which plants convert light energy into chemical energy.', timestamp_context: '05:30' },
         ],
+        pagination: { limit: 20, offset: 0, total: 2, hasMore: false }
       };
 
       llmService.getChatHistory.mockResolvedValue(mockHistory);
@@ -111,7 +112,7 @@ describe('ChatInterface', () => {
       render(<ChatInterface videoId={mockVideoId} videoTitle={mockVideoTitle} />);
 
       await waitFor(() => {
-        expect(llmService.getChatHistory).toHaveBeenCalledWith(mockVideoId, mockUser.id);
+        expect(llmService.getChatHistory).toHaveBeenCalledWith(mockVideoId, mockUser.id, 20, 0);
       });
 
       await waitFor(() => {
@@ -129,7 +130,7 @@ describe('ChatInterface', () => {
       render(<ChatInterface videoId={mockVideoId} videoTitle={mockVideoTitle} />);
 
       await waitFor(() => {
-        expect(llmService.getChatHistory).toHaveBeenCalledWith(mockVideoId, 'firebase-uid-456');
+        expect(llmService.getChatHistory).toHaveBeenCalledWith(mockVideoId, 'firebase-uid-456', 20, 0);
       });
     });
 
@@ -172,9 +173,10 @@ describe('ChatInterface', () => {
 
     test('displays assistant messages with "Tutor" label', async () => {
       const mockHistory = {
-        messages: [
+        data: [
           { role: 'assistant', message: 'Hello! How can I help you?', timestamp_context: '00:00' },
         ],
+        pagination: { limit: 20, offset: 0, total: 1, hasMore: false }
       };
 
       llmService.getChatHistory.mockResolvedValue(mockHistory);
@@ -189,9 +191,10 @@ describe('ChatInterface', () => {
 
     test('does not display "Tutor" label for user messages', async () => {
       const mockHistory = {
-        messages: [
+        data: [
           { role: 'user', message: 'What is this about?', timestamp_context: '00:00' },
         ],
+        pagination: { limit: 20, offset: 0, total: 1, hasMore: false }
       };
 
       llmService.getChatHistory.mockResolvedValue(mockHistory);
@@ -590,9 +593,10 @@ describe('ChatInterface', () => {
   describe('Message Display', () => {
     test('applies correct CSS classes to user messages', async () => {
       const mockHistory = {
-        messages: [
+        data: [
           { role: 'user', message: 'User question', timestamp_context: '00:00' },
         ],
+        pagination: { limit: 20, offset: 0, total: 1, hasMore: false }
       };
 
       llmService.getChatHistory.mockResolvedValue(mockHistory);
@@ -608,9 +612,10 @@ describe('ChatInterface', () => {
 
     test('applies correct CSS classes to assistant messages', async () => {
       const mockHistory = {
-        messages: [
+        data: [
           { role: 'assistant', message: 'AI response', timestamp_context: '00:00' },
         ],
+        pagination: { limit: 20, offset: 0, total: 1, hasMore: false }
       };
 
       llmService.getChatHistory.mockResolvedValue(mockHistory);
@@ -626,9 +631,10 @@ describe('ChatInterface', () => {
 
     test('hides placeholder when messages exist', async () => {
       const mockHistory = {
-        messages: [
+        data: [
           { role: 'user', message: 'Test', timestamp_context: '00:00' },
         ],
+        pagination: { limit: 20, offset: 0, total: 1, hasMore: false }
       };
 
       llmService.getChatHistory.mockResolvedValue(mockHistory);
