@@ -76,6 +76,7 @@ export default function VideoPage() {
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState(null);
   const videoRef = useRef(null);
+  const chatInterfaceRef = useRef(null);
   const lastTriggeredCheckpoint = useRef(null);
   const lastProgressSaveTime = useRef(0);
   const hasResumed = useRef(false);
@@ -280,13 +281,25 @@ export default function VideoPage() {
    * Handle Ask AI Tutor
    *
    * Opens chat interface with checkpoint context.
-   * For now, shows alert - will be connected to chat later.
+   * Sets the checkpoint question in the chat input and focuses it.
    *
    * @param {Object} checkpoint - Checkpoint that needs help
    */
   const handleAskTutor = useCallback((checkpoint) => {
-    // TODO: Integrate with chat interface
-    alert(`Chat feature coming soon! You can ask about: "${checkpoint.question}"`);
+    // Close the checkpoint popup first
+    setCurrentCheckpoint(null);
+    currentCheckpointRef.current = null;
+    
+    // Resume video playback
+    if (videoRef.current?.resume) {
+      videoRef.current.resume();
+    }
+    
+    // Set the question in the chat interface
+    if (chatInterfaceRef.current?.setQuestion) {
+      const question = `I need help with this checkpoint question: "${checkpoint.question}". Can you explain the concept and guide me to the answer?`;
+      chatInterfaceRef.current.setQuestion(question, true);
+    }
   }, []);
 
   /**
@@ -569,7 +582,7 @@ export default function VideoPage() {
 
         {/* Right Column - AI Tutor Chat */}
         <div className="video-sidebar-column">
-          <ChatInterface videoId={videoId} videoTitle={video?.title} />
+          <ChatInterface ref={chatInterfaceRef} videoId={videoId} videoTitle={video?.title} />
         </div>
       </div>
 

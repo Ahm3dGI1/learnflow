@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { llmService, videoService } from '../services';
 import '../pages/Auth.css'; // Import auth styles for glass variables
@@ -13,13 +13,15 @@ import './ChatInterface.css';
  * - Chat history loading from backend
  * - Loading states and error handling
  * - Auto-scrolling to new messages
+ * - Programmatic input setting via ref
  * 
  * @param {Object} props - Component props
  * @param {string} props.videoId - ID of the video being discussed
  * @param {string} props.videoTitle - Title of the video for context
+ * @param {React.Ref} ref - Forwarded ref to expose setQuestion method
  * @returns {React.ReactElement} The chat interface
  */
-export default function ChatInterface({ videoId, videoTitle }) {
+const ChatInterface = forwardRef(({ videoId, videoTitle }, ref) => {
     const { user } = useAuth();
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
@@ -27,8 +29,28 @@ export default function ChatInterface({ videoId, videoTitle }) {
     const [transcriptText, setTranscriptText] = useState(null);
     const [transcriptLanguage, setTranscriptLanguage] = useState('en');
     const messagesEndRef = useRef(null);
+    const inputRef = useRef(null);
 
     const TRANSCRIPT_CHAR_LIMIT = 12000; // Protect request size
+
+    /**
+     * Expose methods to parent components via ref
+     */
+    useImperativeHandle(ref, () => ({
+        /**
+         * Set a question in the input field and optionally focus it
+         * @param {string} question - The question to set
+         * @param {boolean} autoFocus - Whether to focus the input (default: true)
+         */
+        setQuestion: (question, autoFocus = true) => {
+            setInput(question);
+            if (autoFocus && inputRef.current) {
+                inputRef.current.focus();
+                // Scroll input into view
+                inputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    }));
 
     /**
      * Load Chat History Effect
@@ -175,8 +197,16 @@ export default function ChatInterface({ videoId, videoTitle }) {
             console.error('Chat error:', err);
             // Fallback for error handling with helpful message
             let errorMessage = 'Sorry, I encountered an error';
-            if (err && err.message) errorMessage += `: ${err.message}`;
-            errorMessage += '. Please try again later.';
+            
+            // Check if it's an authentication error
+            if (err && err.message && (err.message.includes('Invalid token') || err.message.includes('401'))) {
+                errorMessage = 'Please log in to use the AI Tutor chat feature.';
+            } else if (err && err.message) {
+                errorMessage += `: ${err.message}`;
+                errorMessage += '. Please try again later.';
+            } else {
+                errorMessage += '. Please try again later.';
+            }
 
             setMessages(prev => [...prev, { role: 'assistant', content: errorMessage }]);
         } finally {
@@ -220,6 +250,7 @@ export default function ChatInterface({ videoId, videoTitle }) {
             </div>
             <form onSubmit={handleSubmit} className="chat-form">
                 <input
+                    ref={inputRef}
                     aria-label={user ? 'Type your question to AI Tutor' : 'Please log in to chat'}
                     type="text"
                     value={input}
@@ -238,4 +269,8 @@ export default function ChatInterface({ videoId, videoTitle }) {
             </form>
         </div>
     );
-}
+});
+
+ChatInterface.displayName = 'ChatInterface';
+
+export default ChatInterface;
