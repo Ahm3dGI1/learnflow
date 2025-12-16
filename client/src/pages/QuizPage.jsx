@@ -12,7 +12,7 @@ export default function QuizPage() {
   const { videoId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const toast = useToast();
+  const { error: toastError, warning: toastWarning, info: toastInfo, success: toastSuccess } = useToast();
 
   const [video, setVideo] = useState(null);
   const [quiz, setQuiz] = useState(null);
@@ -34,14 +34,17 @@ export default function QuizPage() {
   useEffect(() => {
     errorService.setToastCallback((message, severity) => {
       if (severity === 'error' || severity === 'critical') {
-        toast.error(message);
+        toastError(message);
       } else if (severity === 'warning') {
-        toast.warning(message);
+        toastWarning(message);
       } else {
-        toast.info(message);
+        toastInfo(message);
       }
     });
-  }, [toast]);
+    return () => {
+      errorService.setToastCallback(null);
+    };
+  }, [toastError, toastWarning, toastInfo]);
 
   /**
    * Fetch Video and Generate Quiz
@@ -91,14 +94,14 @@ export default function QuizPage() {
         }
         
         setError(errorMsg);
-        toast.error(errorMsg);
+        toastError(errorMsg);
       } finally {
         setLoading(false);
       }
     };
 
     fetchQuiz();
-  }, [videoId, toast]);
+  }, [videoId, toastError]);
 
   /**
    * Handle Option Selection
@@ -175,9 +178,9 @@ export default function QuizPage() {
             timeTakenSeconds
           );
           console.log('Quiz submitted to backend:', submittedResult);
-          toast.success('Quiz completed and progress saved!');
+          toastSuccess('Quiz completed and progress saved!');
         } else if (!userId) {
-          toast.info('Quiz completed! Log in to save your progress.', { duration: 5000 });
+          toastInfo('Quiz completed! Log in to save your progress.', { duration: 5000 });
         } else {
           console.warn('Missing quizId, quiz not submitted to backend');
         }
@@ -196,19 +199,19 @@ export default function QuizPage() {
 
         // Provide specific user feedback based on error category
         if (errorInfo.category === 'AUTH') {
-          toast.warning('Session expired. Please log in again to save progress.');
+            toastWarning('Session expired. Please log in again to save progress.');
         } else if (errorInfo.category === 'NETWORK') {
-          toast.warning('Network error. Quiz results shown locally. Check your connection to sync later.');
+            toastWarning('Network error. Quiz results shown locally. Check your connection to sync later.');
         } else if (errorInfo.status >= 500) {
-          toast.error('Server error. Your results are saved locally but may not sync immediately.');
+          toastError('Server error. Your results are saved locally but may not sync immediately.');
         } else {
-          toast.warning(errorInfo.message || 'Quiz completed but failed to save to your profile. Please try again later.');
+          toastWarning(errorInfo.message || 'Quiz completed but failed to save to your profile. Please try again later.');
         }
       }
 
     } catch (err) {
       console.error('Error processing quiz:', err);
-      toast.error('An unexpected error occurred. Please try again.');
+      toastError('An unexpected error occurred. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -234,11 +237,11 @@ export default function QuizPage() {
 
       setQuiz(quizData);
       quizStartTime.current = Date.now();
-      toast.info('New quiz generated');
+      toastInfo('New quiz generated');
     } catch (err) {
       console.error('Error generating new quiz:', err);
       setError('Failed to generate new quiz. Please try again.');
-      toast.error('Failed to regenerate quiz');
+      toastError('Failed to regenerate quiz');
     } finally {
       setLoading(false);
     }

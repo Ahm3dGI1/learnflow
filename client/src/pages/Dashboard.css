@@ -120,6 +120,28 @@
   transform: translateY(0);
 }
 
+.learning-report-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px rgba(102, 126, 234, 0.3);
+}
+
+.learning-report-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.learning-report-button:active {
+  transform: translateY(0);
+}
+
 /* Content Area */
 .dashboard-content {
   padding: 40px;
@@ -364,6 +386,11 @@
   }
 
   .logout-button {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+  }
+
+  .learning-report-button {
     padding: 8px 16px;
     font-size: 0.85rem;
   }

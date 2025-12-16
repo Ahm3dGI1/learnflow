@@ -10,6 +10,7 @@
  * - /login : Login page (public)
  * - /signup : Signup page (public)
  * - /dashboard : Main dashboard (protected, requires authentication)
+ * - /learning-report : Personal learning report (protected, requires authentication)
  * - /video/:videoId : Video player page (protected, requires authentication)
  *
  * @returns {JSX.Element} The application component with routing configured
@@ -23,6 +24,7 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
+import LearningReport from "./pages/LearningReport";
 import VideoPage from "./pages/VideoPage";
 import QuizPage from "./pages/QuizPage";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -48,6 +50,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learning-report"
+            element={
+              <ProtectedRoute>
+                <LearningReport />
               </ProtectedRoute>
             }
           />

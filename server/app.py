@@ -11,7 +11,7 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 import os
 from pathlib import Path
-from routes import llm_bp, video_bp, user_bp, progress_bp
+from routes import llm_bp, video_bp, user_bp, progress_bp, learning_report_bp
 from database import init_db
 from utils.logger import get_logger, log_request
 from utils.exceptions import APIError, get_error_response
@@ -27,7 +27,13 @@ init_db()
 
 # Initialize Flask application
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+
+# Configure CORS for all routes with proper settings
+CORS(app, 
+     origins=["http://localhost:3000", "http://localhost:3001"],
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+     allow_headers=["Content-Type", "Authorization"],
+     supports_credentials=True)
 
 # Get logger
 logger = get_logger(__name__)
@@ -37,6 +43,7 @@ app.register_blueprint(llm_bp)  # LLM routes (checkpoints, quiz, chat)
 app.register_blueprint(video_bp)  # Video routes (CRUD, metadata, transcripts)
 app.register_blueprint(user_bp)  # User routes (create/update, fetch by Firebase UID)
 app.register_blueprint(progress_bp)  # Progress routes (video watch tracking, resume)
+app.register_blueprint(learning_report_bp)  # Learning report routes (user statistics)
 
 
 # ==================== Global Error Handlers ====================

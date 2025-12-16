@@ -187,6 +187,13 @@ export default function Dashboard() {
       <header className="dashboard-header">
         <h1>LearnFlow</h1>
         <div className="user-info">
+          <button 
+            onClick={() => navigate('/learning-report')} 
+            className="learning-report-button"
+            title="View your learning statistics"
+          >
+            📊 Learning Report
+          </button>
           <span className="user-email">{user?.email}</span>
           <button onClick={() => signOut(auth)} className="logout-button">
             Logout

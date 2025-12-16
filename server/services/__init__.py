@@ -25,6 +25,7 @@ from .quiz_service import generate_quiz
 from .summary_service import generate_summary
 from .user_service import get_or_create_user, get_user_by_firebase_uid
 from .progress_service import update_progress, mark_complete, get_user_progress, get_video_progress
+from .learning_report_service import get_learning_report
 from .transcript_service import (
     fetch_transcript,
     extract_video_id,
@@ -80,5 +81,6 @@ __all__ = [
     'update_progress',
     'mark_complete',
     'get_user_progress',
-    'get_video_progress'
+    'get_video_progress',
+    'get_learning_report'
 ]
