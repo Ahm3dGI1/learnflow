@@ -466,13 +466,28 @@ Located in `server/services/transcript_service.py`:
 
 ```
 youtube-transcript-api>=1.2.3
+google-api-python-client>=2.0.0  # For YouTube Data API fallback
 ```
 
-**Why this library?**
+**Primary Method: youtube-transcript-api**
 - No YouTube API key required
 - Supports multiple languages
 - Handles both manual and auto-generated transcripts
 - Actively maintained with regular updates
+
+**Fallback Method: YouTube Data API**
+
+When the primary method fails (e.g., due to rate limiting or regional restrictions), the service automatically falls back to the YouTube Data API:
+
+- Requires `YOUTUBE_API_KEY` environment variable
+- Fetches captions via the official YouTube Data API v3
+- Parses SRT-formatted captions into transcript snippets
+- Provides reliable backup for edge cases
+
+**Environment Variables for Fallback:**
+```bash
+YOUTUBE_API_KEY=your_youtube_data_api_key  # Optional, enables fallback
+```
 
 ---
 
