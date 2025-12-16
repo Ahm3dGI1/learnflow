@@ -326,7 +326,7 @@ def _get_last_activity_date(user_id, db):
     # Check last checkpoint completion
     last_checkpoint = db.query(UserCheckpointCompletion).filter(
         UserCheckpointCompletion.user_id == user_id,
-        UserCheckpointCompletion.is_completed == True
+        UserCheckpointCompletion.is_completed.is_(True)
     ).order_by(UserCheckpointCompletion.completed_at.desc()).first()
     if last_checkpoint and last_checkpoint.completed_at:
         last_dates.append(last_checkpoint.completed_at)
