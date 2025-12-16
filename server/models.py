@@ -24,6 +24,21 @@ Base = declarative_base()
 
 
 class User(Base):
+    """
+    Represents a registered user in the LearnFlow platform.
+
+    Users are authenticated via Firebase and can track video progress,
+    complete checkpoints, take quizzes, and interact with the AI chat.
+
+    Attributes:
+        id: Primary key.
+        firebase_uid: Unique identifier from Firebase Authentication.
+        email: User's email address (unique).
+        display_name: User's display name.
+        created_at: Timestamp when the user was created.
+        updated_at: Timestamp of the last update.
+    """
+
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
@@ -48,6 +63,30 @@ class User(Base):
 
 
 class Video(Base):
+    """
+    Represents a YouTube video in the LearnFlow platform.
+
+    Stores video metadata, cached transcript, and AI-generated content
+    such as checkpoints, quizzes, and summaries.
+
+    Attributes:
+        id: Primary key.
+        youtube_video_id: YouTube video ID (e.g., 'dQw4w9WgXcQ').
+        title: Video title.
+        description: Video description.
+        duration_seconds: Video duration in seconds.
+        language: Primary language code (e.g., 'en').
+        thumbnail_url: URL to the video thumbnail.
+        transcript: Cached transcript text or JSON.
+        transcript_cached_at: When the transcript was cached.
+        checkpoints_data: JSON string of AI-generated checkpoints.
+        quiz_data: JSON string of default quiz data.
+        summary: AI-generated video summary.
+        created_at: Timestamp when the video was added.
+        updated_at: Timestamp of the last update.
+        total_views: Total view count across all users.
+    """
+
     __tablename__ = "videos"
 
     id = Column(Integer, primary_key=True)
@@ -82,6 +121,23 @@ class Video(Base):
 
 
 class UserVideoProgress(Base):
+    """
+    Tracks a user's watching progress for a specific video.
+
+    Records the user's last position, completion status, and watch history
+    to enable resume functionality and progress tracking.
+
+    Attributes:
+        id: Primary key.
+        user_id: Foreign key to the user.
+        video_id: Foreign key to the video.
+        last_position_seconds: Last watched position in seconds.
+        is_completed: Whether the user has completed the video.
+        watch_count: Number of times the user has watched the video.
+        first_watched_at: Timestamp of first watch.
+        last_watched_at: Timestamp of most recent watch.
+    """
+
     __tablename__ = "user_video_progress"
 
     id = Column(Integer, primary_key=True)
@@ -113,6 +169,23 @@ class UserVideoProgress(Base):
         )
 
 class Checkpoint(Base):
+    """
+    Represents an AI-generated learning checkpoint within a video.
+
+    Checkpoints are placed at key moments in the video and include
+    comprehension questions to test the user's understanding.
+
+    Attributes:
+        id: Primary key.
+        video_id: Foreign key to the video.
+        time_seconds: Position in the video (in seconds) where the checkpoint appears.
+        title: Checkpoint title (e.g., 'Introduction to Variables').
+        subtopic: Detailed explanation or context for the checkpoint.
+        order_index: Sequential order of the checkpoint (1, 2, 3, ...).
+        question_data: JSON containing question, options, correctAnswer, and explanation.
+        created_at: Timestamp when the checkpoint was created.
+    """
+
     __tablename__ = "checkpoints"
 
     id = Column(Integer, primary_key=True)
@@ -140,6 +213,21 @@ class Checkpoint(Base):
         )
 
 class UserCheckpointCompletion(Base):
+    """
+    Tracks a user's completion status for a specific checkpoint.
+
+    Records whether the user has correctly answered the checkpoint question
+    and how many attempts were needed.
+
+    Attributes:
+        id: Primary key.
+        user_id: Foreign key to the user.
+        checkpoint_id: Foreign key to the checkpoint.
+        is_completed: Whether the user answered correctly.
+        completed_at: Timestamp when the checkpoint was completed.
+        attempt_count: Number of attempts made.
+    """
+
     __tablename__ = "user_checkpoint_completion"
 
     id = Column(Integer, primary_key=True)
@@ -164,6 +252,22 @@ class UserCheckpointCompletion(Base):
         )
     
 class Quiz(Base):
+    """
+    Represents an AI-generated quiz for a video.
+
+    Quizzes contain multiple-choice questions generated from the video
+    content to assess user comprehension.
+
+    Attributes:
+        id: Primary key.
+        video_id: Foreign key to the video.
+        title: Quiz title (default: 'Test Your Knowledge').
+        num_questions: Number of questions in the quiz.
+        difficulty: Difficulty level ('beginner', 'intermediate', 'advanced').
+        questions_data: JSON blob containing the full quiz questions and answers.
+        created_at: Timestamp when the quiz was created.
+    """
+
     __tablename__ = "quizzes"
 
     id = Column(Integer, primary_key=True)
@@ -187,7 +291,20 @@ class Quiz(Base):
 
 class UserQuizAttempt(Base):
     """
-    A record of a user's attempt at a quiz.
+    Records a user's attempt at completing a quiz.
+
+    Stores the user's answers, score, and timing information for each
+    quiz attempt to track learning progress over time.
+
+    Attributes:
+        id: Primary key.
+        user_id: Foreign key to the user.
+        quiz_id: Foreign key to the quiz.
+        score: Score as a decimal (e.g., 0.8 for 80%).
+        answers: JSON blob of selected answers and correctness.
+        time_taken_seconds: Time spent on the quiz in seconds.
+        started_at: Timestamp when the quiz attempt started.
+        submitted_at: Timestamp when the quiz was submitted.
     """
 
     __tablename__ = "user_quiz_attempts"
@@ -214,6 +331,23 @@ class UserQuizAttempt(Base):
         )
 
 class ChatMessage(Base):
+    """
+    Stores a message in the AI chat conversation for a video.
+
+    Messages can be from the user or the AI assistant, and are grouped
+    by session to maintain conversation context.
+
+    Attributes:
+        id: Primary key.
+        user_id: Foreign key to the user.
+        video_id: Foreign key to the video.
+        role: Message sender ('user' or 'assistant').
+        message: The message content.
+        timestamp_context: Video timestamp context (e.g., '05:30').
+        session_id: Optional conversation session identifier.
+        created_at: Timestamp when the message was created.
+    """
+
     __tablename__ = "chat_messages"
 
     id = Column(Integer, primary_key=True)

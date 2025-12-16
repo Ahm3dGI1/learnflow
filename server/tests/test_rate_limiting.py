@@ -10,7 +10,7 @@ import pytest
 from unittest.mock import patch
 from middleware.rate_limit import RateLimiter, rate_limit, rate_limiter
 from middleware.auth import auth_required
-from flask import Flask, jsonify, g
+from flask import Flask, jsonify
 
 
 # ========== Test Fixtures ==========

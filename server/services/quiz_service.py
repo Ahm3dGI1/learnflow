@@ -118,7 +118,16 @@ def validate_quiz_response(response_data, expected_questions):
 def normalize_quiz_response(response_data):
     """
     Normalize quiz response by fixing common LLM errors.
-    This function transforms the response data after validation.
+
+    Transforms correctAnswer values to integer indices (0-3) by handling
+    various LLM output formats like string digits ("0") or letters ("A").
+
+    Args:
+        response_data (dict): Validated quiz response containing questions.
+            Modified in place.
+
+    Returns:
+        None: Modifies response_data in place.
     """
     for question in response_data['questions']:
         correct_answer = question['correctAnswer']
