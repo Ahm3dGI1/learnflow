@@ -1,17 +1,17 @@
 # LearnFlow
 
-Interactive, AI-assisted learning from YouTube videos. LearnFlow fetches transcripts, generates checkpoints and quizzes with Gemini, and tracks learner progress with Firebase-authenticated users.
+Interactive, AI-assisted learning from YouTube videos. LearnFlow fetches transcripts, generates checkpoints and quizzes with GPT, and tracks learner progress with Firebase-authenticated users.
 
 ## Features
 - Checkpoints on the video timeline with completion tracking
-- Auto-generated quizzes and summaries powered by Google Gemini
+- Auto-generated quizzes and summaries powered by OpenAI GPT
 - AI tutor chat for follow-up questions
 - Progress persistence per authenticated user (Firebase UID)
 - Accessible UI with keyboard support for checkpoints and quizzes
 
 ## Stack
 - Frontend: React (CRA), React Router, Firebase Auth
-- Backend: Flask, SQLAlchemy (SQLite default), google-genai (Gemini)
+- Backend: Flask, SQLAlchemy (SQLite default), openai (GPT)
 - Auth: Firebase ID tokens; server resolves user from token (no client-side userId)
 - CI: GitHub Actions matrices for backend (Python 3.10–3.12) and frontend (Node 20.x, 22.x)
 
@@ -22,7 +22,7 @@ Interactive, AI-assisted learning from YouTube videos. LearnFlow fetches transcr
 
 ## Prerequisites
 - Python 3.10+ and Node 20+ (matching CI)
-- Google Gemini API key (`GEMINI_API_KEY`)
+- OpenAI API key (`OPENAI_API_KEY`)
 - Firebase project for Auth (REACT_APP_* vars)
 
 ## Setup
@@ -57,8 +57,8 @@ npm install
 
 ### Backend (server/.env)
 - `PORT` – Server port (default: 8080 for Cloud Run, 5000 for local)
-- `GEMINI_API_KEY` – Google Gemini API key
-- `GEMINI_MODEL_NAME` – Model name (default: gemini-2.5-flash)
+- `OPENAI_API_KEY` – OpenAI API key
+- `OPENAI_MODEL_NAME` – Model name (default: gpt-4)
 - `DATABASE_URL` – Database connection (default: sqlite:///./learnflow.db)
 - `FIREBASE_SERVICE_ACCOUNT_FILE` – Path to Firebase admin credentials JSON (for local)
 - `FIREBASE_SERVICE_ACCOUNT_JSON` – Firebase credentials as JSON string (for production)
@@ -74,5 +74,5 @@ npm install
 - `REACT_APP_FIREBASE_APP_ID` – Firebase app ID
 
 ## Testing
-- Backend unit tests: from [server](server) run `pytest` (Firebase verification is mocked; Gemini not required)
+- Backend unit tests: from [server](server) run `pytest` (Firebase verification is mocked; OpenAI not required)
 - Frontend tests: from [client](client) run `npm test`

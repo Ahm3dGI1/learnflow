@@ -19,8 +19,8 @@ cp ../.env_template ../.env
 
 Required environment variables:
 - `PORT` - Server port (default: 5000)
-- `GEMINI_API_KEY` - Google AI API key for LearnLM integration ([Get your API key](https://aistudio.google.com/apikey))
-- `GEMINI_MODEL_NAME` - LearnLM model name (default: `learnlm-2.0-flash-experimental`)
+- `OPENAI_API_KEY` - OpenAI API key for GPT integration ([Get your API key](https://platform.openai.com/api-keys))
+- `OPENAI_MODEL_NAME` - GPT model name (default: `gpt-4o-mini`)
 
 Additional optional environment variables for Firebase Admin (verification):
 - `FIREBASE_SERVICE_ACCOUNT_FILE` - Path to your Firebase service account JSON credentials.
@@ -41,7 +41,7 @@ Server runs on `http://localhost:5000` (configurable via .env file)
 ## Endpoints
 
 ### LLM Endpoints (`/api/llm/*`)
-AI-powered learning features using Google's LearnLM model.
+AI-powered learning features using OpenAI's GPT model.
 
 - `POST /api/llm/checkpoints/generate` - Generate learning checkpoints
 - `POST /api/llm/quiz/generate` - Generate quiz questions
@@ -70,5 +70,3 @@ Track user learning progress.
 - `POST /api/progress/users/{firebase_uid}/videos/{video_id}` - Update progress for a specific video
 - `PUT /api/progress/users/{firebase_uid}/videos/{video_id}/complete` - Mark video as complete
 - `GET /api/progress/users/{firebase_uid}` - Get all progress for user
-
-**Full API Documentation:** [docs/api/README.md](docs/api/README.md)
