@@ -172,7 +172,7 @@
 .checkpoint-option.selected {
   border-color: #0284c7;
   background-color: #e0f2fe;
-  box-shadow: 0 0 0 3px rgba(56, 178, 172, 0.1);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
 }
 
 .option-letter {
@@ -302,7 +302,7 @@
 .checkpoint-button-primary:hover:not(:disabled) {
   background-color: #0369a1;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(56, 178, 172, 0.4);
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
 }
 
 .checkpoint-button-secondary {
