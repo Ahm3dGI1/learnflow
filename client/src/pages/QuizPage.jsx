@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
@@ -29,7 +29,8 @@ export default function QuizPage() {
   const quizStartTime = useRef(null);
 
   /**
-   * Set up error service toast callback (once on mount)
+   * Set up error service toast callback
+   * The toast object is now memoized in useToast, so it's safe to include in dependencies
    */
   useEffect(() => {
     errorService.setToastCallback((message, severity) => {
@@ -41,66 +42,68 @@ export default function QuizPage() {
         toast.info(message);
       }
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount; toast is stable but excluded from deps
+  }, [toast]);
 
   /**
    * Fetch Video and Generate Quiz
+   * Memoized with useCallback to prevent unnecessary re-fetches
    */
-  useEffect(() => {
-    const fetchQuiz = async () => {
-      if (!videoId) {
-        setError('No video ID provided');
+  const fetchQuiz = useCallback(async () => {
+    if (!videoId) {
+      setError('No video ID provided');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch video data
+      const videoData = await videoService.getVideo(videoId);
+      setVideo(videoData);
+
+      // Check if transcript exists
+      if (!videoData.transcript) {
+        setError('No transcript available for this video. Cannot generate quiz.');
         setLoading(false);
         return;
       }
 
-      try {
-        setLoading(true);
-        setError(null);
+      // Generate quiz
+      const quizData = await llmService.generateQuiz(
+        videoData.transcript,
+        { numQuestions: 5 }
+      );
 
-        // Fetch video data
-        const videoData = await videoService.getVideo(videoId);
-        setVideo(videoData);
-
-        // Check if transcript exists
-        if (!videoData.transcript) {
-          setError('No transcript available for this video. Cannot generate quiz.');
-          setLoading(false);
-          return;
+      setQuiz(quizData);
+      // Start tracking time when quiz loads
+      quizStartTime.current = Date.now();
+    } catch (err) {
+      console.error('Error fetching quiz:', err);
+      let errorMsg = err.message || 'Failed to generate quiz. Please try again.';
+      
+      // Handle quota exhaustion with user-friendly message
+      if (err.status === 429 || err.message?.includes('quota')) {
+        errorMsg = 'Quiz generation quota exceeded. Please try again later.';
+        if (err.retryAfterSeconds) {
+          errorMsg += ` Retry in ${err.retryAfterSeconds} seconds.`;
         }
-
-        // Generate quiz
-        const quizData = await llmService.generateQuiz(
-          videoData.transcript,
-          { numQuestions: 5 }
-        );
-
-        setQuiz(quizData);
-        // Start tracking time when quiz loads
-        quizStartTime.current = Date.now();
-      } catch (err) {
-        console.error('Error fetching quiz:', err);
-        let errorMsg = err.message || 'Failed to generate quiz. Please try again.';
-        
-        // Handle quota exhaustion with user-friendly message
-        if (err.status === 429 || err.message?.includes('quota')) {
-          errorMsg = 'Quiz generation quota exceeded. Please try again later.';
-          if (err.retryAfterSeconds) {
-            errorMsg += ` Retry in ${err.retryAfterSeconds} seconds.`;
-          }
-        }
-        
-        setError(errorMsg);
-        toast.error(errorMsg);
-      } finally {
-        setLoading(false);
       }
-    };
+      
+      setError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  }, [videoId, toast]);
 
+  /**
+   * Trigger quiz fetch when videoId changes
+   */
+  useEffect(() => {
     fetchQuiz();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoId]); // Removed toast from dependencies to prevent infinite loop
+  }, [fetchQuiz]);
 
   /**
    * Handle Option Selection

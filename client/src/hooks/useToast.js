@@ -12,7 +12,7 @@
  *   toast.info("FYI: This is informational");
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import errorService from '../services/errorService';
 
 // Toast auto-dismiss duration (milliseconds)
@@ -107,7 +107,9 @@ export const useToast = () => {
     return show(message, 'success', duration);
   }, [show]);
 
-  return {
+  // Memoize the return object to prevent unnecessary re-renders
+  // This ensures the toast object reference stays stable across renders
+  return useMemo(() => ({
     toasts,
     show,
     dismiss,
@@ -116,7 +118,7 @@ export const useToast = () => {
     warning,
     info,
     success
-  };
+  }), [toasts, show, dismiss, clearAll, error, warning, info, success]);
 };
 
 export default useToast;
