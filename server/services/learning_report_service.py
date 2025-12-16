@@ -4,7 +4,7 @@ Handles business logic for aggregating user learning statistics and progress.
 Generates comprehensive learning reports showing user achievements and progress.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from sqlalchemy import func
 from models import (
     User, UserVideoProgress, UserQuizAttempt, UserCheckpointCompletion,
@@ -150,33 +150,45 @@ def _calculate_learning_streak(user_id, db):
     Returns:
         int: Number of consecutive days with learning activity
     """
-    # Get all unique dates with activity
+    # Get all unique dates with activity using database-level queries
     activity_dates = set()
-    
-    # Get dates from video progress updates
-    video_progress = db.query(UserVideoProgress).filter(
-        UserVideoProgress.user_id == user_id
-    ).all()
-    for vp in video_progress:
-        activity_dates.add(vp.last_watched_at.date() if vp.last_watched_at else None)
-    
-    # Get dates from quiz attempts
-    quiz_attempts = db.query(UserQuizAttempt).filter(
-        UserQuizAttempt.user_id == user_id
-    ).all()
-    for qa in quiz_attempts:
-        activity_dates.add(qa.submitted_at.date() if qa.submitted_at else None)
-    
-    # Get dates from checkpoint completions
-    checkpoint_completions = db.query(UserCheckpointCompletion).filter(
+
+    # Helper to coerce various DB return types to a date object
+    def _to_date_val(val):
+        if val is None:
+            return None
+        if isinstance(val, datetime):
+            return val.date()
+        if isinstance(val, date):
+            return val
+        if isinstance(val, str):
+            try:
+                return datetime.fromisoformat(val).date()
+            except Exception:
+                return None
+        return None
+
+    # Get unique dates from video progress updates
+    video_dates = db.query(func.date(UserVideoProgress.last_watched_at)).filter(
+        UserVideoProgress.user_id == user_id,
+        UserVideoProgress.last_watched_at != None
+    ).distinct().all()
+    activity_dates.update(_to_date_val(d[0]) for d in video_dates if _to_date_val(d[0]) is not None)
+
+    # Get unique dates from quiz attempts
+    quiz_dates = db.query(func.date(UserQuizAttempt.submitted_at)).filter(
+        UserQuizAttempt.user_id == user_id,
+        UserQuizAttempt.submitted_at != None
+    ).distinct().all()
+    activity_dates.update(_to_date_val(d[0]) for d in quiz_dates if _to_date_val(d[0]) is not None)
+
+    # Get unique dates from checkpoint completions
+    checkpoint_dates = db.query(func.date(UserCheckpointCompletion.completed_at)).filter(
         UserCheckpointCompletion.user_id == user_id,
-        UserCheckpointCompletion.is_completed == True
-    ).all()
-    for cc in checkpoint_completions:
-        activity_dates.add(cc.completed_at.date() if cc.completed_at else None)
-    
-    # Remove None values
-    activity_dates = {d for d in activity_dates if d is not None}
+        UserCheckpointCompletion.is_completed == True,
+        UserCheckpointCompletion.completed_at != None
+    ).distinct().all()
+    activity_dates.update(_to_date_val(d[0]) for d in checkpoint_dates if _to_date_val(d[0]) is not None)
     
     if not activity_dates:
         return 0
