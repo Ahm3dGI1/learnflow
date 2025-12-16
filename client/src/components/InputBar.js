@@ -39,12 +39,13 @@ export default function InputBar({ videoUrl, setVideoUrl, onSend, isLoading = fa
      * 
      * Triggers the onSend callback when user presses Enter key,
      * providing keyboard-based submission as an alternative to
-     * clicking the button.
+     * clicking the button. Respects isLoading state to prevent
+     * duplicate submissions.
      * 
      * @param {KeyboardEvent} e - Keyboard event object
      */
     const handleKeyPress = (e) => {
-        if (e.key === 'Enter') {
+        if (e.key === 'Enter' && !isLoading) {
             onSend();
         }
     };

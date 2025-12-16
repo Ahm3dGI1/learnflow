@@ -225,8 +225,7 @@ export default function VideoPage() {
     };
 
     fetchVideo();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoId, user?.uid]);
+  }, [videoId, user?.uid]); // Use user?.uid to prevent infinite loop when user object reference changes
   // Whenever React updates the real state, keep a silent mirror for the video player logic
   useEffect(() => { videoDataRef.current = video; }, [video]);
   useEffect(() => { checkpointsRef.current = checkpoints; }, [checkpoints]);
