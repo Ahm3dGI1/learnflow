@@ -84,8 +84,8 @@ Authorization: Bearer <firebase-id-token>
 Rate limiting is implemented for LLM endpoints to prevent abuse.
 
 **Current Limits:**
-- **User-scoped endpoints**: 30 requests per minute per user
-- **Video-scoped endpoints**: 10 requests per minute per video
+- **User-scoped endpoints**: 10 requests per 60 seconds per user
+- **Video-scoped endpoints**: 5 requests per hour per video
 - Cached responses don't count toward limits
 
 **Rate Limit Response (429):**
