@@ -41,7 +41,8 @@ export default function QuizPage() {
         toast.info(message);
       }
     });
-  }, [toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount; toast is stable but excluded from deps
 
   /**
    * Fetch Video and Generate Quiz
@@ -98,7 +99,8 @@ export default function QuizPage() {
     };
 
     fetchQuiz();
-  }, [videoId, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoId]); // Removed toast from dependencies to prevent infinite loop
 
   /**
    * Handle Option Selection
