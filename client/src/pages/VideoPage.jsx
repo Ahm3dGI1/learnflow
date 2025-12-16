@@ -288,7 +288,6 @@ export default function VideoPage() {
   const handleAskTutor = useCallback((checkpoint) => {
     // Close the checkpoint popup first
     setCurrentCheckpoint(null);
-    currentCheckpointRef.current = null;
     
     // Resume video playback
     if (videoRef.current && videoRef.current.playVideo) {

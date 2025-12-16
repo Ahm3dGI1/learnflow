@@ -198,8 +198,8 @@ const ChatInterface = forwardRef(({ videoId, videoTitle }, ref) => {
             // Fallback for error handling with helpful message
             let errorMessage = 'Sorry, I encountered an error';
             
-            // Check if it's an authentication error
-            if (err && err.message && (err.message.includes('Invalid token') || err.message.includes('401'))) {
+            // Check if it's an authentication error using status property
+            if (err && err.status === 401) {
                 errorMessage = 'Please log in to use the AI Tutor chat feature.';
             } else if (err && err.message) {
                 errorMessage += `: ${err.message}`;
