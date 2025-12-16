@@ -449,34 +449,48 @@ def fetch_youtube_metadata(youtube_video_id):
     raise Exception(f"Failed to fetch YouTube metadata for {youtube_video_id} using all available methods")
 
 
-def get_user_video_history(user_id, db, limit=50):
+def get_user_video_history(user_id, db, limit=20, offset=0):
     """
-    Get video watch history for a user.
+    Get video watch history for a user with pagination.
 
     Args:
         user_id: Database user ID (integer)
         db: Database session
-        limit: Maximum number of videos to return (default: 50)
+        limit: Maximum number of videos to return (default: 20, max: 1000)
+        offset: Number of videos to skip (default: 0)
 
     Returns:
-        List of dictionaries with video history data:
-        [
-            {
-                "videoId": "abc123",
-                "title": "Video Title",
-                "thumbnailUrl": "https://...",
-                "lastPositionSeconds": 120,
-                "lastWatchedAt": "2025-01-20T10:30:00Z",
-                "isCompleted": false,
-                "watchCount": 3
-            },
-            ...
-        ]
+        Dictionary with paginated video history data:
+        {
+            "data": [
+                {
+                    "videoId": "abc123",
+                    "title": "Video Title",
+                    "thumbnailUrl": "https://...",
+                    "lastPositionSeconds": 120,
+                    "lastWatchedAt": "2025-01-20T10:30:00Z",
+                    "isCompleted": false,
+                    "watchCount": 3
+                },
+                ...
+            ],
+            "pagination": {
+                "limit": 20,
+                "offset": 0,
+                "total": 150,
+                "hasMore": true
+            }
+        }
     """
+    # Get total count
+    total_count = db.query(UserVideoProgress).filter(
+        UserVideoProgress.user_id == user_id
+    ).count()
+    
     # Query UserVideoProgress records ordered by last_watched_at (most recent first)
     progress_records = db.query(UserVideoProgress).filter(
         UserVideoProgress.user_id == user_id
-    ).order_by(UserVideoProgress.last_watched_at.desc()).limit(limit).all()
+    ).order_by(UserVideoProgress.last_watched_at.desc()).offset(offset).limit(limit).all()
 
     history = []
     for record in progress_records:
@@ -492,7 +506,15 @@ def get_user_video_history(user_id, db, limit=50):
             'watchCount': record.watch_count
         })
 
-    return history
+    return {
+        'data': history,
+        'pagination': {
+            'limit': limit,
+            'offset': offset,
+            'total': total_count,
+            'hasMore': (offset + limit) < total_count
+        }
+    }
 
 
 def save_video_to_history(user_id, youtube_video_id, last_position_seconds, is_completed, db):

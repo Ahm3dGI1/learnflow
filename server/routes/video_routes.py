@@ -559,13 +559,14 @@ def get_video_metadata(youtube_video_id):
 @auth_required
 def get_video_history(firebase_uid):
     """
-    Get video watch history for a user.
+    Get video watch history for a user with pagination.
 
     Path Parameters:
         firebase_uid: User's Firebase UID
 
     Query Parameters:
-        limit: Maximum number of videos to return (default: 50, max: 100)
+        limit: Maximum number of videos to return (default: 20, max: 1000)
+        offset: Number of videos to skip (default: 0)
 
     Returns:
         {
@@ -581,11 +582,17 @@ def get_video_history(firebase_uid):
                 },
                 ...
             ],
-            "total": 10
+            "pagination": {
+                "limit": 20,
+                "offset": 0,
+                "total": 150,
+                "hasMore": true
+            }
         }
 
     Status Codes:
         200: Success
+        400: Invalid parameters
         401: Unauthorized (invalid or missing token)
         403: Forbidden (accessing another user's history)
         404: User not found
@@ -597,25 +604,27 @@ def get_video_history(firebase_uid):
         if g.firebase_user['uid'] != firebase_uid:
             return jsonify({'error': 'Forbidden: Cannot access another user\'s history'}), 403
 
-        # Get limit parameter
+        # Get pagination parameters
         try:
-            limit = int(request.args.get('limit', 50))
-            limit = min(max(1, limit), 100)  # Clamp between 1 and 100
+            limit = int(request.args.get('limit', 20))
+            if limit <= 0 or limit > 1000:
+                return jsonify({'error': 'Invalid limit parameter. Must be between 1 and 1000.'}), 400
+            
+            offset = int(request.args.get('offset', 0))
+            if offset < 0:
+                return jsonify({'error': 'Invalid offset parameter. Must be >= 0.'}), 400
         except ValueError:
-            return jsonify({'error': 'Invalid limit parameter'}), 400
+            return jsonify({'error': 'Invalid limit or offset parameter'}), 400
 
         # Get user from database
         user = db.query(User).filter(User.firebase_uid == firebase_uid).first()
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
-        # Get video history
-        history_data = get_user_video_history(user.id, db, limit=limit)
+        # Get paginated video history
+        paginated_result = get_user_video_history(user.id, db, limit=limit, offset=offset)
 
-        return jsonify({
-            'data': history_data,
-            'total': len(history_data)
-        }), 200
+        return jsonify(paginated_result), 200
 
     except Exception as e:
         return jsonify({

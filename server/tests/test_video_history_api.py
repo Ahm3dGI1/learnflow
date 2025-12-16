@@ -129,7 +129,8 @@ def test_get_video_history_empty(client, db):
         data = resp.get_json()
         assert "data" in data
         assert data["data"] == []
-        assert data["total"] == 0
+        assert "pagination" in data
+        assert data["pagination"]["total"] == 0
     
     finally:
         cleanup_test_data(db, firebase_uid)
@@ -179,7 +180,8 @@ def test_get_video_history_with_videos(client, db):
         assert resp.status_code == 200
         data = resp.get_json()
         assert "data" in data
-        assert data["total"] == 2
+        assert "pagination" in data
+        assert data["pagination"]["total"] == 2
         
         # Verify video data structure
         history = data["data"]
@@ -255,7 +257,9 @@ def test_get_video_history_with_limit(client, db):
         
         assert resp.status_code == 200
         data = resp.get_json()
-        assert data["total"] == 5
+        assert "pagination" in data
+        assert data["pagination"]["total"] == 10
+        assert data["pagination"]["limit"] == 5
         assert len(data["data"]) == 5
     
     finally:
@@ -623,3 +627,293 @@ def test_clear_all_history_forbidden(client, db):
     
     finally:
         cleanup_test_data(db, firebase_uid)
+
+
+# ========== PAGINATION TESTS ==========
+
+def test_pagination_with_offset(client, db):
+    """Test pagination with offset parameter to fetch different pages."""
+    firebase_uid = "test-pagination-offset"
+    claims = {"uid": firebase_uid, "email": "pagination@example.com"}
+    
+    cleanup_test_data(db, firebase_uid, [f"page_vid_{i}" for i in range(25)])
+    user = create_test_user(db, firebase_uid, "pagination@example.com")
+    
+    # Create 25 videos with progress
+    for i in range(25):
+        video = create_test_video(db, f"page_vid_{i}", f"Video {i}")
+        progress = UserVideoProgress(
+            user_id=user.id,
+            video_id=video.id,
+            last_position_seconds=i * 10,
+            is_completed=False,
+            watch_count=1,
+            first_watched_at=datetime.utcnow(),
+            last_watched_at=datetime.utcnow()
+        )
+        db.add(progress)
+    db.commit()
+    
+    try:
+        # Fetch page 1 (first 10)
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            resp = client.get(
+                f"/api/videos/history/{firebase_uid}?limit=10&offset=0",
+                headers={"Authorization": "Bearer faketoken"}
+            )
+        
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert "pagination" in data
+        assert data["pagination"]["total"] == 25
+        assert data["pagination"]["limit"] == 10
+        assert data["pagination"]["offset"] == 0
+        assert data["pagination"]["hasMore"] is True
+        assert len(data["data"]) == 10
+        
+        # Fetch page 2 (next 10)
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            resp = client.get(
+                f"/api/videos/history/{firebase_uid}?limit=10&offset=10",
+                headers={"Authorization": "Bearer faketoken"}
+            )
+        
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["pagination"]["total"] == 25
+        assert data["pagination"]["limit"] == 10
+        assert data["pagination"]["offset"] == 10
+        assert data["pagination"]["hasMore"] is True
+        assert len(data["data"]) == 10
+        
+        # Fetch page 3 (last 5)
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            resp = client.get(
+                f"/api/videos/history/{firebase_uid}?limit=10&offset=20",
+                headers={"Authorization": "Bearer faketoken"}
+            )
+        
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["pagination"]["total"] == 25
+        assert data["pagination"]["limit"] == 10
+        assert data["pagination"]["offset"] == 20
+        assert data["pagination"]["hasMore"] is False
+        assert len(data["data"]) == 5
+    
+    finally:
+        cleanup_test_data(db, firebase_uid, [f"page_vid_{i}" for i in range(25)])
+
+
+def test_pagination_hasMore_flag(client, db):
+    """Test that hasMore flag is correctly set."""
+    firebase_uid = "test-hasmore"
+    claims = {"uid": firebase_uid, "email": "hasmore@example.com"}
+    
+    cleanup_test_data(db, firebase_uid, [f"has_vid_{i}" for i in range(15)])
+    user = create_test_user(db, firebase_uid, "hasmore@example.com")
+    
+    # Create exactly 15 videos
+    for i in range(15):
+        video = create_test_video(db, f"has_vid_{i}", f"Video {i}")
+        progress = UserVideoProgress(
+            user_id=user.id,
+            video_id=video.id,
+            last_position_seconds=i * 10,
+            is_completed=False,
+            watch_count=1,
+            first_watched_at=datetime.utcnow(),
+            last_watched_at=datetime.utcnow()
+        )
+        db.add(progress)
+    db.commit()
+    
+    try:
+        # Test hasMore=True when there's more data
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            resp = client.get(
+                f"/api/videos/history/{firebase_uid}?limit=10&offset=0",
+                headers={"Authorization": "Bearer faketoken"}
+            )
+        
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["pagination"]["hasMore"] is True
+        
+        # Test hasMore=False when we're at the end
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            resp = client.get(
+                f"/api/videos/history/{firebase_uid}?limit=10&offset=10",
+                headers={"Authorization": "Bearer faketoken"}
+            )
+        
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["pagination"]["hasMore"] is False
+        assert len(data["data"]) == 5
+        
+        # Test hasMore=False when fetching all at once
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            resp = client.get(
+                f"/api/videos/history/{firebase_uid}?limit=20&offset=0",
+                headers={"Authorization": "Bearer faketoken"}
+            )
+        
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["pagination"]["hasMore"] is False
+        assert len(data["data"]) == 15
+    
+    finally:
+        cleanup_test_data(db, firebase_uid, [f"has_vid_{i}" for i in range(15)])
+
+
+def test_pagination_offset_beyond_total(client, db):
+    """Test pagination when offset is beyond total count."""
+    firebase_uid = "test-offset-beyond"
+    claims = {"uid": firebase_uid, "email": "beyond@example.com"}
+    
+    cleanup_test_data(db, firebase_uid, [f"beyond_vid_{i}" for i in range(5)])
+    user = create_test_user(db, firebase_uid, "beyond@example.com")
+    
+    # Create only 5 videos
+    for i in range(5):
+        video = create_test_video(db, f"beyond_vid_{i}", f"Video {i}")
+        progress = UserVideoProgress(
+            user_id=user.id,
+            video_id=video.id,
+            last_position_seconds=i * 10,
+            is_completed=False,
+            watch_count=1,
+            first_watched_at=datetime.utcnow(),
+            last_watched_at=datetime.utcnow()
+        )
+        db.add(progress)
+    db.commit()
+    
+    try:
+        # Request offset beyond total
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            resp = client.get(
+                f"/api/videos/history/{firebase_uid}?limit=10&offset=100",
+                headers={"Authorization": "Bearer faketoken"}
+            )
+        
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["pagination"]["total"] == 5
+        assert data["pagination"]["offset"] == 100
+        assert data["pagination"]["hasMore"] is False
+        assert len(data["data"]) == 0
+    
+    finally:
+        cleanup_test_data(db, firebase_uid, [f"beyond_vid_{i}" for i in range(5)])
+
+
+def test_pagination_invalid_limit(client, db):
+    """Test validation of limit parameter."""
+    firebase_uid = "test-invalid-limit"
+    claims = {"uid": firebase_uid, "email": "invalid@example.com"}
+    
+    cleanup_test_data(db, firebase_uid)
+    create_test_user(db, firebase_uid, "invalid@example.com")
+    
+    try:
+        # Test limit = 0
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            resp = client.get(
+                f"/api/videos/history/{firebase_uid}?limit=0",
+                headers={"Authorization": "Bearer faketoken"}
+            )
+        
+        assert resp.status_code == 400
+        assert "Invalid limit parameter" in resp.get_json()["error"]
+        
+        # Test limit > 1000
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            resp = client.get(
+                f"/api/videos/history/{firebase_uid}?limit=1001",
+                headers={"Authorization": "Bearer faketoken"}
+            )
+        
+        assert resp.status_code == 400
+        assert "Invalid limit parameter" in resp.get_json()["error"]
+        
+        # Test negative limit
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            resp = client.get(
+                f"/api/videos/history/{firebase_uid}?limit=-5",
+                headers={"Authorization": "Bearer faketoken"}
+            )
+        
+        assert resp.status_code == 400
+        assert "Invalid limit parameter" in resp.get_json()["error"]
+    
+    finally:
+        cleanup_test_data(db, firebase_uid)
+
+
+def test_pagination_invalid_offset(client, db):
+    """Test validation of offset parameter."""
+    firebase_uid = "test-invalid-offset"
+    claims = {"uid": firebase_uid, "email": "offset@example.com"}
+    
+    cleanup_test_data(db, firebase_uid)
+    create_test_user(db, firebase_uid, "offset@example.com")
+    
+    try:
+        # Test negative offset
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            resp = client.get(
+                f"/api/videos/history/{firebase_uid}?offset=-10",
+                headers={"Authorization": "Bearer faketoken"}
+            )
+        
+        assert resp.status_code == 400
+        assert "Invalid offset parameter" in resp.get_json()["error"]
+    
+    finally:
+        cleanup_test_data(db, firebase_uid)
+
+
+def test_pagination_default_values(client, db):
+    """Test that default pagination values are applied correctly."""
+    firebase_uid = "test-defaults"
+    claims = {"uid": firebase_uid, "email": "defaults@example.com"}
+    
+    cleanup_test_data(db, firebase_uid, [f"default_vid_{i}" for i in range(30)])
+    user = create_test_user(db, firebase_uid, "defaults@example.com")
+    
+    # Create 30 videos
+    for i in range(30):
+        video = create_test_video(db, f"default_vid_{i}", f"Video {i}")
+        progress = UserVideoProgress(
+            user_id=user.id,
+            video_id=video.id,
+            last_position_seconds=i * 10,
+            is_completed=False,
+            watch_count=1,
+            first_watched_at=datetime.utcnow(),
+            last_watched_at=datetime.utcnow()
+        )
+        db.add(progress)
+    db.commit()
+    
+    try:
+        # Request without limit/offset params
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            resp = client.get(
+                f"/api/videos/history/{firebase_uid}",
+                headers={"Authorization": "Bearer faketoken"}
+            )
+        
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["pagination"]["limit"] == 20  # Default limit
+        assert data["pagination"]["offset"] == 0  # Default offset
+        assert data["pagination"]["total"] == 30
+        assert data["pagination"]["hasMore"] is True
+        assert len(data["data"]) == 20
+    
+    finally:
+        cleanup_test_data(db, firebase_uid, [f"default_vid_{i}" for i in range(30)])
