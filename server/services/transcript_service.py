@@ -13,6 +13,7 @@ videos, API failures).
 """
 
 import re
+import os
 from datetime import datetime
 
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -22,6 +23,114 @@ from youtube_transcript_api._errors import (
     VideoUnavailable,
     YouTubeRequestFailed
 )
+
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
+
+
+def _fetch_transcript_youtube_api(video_id, language_codes=None):
+    """
+    Fallback method to fetch transcripts using YouTube Data API v3.
+    
+    Args:
+        video_id: YouTube video ID
+        language_codes: Optional list of preferred language codes
+        
+    Returns:
+        Transcript data in standard format, or None if not available
+    """
+    try:
+        from googleapiclient.discovery import build
+        
+        api_key = os.getenv('YOUTUBE_API_KEY')
+        if not api_key:
+            return None
+            
+        youtube = build('youtube', 'v3', developerKey=api_key)
+        
+        # List available captions
+        captions_response = youtube.captions().list(
+            part='snippet',
+            videoId=video_id
+        ).execute()
+        
+        if not captions_response.get('items'):
+            return None
+        
+        # Find preferred language or default to first available
+        caption_track = None
+        target_langs = language_codes or ['en']
+        
+        for lang in target_langs:
+            for item in captions_response['items']:
+                if item['snippet']['language'] == lang:
+                    caption_track = item
+                    break
+            if caption_track:
+                break
+        
+        if not caption_track:
+            caption_track = captions_response['items'][0]
+        
+        # Download caption track
+        caption_id = caption_track['id']
+        caption_download = youtube.captions().download(
+            id=caption_id,
+            tfmt='srt'  # SubRip format
+        ).execute()
+        
+        # Parse SRT format to snippets
+        snippets = _parse_srt_to_snippets(caption_download)
+        
+        return _format_transcript_response(
+            video_id=video_id,
+            snippets=snippets,
+            language=caption_track['snippet']['language'],
+            language_code=caption_track['snippet']['language'],
+            is_generated=caption_track['snippet']['trackKind'] == 'asr'
+        )
+        
+    except ImportError:
+        return None
+    except Exception:
+        return None
+
+
+def _parse_srt_to_snippets(srt_content):
+    """
+    Parse SRT subtitle format to transcript snippets.
+    
+    Args:
+        srt_content: SRT formatted string
+        
+    Returns:
+        List of snippet dictionaries
+    """
+    snippets = []
+    # Basic SRT parsing (simplified)
+    # Format: index, timestamp, text, blank line
+    blocks = srt_content.strip().split('\n\n')
+    
+    for block in blocks:
+        lines = block.split('\n')
+        if len(lines) < 3:
+            continue
+            
+        # Parse timestamp line (format: 00:00:00,000 --> 00:00:02,000)
+        timestamp_match = re.search(r'(\d{2}):(\d{2}):(\d{2}),(\d{3})', lines[1])
+        if timestamp_match:
+            h, m, s, ms = map(int, timestamp_match.groups())
+            start_seconds = h * 3600 + m * 60 + s + ms / 1000
+            text = ' '.join(lines[2:])
+            
+            snippets.append({
+                'text': text,
+                'start': start_seconds,
+                'duration': 2.0  # Default duration
+            })
+    
+    return snippets
 
 
 def extract_video_id(url_or_id):
@@ -148,15 +257,35 @@ def fetch_transcript(video_id, language_codes=None):
                 is_generated=False  # Unknown, assume manual
             )
 
-    except TranscriptsDisabled:
+    except TranscriptsDisabled as e:
+        logger.warning(f"Transcripts disabled for {video_id}, attempting YouTube API fallback")
+        fallback_result = _fetch_transcript_youtube_api(video_id, language_codes)
+        if fallback_result:
+            logger.info(f"YouTube API fallback successful for {video_id}")
+            return fallback_result
         raise TranscriptsDisabled(video_id)
     except NoTranscriptFound as e:
+        logger.warning(f"No transcript found for {video_id}, attempting YouTube API fallback")
+        fallback_result = _fetch_transcript_youtube_api(video_id, language_codes)
+        if fallback_result:
+            logger.info(f"YouTube API fallback successful for {video_id}")
+            return fallback_result
         raise NoTranscriptFound(video_id, str(e))
     except VideoUnavailable:
         raise VideoUnavailable(video_id)
     except YouTubeRequestFailed as e:
+        logger.warning(f"YouTube request failed for {video_id}, attempting YouTube API fallback")
+        fallback_result = _fetch_transcript_youtube_api(video_id, language_codes)
+        if fallback_result:
+            logger.info(f"YouTube API fallback successful for {video_id}")
+            return fallback_result
         raise YouTubeRequestFailed(video_id, str(e))
     except Exception as e:
+        logger.warning(f"Unexpected error fetching transcript for {video_id}: {e}, attempting YouTube API fallback")
+        fallback_result = _fetch_transcript_youtube_api(video_id, language_codes)
+        if fallback_result:
+            logger.info(f"YouTube API fallback successful for {video_id}")
+            return fallback_result
         raise Exception(f"Failed to fetch transcript: {str(e)}")
 
 

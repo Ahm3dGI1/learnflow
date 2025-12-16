@@ -4,10 +4,14 @@ Handles video creation, caching, and metadata fetching.
 """
 
 import json
+import os
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 
 from models import Video, UserVideoProgress
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def get_or_create_video(youtube_video_id, db):
@@ -333,11 +337,70 @@ def get_video_with_cache(youtube_video_id, db):
     }
 
 
+def _fetch_metadata_youtube_api(youtube_video_id):
+    """
+    Fallback method to fetch metadata using YouTube Data API v3.
+    
+    Args:
+        youtube_video_id: YouTube video ID
+        
+    Returns:
+        Metadata dictionary or None if failed
+    """
+    try:
+        from googleapiclient.discovery import build
+        from isodate import parse_duration
+        
+        api_key = os.getenv('YOUTUBE_API_KEY')
+        if not api_key:
+            logger.warning("YOUTUBE_API_KEY not set, skipping YouTube API fallback for metadata")
+            return None
+            
+        youtube = build('youtube', 'v3', developerKey=api_key)
+        
+        response = youtube.videos().list(
+            part='snippet,contentDetails',
+            id=youtube_video_id
+        ).execute()
+        
+        if not response.get('items'):
+            logger.warning(f"No video metadata found via YouTube API for {youtube_video_id}")
+            return None
+        
+        video = response['items'][0]
+        snippet = video['snippet']
+        content_details = video['contentDetails']
+        
+        # Parse ISO 8601 duration (PT1H2M10S format)
+        duration_seconds = int(parse_duration(content_details['duration']).total_seconds())
+        
+        # Get best thumbnail
+        thumbnails = snippet['thumbnails']
+        thumbnail_url = (thumbnails.get('maxres') or thumbnails.get('high') or 
+                        thumbnails.get('medium') or thumbnails.get('default', {})).get('url')
+        
+        return {
+            "title": snippet['title'],
+            "description": snippet.get('description', ''),
+            "thumbnailUrl": thumbnail_url,
+            "durationSeconds": duration_seconds,
+            "author": snippet['channelTitle'],
+            "publishDate": snippet['publishedAt']
+        }
+        
+    except ImportError as e:
+        logger.warning(f"Missing required library for YouTube API fallback: {e}")
+        return None
+    except Exception as e:
+        logger.warning(f"YouTube API fallback failed for {youtube_video_id}: {e}")
+        return None
+
+
 def fetch_youtube_metadata(youtube_video_id):
     """
     Fetch video metadata from YouTube (title, description, thumbnail, duration).
 
-    Uses pytubefix library to fetch metadata without downloading video.
+    Uses pytubefix library first, with YouTube Data API v3 as fallback.
 
     Args:
         youtube_video_id: YouTube video ID (11 characters)
@@ -354,8 +417,9 @@ def fetch_youtube_metadata(youtube_video_id):
         }
 
     Raises:
-        Exception: If metadata fetch fails
+        Exception: If all metadata fetch methods fail
     """
+    # Try pytubefix first
     try:
         from pytubefix import YouTube
 
@@ -371,9 +435,18 @@ def fetch_youtube_metadata(youtube_video_id):
             "publishDate": yt.publish_date.isoformat() if yt.publish_date else None
         }
     except ImportError:
-        raise Exception("pytubefix library not installed. Run: pip install pytubefix")
+        logger.warning("pytubefix library not installed, attempting YouTube API fallback for metadata")
     except Exception as e:
-        raise Exception(f"Failed to fetch YouTube metadata: {str(e)}")
+        logger.warning(f"pytubefix failed for {youtube_video_id}: {e}, attempting YouTube API fallback")
+    
+    # Fallback to YouTube Data API
+    metadata = _fetch_metadata_youtube_api(youtube_video_id)
+    if metadata:
+        logger.info(f"Successfully fetched metadata via YouTube API for {youtube_video_id}")
+        return metadata
+    
+    logger.error(f"Failed to fetch YouTube metadata for {youtube_video_id} using all available methods")
+    raise Exception(f"Failed to fetch YouTube metadata for {youtube_video_id} using all available methods")
 
 
 def get_user_video_history(user_id, db, limit=50):
@@ -502,7 +575,7 @@ def save_video_to_history(user_id, youtube_video_id, last_position_seconds, is_c
 
     except Exception as e:
         db.rollback()
-        print(f"Error saving video to history: {e}")
+        logger.error(f"Error saving video to history: {e}")
         return None
 
 
@@ -539,7 +612,7 @@ def delete_video_from_history(user_id, youtube_video_id, db):
 
     except Exception as e:
         db.rollback()
-        print(f"Error deleting video from history: {e}")
+        logger.error(f"Error deleting video from history: {e}")
         return False
 
 
@@ -564,5 +637,5 @@ def clear_video_history(user_id, db):
 
     except Exception as e:
         db.rollback()
-        print(f"Error clearing video history: {e}")
+        logger.error(f"Error clearing video history: {e}")
         return 0

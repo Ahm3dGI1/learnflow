@@ -78,7 +78,25 @@ expect(fn).toHaveBeenCalledWith('arg1', 'arg2')
 ## Examples
 
 See existing test files for reference:
-- **CheckpointPopup.test.js** - MCQ component with state
+- **CheckpointPopup.test.js** - MCQ component with state (493 lines, 50+ tests)
+- **CheckpointProgressBar.test.js** - Timeline component with backend data (44 tests) ✨ NEW
+- **ChatInterface.test.js** - Chat UI with real-time streaming (40 tests) ✨ NEW
 - **InputBar.test.js** - Simple input component
-- **VideoHistoryCard.test.js** - Card with interactions
+- **Quiz.test.js** - Multi-question quiz component
 - **QuizResults.test.js** - Conditional rendering
+- **VideoHistoryCard.test.js** - Card with interactions
+
+### Test Coverage Summary
+
+| Component | Tests | Coverage Areas |
+|-----------|-------|----------------|
+| ChatInterface | 40 | Rendering, history loading, transcript handling, message submission, streaming, error handling, accessibility |
+| CheckpointProgressBar | 44 | Rendering, positioning, completion status, click/keyboard interactions, time formatting, progress summary |
+| CheckpointPopup | 50+ | MCQ format, answer selection, feedback, keyboard navigation |
+| Quiz | 30+ | Question display, answer tracking, submission, validation |
+| QuizResults | 10+ | Score display, pass/fail states, retry functionality |
+| InputBar | 10+ | Text input, submission, validation |
+| VideoHistoryCard | 10+ | Card display, click handling, metadata |
+
+**Total: 200+ comprehensive tests**
+

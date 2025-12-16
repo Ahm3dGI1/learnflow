@@ -7,7 +7,7 @@
  * 
  * @module VideoHistoryCard
  */
-import {useState} from 'react'
+import { useState } from 'react'
 
 import "./VideoHistoryCard.css";
 
@@ -24,7 +24,7 @@ import "./VideoHistoryCard.css";
  * @param {string} props.video.videoId - YouTube video ID
  * @param {string} props.video.title - Video title
  * @param {string} props.video.thumbnailUrl - Thumbnail image URL
- * @param {string} props.video.lastViewedAt - ISO timestamp of last view
+ * @param {string} props.video.lastWatchedAt - ISO timestamp of last view
  * @param {Object} [props.progress] - Optional progress data
  * @param {number} props.progress.progressPercentage - Percentage completed (0-100)
  * @param {boolean} props.progress.isCompleted - Whether video is fully watched
@@ -134,7 +134,7 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
         <h4 className="video-title" onClick={() => onSelect(video)}>
           {video.title}
         </h4>
-        <p className="video-date">Last viewed {formatDate(video.lastViewedAt)}</p>
+        <p className="video-date">Last viewed {formatDate(video.lastWatchedAt)}</p>
         {progress && !progress.isCompleted && (
           <p className="video-progress">{Math.round(progress.progressPercentage)}% watched</p>
         )}
@@ -142,7 +142,7 @@ export default function VideoHistoryCard({ video, progress, onSelect, onDelete }
 
       <button
         className="delete-button"
-        onClick={() => onDelete(video.id)}
+        onClick={() => onDelete(video.videoId)}
         aria-label="Delete from history"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
