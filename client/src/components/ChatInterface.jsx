@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { llmService, videoService } from '../services';
 import '../pages/Auth.css'; // Import auth styles for glass variables
@@ -120,51 +120,12 @@ export default function ChatInterface({ videoId, videoTitle }) {
     };
 
     /**
-     * Scroll Effect
-     * Scrolls to bottom for new messages, but not when loading older messages.
-     * Only scrolls if user was already at bottom.
-     */
-    useEffect(() => {
-        const container = messagesContainerRef.current;
-        if (!container) return;
-
-        // Only auto-scroll if we're at the bottom or if this is the first load
-        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-        const isFirstLoad = chatOffset === 0;
-        
-        if (isAtBottom || isFirstLoad) {
-            scrollToBottom();
-        }
-    }, [messages, chatOffset]);
-
-    /**
-     * Auto-load Messages on Scroll Effect
-     * 
-     * Detects when user scrolls to top of chat and automatically loads earlier messages.
-     * Threshold: When scroll position is within 50px of top, triggers load.
-     */
-    useEffect(() => {
-        const container = messagesContainerRef.current;
-        if (!container) return;
-
-        const handleScroll = () => {
-            // Check if user scrolled to top (within 50px)
-            if (container.scrollTop < 50 && chatHasMore && !chatLoading) {
-                loadMoreMessages();
-            }
-        };
-
-        container.addEventListener('scroll', handleScroll);
-        return () => container.removeEventListener('scroll', handleScroll);
-    }, [chatHasMore, chatLoading, chatOffset, videoId, user]);
-
-    /**
      * Load More Chat Messages
      * 
      * Fetches the next batch of chat messages for pagination.
      * Prepends to existing messages and maintains scroll position.
      */
-    const loadMoreMessages = async () => {
+    const loadMoreMessages = useCallback(async () => {
         const userId = user?.id ?? user?.uid;
         if (!userId || !videoId || chatLoading || !chatHasMore) return;
 
@@ -201,7 +162,46 @@ export default function ChatInterface({ videoId, videoTitle }) {
         } finally {
             setChatLoading(false);
         }
-    };
+    }, [videoId, user, chatLoading, chatHasMore, chatOffset]);
+
+    /**
+     * Scroll Effect
+     * Scrolls to bottom for new messages, but not when loading older messages.
+     * Only scrolls if user was already at bottom.
+     */
+    useEffect(() => {
+        const container = messagesContainerRef.current;
+        if (!container) return;
+
+        // Only auto-scroll if we're at the bottom or if this is the first load
+        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+        const isFirstLoad = chatOffset === 0;
+        
+        if (isAtBottom || isFirstLoad) {
+            scrollToBottom();
+        }
+    }, [messages, chatOffset]);
+
+    /**
+     * Auto-load Messages on Scroll Effect
+     * 
+     * Detects when user scrolls to top of chat and automatically loads earlier messages.
+     * Threshold: When scroll position is within 50px of top, triggers load.
+     */
+    useEffect(() => {
+        const container = messagesContainerRef.current;
+        if (!container) return;
+
+        const handleScroll = () => {
+            // Check if user scrolled to top (within 50px)
+            if (container.scrollTop < 50 && chatHasMore && !chatLoading) {
+                loadMoreMessages();
+            }
+        };
+
+        container.addEventListener('scroll', handleScroll);
+        return () => container.removeEventListener('scroll', handleScroll);
+    }, [chatHasMore, chatLoading, loadMoreMessages]);
 
     /**
      * Handle Message Submission
