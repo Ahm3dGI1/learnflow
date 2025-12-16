@@ -383,6 +383,39 @@ const llmService = {
       throw error;
     }
   },
+
+  /**
+   * Generate flashcards from video content
+   * @param {string} userId - User ID for personalized generation
+   * @param {string} videoId - Video ID to generate flashcards from
+   * @param {object} options - Generation options
+   * @param {number} options.count - Number of flashcards to generate (default: 10)
+   * @param {string} options.difficulty - Overall difficulty level ('easy', 'medium', 'hard', 'mixed')
+   * @param {boolean} options.includeDefinitions - Include definition-based cards
+   * @param {boolean} options.includeConcepts - Include concept-based cards
+   * @returns {Promise<Array>} Generated flashcards array
+   * @example
+   * const flashcards = await llmService.generateFlashcards(userId, videoId, { count: 10 });
+   * // Returns: [{ id, question, answer, difficulty, type, hints, explanation, tags }]
+   */
+  generateFlashcards: async (userId, videoId, options = {}) => {
+    try {
+      const body = {
+        userId,
+        videoId,
+        count: options.count || 10,
+        difficulty: options.difficulty || 'mixed',
+        includeDefinitions: options.includeDefinitions !== false,
+        includeConcepts: options.includeConcepts !== false,
+      };
+
+      const response = await api.post('/api/llm/flashcards/generate', body, {}, false);
+      return response.flashcards || [];
+    } catch (error) {
+      console.error('Error generating flashcards:', error);
+      throw error;
+    }
+  },
 };
 
 export default llmService;

@@ -25,9 +25,11 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import VideoPage from "./pages/VideoPage";
 import QuizPage from "./pages/QuizPage";
+import FlashcardsPage from "./pages/FlashcardsPage";
 import ForgotPassword from "./pages/ForgotPassword";
 import Toast from "./components/Toast";
 import useToast from "./hooks/useToast";
+import { isFeatureEnabled } from "./config/featureFlags";
 
 export default function App() {
   const toast = useToast();
@@ -67,6 +69,17 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          {/* Conditional Flashcard Route - Only if feature is enabled */}
+          {isFeatureEnabled('FLASHCARDS_ENABLED') && (
+            <Route
+              path="/video/:videoId/flashcards"
+              element={
+                <ProtectedRoute>
+                  <FlashcardsPage />
+                </ProtectedRoute>
+              }
+            />
+          )}
         </Routes>
         {/* Global toast notifications */}
         <Toast toasts={toast.toasts} onDismiss={toast.dismiss} />

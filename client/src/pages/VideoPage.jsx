@@ -15,6 +15,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { BookOpen, Brain } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import VideoPlayer from "../components/VideoPlayer";
 import CheckpointPopup from "../components/CheckpointPopup";
@@ -22,6 +23,7 @@ import VideoSummary from "../components/VideoSummary";
 import CheckpointProgressBar from "../components/CheckpointProgressBar";
 import ChatInterface from "../components/ChatInterface";
 import { videoService, llmService, progressService } from "../services";
+import { isFeatureEnabled } from "../config/featureFlags";
 import "./VideoPage.css";
 
 /**
@@ -450,15 +452,30 @@ export default function VideoPage() {
             <div className="video-header-row">
               <h1 className="video-title">{video?.title || "Untitled Video"}</h1>
 
-              {/* Quiz Button - Always visible if transcript exists */}
+              {/* Action Buttons - Always visible if transcript exists */}
               {video?.transcript && (
-                <button
-                  className="take-quiz-button"
-                  onClick={() => navigate(`/video/${videoId}/quiz`)}
-                  aria-label="Take quiz for this video"
-                >
-                  Take Quiz
-                </button>
+                <div className="video-action-buttons">
+                  <button
+                    className="take-quiz-button"
+                    onClick={() => navigate(`/video/${videoId}/quiz`)}
+                    aria-label="Take quiz for this video"
+                  >
+                    <BookOpen size={18} />
+                    Take Quiz
+                  </button>
+                  
+                  {/* Flashcard Button - Only show if feature is enabled */}
+                  {isFeatureEnabled('FLASHCARDS_ENABLED') && (
+                    <button
+                      className="flashcards-button"
+                      onClick={() => navigate(`/video/${videoId}/flashcards`)}
+                      aria-label="Generate and study flashcards"
+                    >
+                      <Brain size={18} />
+                      Flashcards
+                    </button>
+                  )}
+                </div>
               )}
             </div>
 
