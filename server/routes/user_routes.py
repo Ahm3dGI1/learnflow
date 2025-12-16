@@ -19,6 +19,24 @@ user_bp = Blueprint("user", __name__, url_prefix="/api/users")
 @user_bp.route("/me", methods=["GET"])
 @auth_required
 def get_current_user():
+    """
+    GET /api/users/me
+    Fetch the currently authenticated user's profile.
+
+    Expects:
+        Authorization: Bearer <firebase-id-token>
+
+    Behavior:
+        - Reads Firebase token claims from `flask.g.firebase_user`.
+        - Retrieves the user record from the database by Firebase UID.
+        - Returns the user's profile data.
+
+    Returns:
+        (json, 200): User profile data including id, firebaseUid, email,
+            displayName, createdAt, and updatedAt.
+        (json, 401): If token is missing or invalid (handled by decorator).
+        (json, 404): If user is not found in the database.
+    """
     claims = getattr(g, "firebase_user", {})
     firebase_uid = claims.get("uid")
     logger.info("Fetching current user", extra={"user_id": firebase_uid})
