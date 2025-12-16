@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { llmService, videoService } from '../services';
 import '../pages/Auth.css'; // Import auth styles for glass variables
@@ -26,7 +26,11 @@ export default function ChatInterface({ videoId, videoTitle }) {
     const [loading, setLoading] = useState(false);
     const [transcriptText, setTranscriptText] = useState(null);
     const [transcriptLanguage, setTranscriptLanguage] = useState('en');
+    const [chatOffset, setChatOffset] = useState(0);
+    const [chatHasMore, setChatHasMore] = useState(false);
+    const [chatLoading, setChatLoading] = useState(false);
     const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef(null);
 
     const TRANSCRIPT_CHAR_LIMIT = 12000; // Protect request size
 
@@ -44,19 +48,24 @@ export default function ChatInterface({ videoId, videoTitle }) {
             if (!userId || !videoId) return;
 
             try {
-                const history = await llmService.getChatHistory(videoId, userId);
-                if (isMounted && history && history.messages) {
-                    // Map backend messages to UI format
-                    const formattedMessages = history.messages.map(msg => ({
+                setChatLoading(true);
+                const response = await llmService.getChatHistory(videoId, userId, 20, 0);
+                if (isMounted && response && response.data) {
+                    // Map backend messages to UI format from new pagination structure
+                    const formattedMessages = response.data.map(msg => ({
                         role: msg.role,
                         content: msg.message,
                         timestamp: msg.timestamp_context
                     }));
                     setMessages(formattedMessages);
+                    setChatOffset(0);
+                    setChatHasMore(response.pagination?.hasMore || false);
                 }
             } catch (err) {
                 console.error('Failed to load chat history:', err);
                 // Graceful degradation - just don't show history
+            } finally {
+                setChatLoading(false);
             }
         }
 
@@ -111,12 +120,88 @@ export default function ChatInterface({ videoId, videoTitle }) {
     };
 
     /**
+     * Load More Chat Messages
+     * 
+     * Fetches the next batch of chat messages for pagination.
+     * Prepends to existing messages and maintains scroll position.
+     */
+    const loadMoreMessages = useCallback(async () => {
+        const userId = user?.id ?? user?.uid;
+        if (!userId || !videoId || chatLoading || !chatHasMore) return;
+
+        try {
+            setChatLoading(true);
+            const container = messagesContainerRef.current;
+            const scrollHeightBefore = container?.scrollHeight || 0;
+
+            const newOffset = chatOffset + 20;
+            const response = await llmService.getChatHistory(videoId, userId, 20, newOffset);
+            
+            if (response && response.data) {
+                const formattedMessages = response.data.map(msg => ({
+                    role: msg.role,
+                    content: msg.message,
+                    timestamp: msg.timestamp_context
+                }));
+                // Prepend older messages to the top
+                setMessages(prev => [...formattedMessages, ...prev]);
+                setChatOffset(newOffset);
+                setChatHasMore(response.pagination?.hasMore || false);
+
+                // Maintain scroll position: scroll to where we were before
+                if (container) {
+                    setTimeout(() => {
+                        const scrollHeightAfter = container.scrollHeight;
+                        const newScrollTop = scrollHeightAfter - scrollHeightBefore + container.scrollTop;
+                        container.scrollTop = newScrollTop;
+                    }, 0);
+                }
+            }
+        } catch (err) {
+            console.error('Failed to load more chat messages:', err);
+        } finally {
+            setChatLoading(false);
+        }
+    }, [videoId, user, chatLoading, chatHasMore, chatOffset]);
+
+    /**
      * Scroll Effect
-     * Trigger scroll to bottom whenever messages array changes.
+     * Scrolls to bottom for new messages, but not when loading older messages.
+     * Only scrolls if user was already at bottom.
      */
     useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
+        const container = messagesContainerRef.current;
+        if (!container) return;
+
+        // Only auto-scroll if we're at the bottom or if this is the first load
+        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+        const isFirstLoad = chatOffset === 0;
+        
+        if (isAtBottom || isFirstLoad) {
+            scrollToBottom();
+        }
+    }, [messages, chatOffset]);
+
+    /**
+     * Auto-load Messages on Scroll Effect
+     * 
+     * Detects when user scrolls to top of chat and automatically loads earlier messages.
+     * Threshold: When scroll position is within 50px of top, triggers load.
+     */
+    useEffect(() => {
+        const container = messagesContainerRef.current;
+        if (!container) return;
+
+        const handleScroll = () => {
+            // Check if user scrolled to top (within 50px)
+            if (container.scrollTop < 50 && chatHasMore && !chatLoading) {
+                loadMoreMessages();
+            }
+        };
+
+        container.addEventListener('scroll', handleScroll);
+        return () => container.removeEventListener('scroll', handleScroll);
+    }, [chatHasMore, chatLoading, loadMoreMessages]);
 
     /**
      * Handle Message Submission
@@ -191,12 +276,23 @@ export default function ChatInterface({ videoId, videoTitle }) {
                 <p className="chat-header-sub">Ask questions about the video content</p>
             </div>
 
-            <div className="chat-messages">
+            <div className="chat-messages" ref={messagesContainerRef}>
                 {messages.length === 0 && (
                     <div className="chat-placeholder">
                         <div className="chat-placeholder-emoji">👋</div>
                         <h3 className="chat-placeholder-title">Hello!</h3>
                         <p className="chat-placeholder-text">I'm your AI Tutor. Ask me anything about this video!</p>
+                    </div>
+                )}
+                {chatHasMore && messages.length > 0 && (
+                    <div className="chat-load-more-container">
+                        <button 
+                            onClick={loadMoreMessages}
+                            disabled={chatLoading}
+                            className="chat-load-more-button"
+                        >
+                            {chatLoading ? 'Loading...' : 'Load Earlier Messages'}
+                        </button>
                     </div>
                 )}
                 {messages.map((msg, idx) => (

@@ -281,19 +281,19 @@ class TestChatHistoryEndpoint:
         assert response.status_code == 200
         data = response.get_json()
         
-        assert 'messages' in data
+        assert 'data' in data
         assert 'videoId' in data
-        assert 'totalMessages' in data
+        assert 'pagination' in data
         assert data['videoId'] == test_data['video'].youtube_video_id
-        assert data['totalMessages'] == 3
-        assert len(data['messages']) == 3
+        assert data['pagination']['total'] == 3
+        assert len(data['data']) == 3
         
         # Check message order (should be ascending by creation time)
-        assert data['messages'][0]['role'] == 'user'
-        assert data['messages'][0]['message'] == 'What is photosynthesis?'
-        assert data['messages'][1]['role'] == 'assistant'
-        assert data['messages'][2]['role'] == 'user'
-        assert data['messages'][2]['message'] == 'Can you explain it in simpler terms?'
+        assert data['data'][0]['role'] == 'user'
+        assert data['data'][0]['message'] == 'What is photosynthesis?'
+        assert data['data'][1]['role'] == 'assistant'
+        assert data['data'][2]['role'] == 'user'
+        assert data['data'][2]['message'] == 'Can you explain it in simpler terms?'
 
     def test_get_history_no_userId(self, client, test_data):
         """Server should use authenticated user when userId is omitted."""
@@ -311,8 +311,8 @@ class TestChatHistoryEndpoint:
 
         assert response.status_code == 200
         data = response.get_json()
-        assert 'messages' in data
-        assert len(data['messages']) == 3
+        assert 'data' in data
+        assert len(data['data']) == 3
 
     def test_get_history_unauthorized(self, client, test_data):
         """Test get history without authentication."""
@@ -351,7 +351,7 @@ class TestChatHistoryEndpoint:
 
         assert response.status_code == 200
         data = response.get_json()
-        assert data['messages'] == []
+        assert data['data'] == []
 
     def test_get_history_video_not_found(self, client, test_data):
         """Test get history for non-existent video."""
@@ -400,8 +400,9 @@ class TestChatHistoryEndpoint:
 
         assert response.status_code == 200
         data = response.get_json()
-        assert data['totalMessages'] == 0
-        assert len(data['messages']) == 0
+        assert 'pagination' in data
+        assert data['pagination']['total'] == 0
+        assert len(data['data']) == 0
 
     def test_get_history_with_limit(self, client, test_data):
         """Test get history with limit parameter."""
@@ -419,8 +420,10 @@ class TestChatHistoryEndpoint:
 
         assert response.status_code == 200
         data = response.get_json()
-        assert len(data['messages']) == 2
-        assert data['totalMessages'] == 2
+        assert 'pagination' in data
+        assert len(data['data']) == 2
+        assert data['pagination']['limit'] == 2
+        assert data['pagination']['total'] == 3
 
 
 class TestSessionIdGeneration:
@@ -492,3 +495,247 @@ class TestSessionIdGeneration:
         assert response.status_code == 200
         data = response.get_json()
         assert data['sessionId'] == custom_session_id
+
+
+class TestChatHistoryPagination:
+    """Tests for chat history pagination features."""
+
+    def test_pagination_with_offset(self, client, test_data, session):
+        """Test pagination with offset parameter to fetch different pages."""
+        # Add more messages to test pagination (we already have 3)
+        for i in range(22):
+            msg = ChatMessage(
+                user_id=test_data['user'].id,
+                video_id=test_data['video'].id,
+                role='user' if i % 2 == 0 else 'assistant',
+                message=f'Message {i + 4}',
+                session_id=test_data['session_id'],
+                timestamp_context='10:00',
+                created_at=datetime.now(timezone.utc)
+            )
+            session.add(msg)
+        session.commit()
+
+        claims = {
+            'uid': test_data['user'].firebase_uid,
+            'email': test_data['user'].email,
+            'name': test_data['user'].display_name
+        }
+
+        # Fetch page 1 (first 10)
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            response = client.get(
+                f'/api/llm/chat/history/{test_data["video"].youtube_video_id}?limit=10&offset=0',
+                headers={'Authorization': 'Bearer faketoken'}
+            )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert 'pagination' in data
+        assert data['pagination']['total'] == 25
+        assert data['pagination']['limit'] == 10
+        assert data['pagination']['offset'] == 0
+        assert data['pagination']['hasMore'] is True
+        assert len(data['data']) == 10
+
+        # Fetch page 2 (next 10)
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            response = client.get(
+                f'/api/llm/chat/history/{test_data["video"].youtube_video_id}?limit=10&offset=10',
+                headers={'Authorization': 'Bearer faketoken'}
+            )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['pagination']['total'] == 25
+        assert data['pagination']['limit'] == 10
+        assert data['pagination']['offset'] == 10
+        assert data['pagination']['hasMore'] is True
+        assert len(data['data']) == 10
+
+        # Fetch page 3 (last 5)
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            response = client.get(
+                f'/api/llm/chat/history/{test_data["video"].youtube_video_id}?limit=10&offset=20',
+                headers={'Authorization': 'Bearer faketoken'}
+            )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['pagination']['total'] == 25
+        assert data['pagination']['limit'] == 10
+        assert data['pagination']['offset'] == 20
+        assert data['pagination']['hasMore'] is False
+        assert len(data['data']) == 5
+
+    def test_pagination_hasMore_flag(self, client, test_data, session):
+        """Test that hasMore flag is correctly set."""
+        # Add more messages (we have 3, add 12 more for total of 15)
+        for i in range(12):
+            msg = ChatMessage(
+                user_id=test_data['user'].id,
+                video_id=test_data['video'].id,
+                role='user' if i % 2 == 0 else 'assistant',
+                message=f'Extra message {i + 1}',
+                session_id=test_data['session_id'],
+                timestamp_context='11:00',
+                created_at=datetime.now(timezone.utc)
+            )
+            session.add(msg)
+        session.commit()
+
+        claims = {
+            'uid': test_data['user'].firebase_uid,
+            'email': test_data['user'].email,
+            'name': test_data['user'].display_name
+        }
+
+        # Test hasMore=True when there's more data
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            response = client.get(
+                f'/api/llm/chat/history/{test_data["video"].youtube_video_id}?limit=10&offset=0',
+                headers={'Authorization': 'Bearer faketoken'}
+            )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['pagination']['hasMore'] is True
+
+        # Test hasMore=False when we're at the end
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            response = client.get(
+                f'/api/llm/chat/history/{test_data["video"].youtube_video_id}?limit=10&offset=10',
+                headers={'Authorization': 'Bearer faketoken'}
+            )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['pagination']['hasMore'] is False
+        assert len(data['data']) == 5
+
+        # Test hasMore=False when fetching all at once
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            response = client.get(
+                f'/api/llm/chat/history/{test_data["video"].youtube_video_id}?limit=20&offset=0',
+                headers={'Authorization': 'Bearer faketoken'}
+            )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['pagination']['hasMore'] is False
+        assert len(data['data']) == 15
+
+    def test_pagination_offset_beyond_total(self, client, test_data):
+        """Test pagination when offset is beyond total count."""
+        claims = {
+            'uid': test_data['user'].firebase_uid,
+            'email': test_data['user'].email,
+            'name': test_data['user'].display_name
+        }
+
+        # Request offset beyond total (we only have 3 messages from test_data)
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            response = client.get(
+                f'/api/llm/chat/history/{test_data["video"].youtube_video_id}?limit=10&offset=100',
+                headers={'Authorization': 'Bearer faketoken'}
+            )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['pagination']['total'] == 3
+        assert data['pagination']['offset'] == 100
+        assert data['pagination']['hasMore'] is False
+        assert len(data['data']) == 0
+
+    def test_pagination_invalid_limit(self, client, test_data):
+        """Test validation of limit parameter."""
+        claims = {
+            'uid': test_data['user'].firebase_uid,
+            'email': test_data['user'].email,
+            'name': test_data['user'].display_name
+        }
+
+        # Test limit = 0
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            response = client.get(
+                f'/api/llm/chat/history/{test_data["video"].youtube_video_id}?limit=0',
+                headers={'Authorization': 'Bearer faketoken'}
+            )
+
+        assert response.status_code == 400
+        assert 'Invalid limit parameter. Must be between 1 and 1000.' in response.get_json()['error']
+
+        # Test limit > 1000
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            response = client.get(
+                f'/api/llm/chat/history/{test_data["video"].youtube_video_id}?limit=1001',
+                headers={'Authorization': 'Bearer faketoken'}
+            )
+
+        assert response.status_code == 400
+        assert 'Invalid limit parameter. Must be between 1 and 1000.' in response.get_json()['error']
+
+        # Test negative limit
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            response = client.get(
+                f'/api/llm/chat/history/{test_data["video"].youtube_video_id}?limit=-5',
+                headers={'Authorization': 'Bearer faketoken'}
+            )
+
+        assert response.status_code == 400
+        assert 'Invalid limit parameter. Must be between 1 and 1000.' in response.get_json()['error']
+
+    def test_pagination_invalid_offset(self, client, test_data):
+        """Test validation of offset parameter."""
+        claims = {
+            'uid': test_data['user'].firebase_uid,
+            'email': test_data['user'].email,
+            'name': test_data['user'].display_name
+        }
+
+        # Test negative offset
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            response = client.get(
+                f'/api/llm/chat/history/{test_data["video"].youtube_video_id}?offset=-10',
+                headers={'Authorization': 'Bearer faketoken'}
+            )
+
+        assert response.status_code == 400
+        assert 'Invalid offset parameter. Must be >= 0.' in response.get_json()['error']
+
+    def test_pagination_default_values(self, client, test_data, session):
+        """Test that default pagination values are applied correctly."""
+        # Add messages to go over default limit (we have 3, add 27 more for 30 total)
+        for i in range(27):
+            msg = ChatMessage(
+                user_id=test_data['user'].id,
+                video_id=test_data['video'].id,
+                role='user' if i % 2 == 0 else 'assistant',
+                message=f'Default test message {i + 1}',
+                session_id=test_data['session_id'],
+                timestamp_context='12:00',
+                created_at=datetime.now(timezone.utc)
+            )
+            session.add(msg)
+        session.commit()
+
+        claims = {
+            'uid': test_data['user'].firebase_uid,
+            'email': test_data['user'].email,
+            'name': test_data['user'].display_name
+        }
+
+        # Request without limit/offset params
+        with patch(VERIFY_PATCH_PATH, return_value=claims):
+            response = client.get(
+                f'/api/llm/chat/history/{test_data["video"].youtube_video_id}',
+                headers={'Authorization': 'Bearer faketoken'}
+            )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['pagination']['limit'] == 20  # Default limit
+        assert data['pagination']['offset'] == 0  # Default offset
+        assert data['pagination']['total'] == 30
+        assert data['pagination']['hasMore'] is True
+        assert len(data['data']) == 20

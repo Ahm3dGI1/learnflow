@@ -248,19 +248,23 @@ const videoService = {
   },
 
   /**
-   * Get user's video watch history from server
+   * Get user's video watch history from server with pagination
    * @param {string} firebaseUid - Firebase user ID
-   * @param {number} limit - Maximum number of videos to return (default: 50, max: 100)
-   * @returns {Promise<array>} Array of video history entries
+   * @param {number} [limit=20] - Maximum number of videos to return (max: 1000)
+   * @param {number} [offset=0] - Number of videos to skip for pagination
+   * @returns {Promise<object>} Paginated video history with pagination metadata
    * @example
-   * const history = await videoService.getVideoHistory(user.uid, 50);
-   * // Returns: [{ videoId, title, thumbnailUrl, lastPositionSeconds, lastWatchedAt, isCompleted, watchCount }, ...]
+   * const result = await videoService.getVideoHistory(user.uid, 20, 0);
+   * // Returns: { data: [...], pagination: { limit, offset, total, hasMore } }
    */
-  getVideoHistory: async (firebaseUid, limit = 50) => {
+  getVideoHistory: async (firebaseUid, limit = 20, offset = 0) => {
     try {
-      const queryParam = limit !== 50 ? `?limit=${limit}` : '';
-      const response = await api.get(`/api/videos/history/${firebaseUid}${queryParam}`);
-      return response.data || [];
+      const queryParams = new URLSearchParams({
+        limit: limit.toString(),
+        offset: offset.toString()
+      });
+      const response = await api.get(`/api/videos/history/${firebaseUid}?${queryParams.toString()}`);
+      return response || { data: [], pagination: { limit, offset, total: 0, hasMore: false } };
     } catch (error) {
       console.error('Error fetching video history:', error);
       throw error;

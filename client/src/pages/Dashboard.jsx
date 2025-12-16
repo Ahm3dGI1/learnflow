@@ -53,7 +53,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [videoUrl, setVideoUrl] = useState("");
   const [progressMap, setProgressMap] = useState({});
-  const { history, addToHistory, removeFromHistory, clearHistory } = useVideoHistory();
+  const { history, addToHistory, removeFromHistory, clearHistory, loadMore, hasMore, totalCount, loading: historyLoading } = useVideoHistory();
 
   /**
    * Fetch Progress Data for History Videos
@@ -228,6 +228,20 @@ export default function Dashboard() {
                 />
               ))}
             </div>
+            {hasMore && (
+              <div className="load-more-container">
+                <p className="pagination-info">
+                  Showing {history.length} of {totalCount} videos
+                </p>
+                <button 
+                  onClick={loadMore} 
+                  disabled={historyLoading}
+                  className="load-more-button"
+                >
+                  {historyLoading ? 'Loading...' : 'Load More Videos'}
+                </button>
+              </div>
+            )}
           </div>
         )}
 

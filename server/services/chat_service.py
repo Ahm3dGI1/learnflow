@@ -212,29 +212,37 @@ def save_chat_message(user_id, video_id, role, message, session_id=None, timesta
         db.close()
 
 
-def get_chat_history(video_id, user_id, limit=50):
+def get_chat_history(video_id, user_id, limit=20, offset=0):
     """
-    Retrieve chat history for a video and user.
+    Retrieve chat history for a video and user with pagination.
     
     Args:
         video_id (int): Video ID
         user_id (int): User ID
-        limit (int): Maximum number of messages to retrieve (default: 50)
+        limit (int): Maximum number of messages to retrieve (default: 20, max: 1000)
+        offset (int): Number of messages to skip (default: 0)
     
     Returns:
-        list: List of chat message dictionaries, ordered by creation time
+        dict: Dictionary with 'data' (list of messages) and 'pagination' metadata
     
     Raises:
         Exception: If database operation fails
     """
     db = SessionLocal()
     try:
+        # Get total count
+        total = db.query(ChatMessage).filter(
+            ChatMessage.video_id == video_id,
+            ChatMessage.user_id == user_id
+        ).count()
+        
+        # Get paginated messages
         messages = db.query(ChatMessage).filter(
             ChatMessage.video_id == video_id,
             ChatMessage.user_id == user_id
-        ).order_by(ChatMessage.created_at.asc()).limit(limit).all()
+        ).order_by(ChatMessage.created_at.asc()).offset(offset).limit(limit).all()
         
-        return [
+        data = [
             {
                 'id': msg.id,
                 'role': msg.role,
@@ -245,6 +253,16 @@ def get_chat_history(video_id, user_id, limit=50):
             }
             for msg in messages
         ]
+        
+        return {
+            'data': data,
+            'pagination': {
+                'limit': limit,
+                'offset': offset,
+                'total': total,
+                'hasMore': offset + limit < total
+            }
+        }
     except Exception as e:
         raise Exception(f"Failed to retrieve chat history: {str(e)}")
     finally:

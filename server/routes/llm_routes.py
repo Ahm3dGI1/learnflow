@@ -704,12 +704,13 @@ def get_chat_history_route(video_id):
     
     Query Parameters:
         userId (int): User ID
-        limit (int, optional): Maximum number of messages to return (default: 50)
+        limit (int, optional): Maximum number of messages to return (default: 20, max: 1000)
+        offset (int, optional): Number of messages to skip (default: 0)
     
     Returns:
         {
             "videoId": "abc123",
-            "messages": [
+            "data": [
                 {
                     "id": 1,
                     "role": "user",
@@ -720,7 +721,12 @@ def get_chat_history_route(video_id):
                 },
                 ...
             ],
-            "totalMessages": 10
+            "pagination": {
+                "limit": 20,
+                "offset": 0,
+                "total": 10,
+                "hasMore": false
+            }
         }
     
     Status Codes:
@@ -733,11 +739,14 @@ def get_chat_history_route(video_id):
     db = SessionLocal()
     try:
         user_id = request.args.get('userId', type=int)
-        limit = request.args.get('limit', type=int, default=50)
+        limit = request.args.get('limit', type=int, default=20)
+        offset = request.args.get('offset', type=int, default=0)
 
         # Validation
-        if limit is not None and (limit <= 0 or limit > 1000):
-            return jsonify({'error': 'limit must be between 1 and 1000'}), 400
+        if limit < 1 or limit > 1000:
+            return jsonify({'error': 'Invalid limit parameter. Must be between 1 and 1000.'}), 400
+        if offset < 0:
+            return jsonify({'error': 'Invalid offset parameter. Must be >= 0.'}), 400
         
         # Get authenticated user from Firebase token
         firebase_uid = g.firebase_user.get('uid')
@@ -755,17 +764,17 @@ def get_chat_history_route(video_id):
         if not video:
             return jsonify({'error': 'Video not found'}), 404
         
-        # Get chat history
-        messages = get_chat_history(
+        # Get chat history with pagination
+        result = get_chat_history(
             video_id=video.id,
             user_id=user_id,
-            limit=limit
+            limit=limit,
+            offset=offset
         )
         
         return jsonify({
             'videoId': video_id,
-            'messages': messages,
-            'totalMessages': len(messages)
+            **result
         }), 200
         
     except ValueError as e:
