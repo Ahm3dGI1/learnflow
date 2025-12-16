@@ -30,6 +30,8 @@ export default function QuizPage() {
 
   /**
    * Set up error service toast callback (once on mount)
+   * Note: toast methods are stable useCallback refs, so we exclude toast from deps
+   * to prevent infinite re-renders when toasts array changes
    */
   useEffect(() => {
     errorService.setToastCallback((message, severity) => {
@@ -41,7 +43,8 @@ export default function QuizPage() {
         toast.info(message);
       }
     });
-  }, [toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /**
    * Fetch Video and Generate Quiz
@@ -98,7 +101,8 @@ export default function QuizPage() {
     };
 
     fetchQuiz();
-  }, [videoId, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoId]);
 
   /**
    * Handle Option Selection
