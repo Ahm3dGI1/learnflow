@@ -90,15 +90,17 @@ rate_limiter = RateLimiter()
 def rate_limit(max_requests, window_seconds, scope='user'):
     """
     Decorator to enforce rate limiting on endpoints.
-    
+
+    NOTE: Currently DISABLED for testing. Set RATE_LIMIT_ENABLED=true to enable.
+
     Args:
         max_requests (int): Maximum requests allowed in window
         window_seconds (int): Time window in seconds
         scope (str): 'user' to limit per user, 'video' to limit per video
-    
+
     Returns:
         callable: Decorated function with rate limiting
-    
+
     Example:
         @rate_limit(max_requests=10, window_seconds=60, scope='user')
         @auth_required
@@ -108,6 +110,11 @@ def rate_limit(max_requests, window_seconds, scope='user'):
     def decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
+            # Check if rate limiting is enabled (disabled by default for testing)
+            import os
+            if os.environ.get('RATE_LIMIT_ENABLED', 'false').lower() != 'true':
+                return f(*args, **kwargs)
+
             # Determine the rate limit key based on scope
             if scope == 'user':
                 # Requires @auth_required decorator before this
@@ -115,38 +122,38 @@ def rate_limit(max_requests, window_seconds, scope='user'):
                     return jsonify({
                         'error': 'Authentication required for rate limiting'
                     }), 401
-                
+
                 key = f"user:{g.firebase_user.get('uid')}"
-            
+
             elif scope == 'video':
                 # Extract video_id from request body or URL params
                 data = request.get_json(silent=True) or {}
                 video_id = data.get('videoId') or request.args.get('videoId')
-                
+
                 if not video_id:
                     return jsonify({
                         'error': 'videoId required for rate limiting'
                     }), 400
-                
+
                 key = f"video:{video_id}"
-            
+
             else:
                 return jsonify({'error': 'Invalid rate limit scope'}), 500
-            
+
             # Check rate limit
             allowed, retry_after = rate_limiter.is_allowed(
                 key, max_requests, window_seconds
             )
-            
+
             if not allowed:
                 return jsonify({
                     'error': 'Rate limit exceeded',
                     'message': f'Too many requests. Please wait {retry_after} seconds.',
                     'retryAfter': retry_after
                 }), 429
-            
+
             # Request allowed - proceed
             return f(*args, **kwargs)
-        
+
         return wrapper
     return decorator
